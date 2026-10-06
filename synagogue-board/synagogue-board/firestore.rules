@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasUser() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function approved() { return hasUser() && userDoc().status == 'approved'; }
+    function isSuper() { return approved() && userDoc().role == 'super_admin'; }
+    // approved gabbai / sub-gabbai whose synagogueId matches the path
+    function isMember(sid) { return approved() && userDoc().synagogueId == sid && userDoc().role in ['gabbai', 'sub_gabbai']; }
+    function isGabbai(sid) { return isMember(sid) && userDoc().role == 'gabbai'; }
+    // public TV screens sign in anonymously
+    function isScreen() { return signedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous'; }
+    function plan(sid) { return get(/databases/$(database)/documents/synagogues/$(sid)).data.plan; }
+    // writes are blocked for expired subscriptions and for frozen (suspended) synagogues; super admin bypasses this
+    function subscriptionOk(sid) { return plan(sid).subscriptionStatus != 'expired' && get(/databases/$(database)/documents/synagogues/$(sid)).data.get('suspended', false) == false; }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isSuper());
+      // self-registration: always pending, no synagogue yet, never a super admin
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'gabbai'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.synagogueId == null;
+      allow update, delete: if isSuper();
+    }
+
+    match /synagogues/{sid} {
+      allow read: if isSuper() || isMember(sid) || isScreen();
+      allow create, delete: if isSuper();
+      // main gabbai may edit everything except the subscription plan
+      allow update: if isSuper() || (isGabbai(sid) && subscriptionOk(sid)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan']));
+
+      // collections shown on the TV
+      match /{col}/{id} {
+        allow read: if isSuper() || isMember(sid)
+          || (isScreen() && col in ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides']);
+        // sub-gabbai: announcements only; gabbai: everything
+        allow write: if isSuper() || (subscriptionOk(sid)
+          && (isGabbai(sid) || (col == 'announcements' && isMember(sid))));
+      }
+
+      // screen heartbeat: screen index must be inside the plan's maxScreens
+      match /screens/{screenId} {
+        allow read: if isSuper() || isMember(sid);
+        allow create, update: if isSuper() || (isScreen()
+          && request.resource.data.index is int
+          && request.resource.data.index < plan(sid).maxScreens);
+      }
+    }
+  }
+}
