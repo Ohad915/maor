@@ -18,7 +18,7 @@ export const PLAN_PRESETS = {
 };
 export const defaultPlan = (tier = 'basic') => ({ planTier: tier, ...PLAN_PRESETS[tier], subscriptionStatus: 'trial', validUntil: null });
 export const DEFAULT_SETTINGS = {
-  theme: 'gold', layout: '1', zoom: 1, anim: 'fade', accent: '', title: '', bg: '',
+  theme: 'gold', layout: '1', frame: 'royal', zoom: 1, anim: 'fade', accent: '', title: '', bg: '',
   pMode: 'auto', pTitle: '', pSub: '', pSlide: false,
   shma: 'gra', candle: 30, force: false, side: 32, qs: 100,
   donTitle: '', donSub: '', payUrl: '', tkText: '',

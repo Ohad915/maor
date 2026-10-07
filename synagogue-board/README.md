@@ -1,4 +1,4 @@
-# לוח דיגיטלי חכם לבית הכנסת — Next.js + Firebase
+# מאור - ניהול בית כנסת (לוח דיגיטלי חכם) — Next.js + Firebase
 
 ## הקמה (פעם אחת)
 1. **Firebase Console** → צרו פרויקט. תחת *Authentication → Sign-in method* הפעילו **Email/Password** ו-**Anonymous** (המסך בטלוויזיה נכנס אנונימית).
@@ -26,3 +26,6 @@
 
 ## חיבור איטי / WebSockets חסומים
 המסך מציג מיד עותק שמור, ואם אין תשובה חיה תוך 4 שניות הוא קורא את הנתונים בקריאה חד-פעמית וממשיך לנסות ברקע. Firestore מוגדר לזיהוי אוטומטי של Long Polling. לכפיית Long Polling בסטרימר מסוים פתחו פעם אחת `/display?...&lp=1` (נשמר במכשיר; `lp=0` מבטל), או הגדירו `NEXT_PUBLIC_FORCE_LONG_POLLING=1`.
+
+## PWA / APK
+`public/manifest.json`, אייקונים ב-`public/icons/` ו-`public/sw.js` כבר כלולים (הקישור ב-`app/layout.js`). לאחר פריסה ל-HTTPS הדביקו את כתובת האתר ב-PWABuilder.com ← Package for stores ← Android.
