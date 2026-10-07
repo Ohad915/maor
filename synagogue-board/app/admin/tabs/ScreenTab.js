@@ -167,13 +167,19 @@ function Refuah({ sid, st, set, cols }) {
 }
 
 const DAYS = { week: 'חול', fri: 'ערב שבת', shab: 'שבת/חג', mots: 'מוצ״ש', all: 'תמיד' };
-function Prayers({ sid, cols }) {
+function Prayers({ sid, cols, st, set }) {
   const [open, setOpen] = useState(null);
   const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }), o = oe.f, setO = oe.setF;
   const pr = cols.prayers || [];
   const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
   return (<>
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לבחור: כבוי / בסרגל התחתון / בלוק בקרוסלה / מסך מלא.</p>
+    <Card title="כל זמני התפילות כשקופית">
+      <label>אופן תצוגה</label>
+      <ModeSel popup value={st.ptAll?.mode || 'off'} onChange={(v) => set('ptAll.mode', v)} />
+      <Range label="זמן תצוגה לשקופית (בשניות)" min={1} max={30} value={st.ptAll?.secs || 10} onChange={(v) => set('ptAll.secs', v)} />
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות (גם שורות בודדות שהוגדרו לקרוסלה או למסך מלא).</div>
+    </Card>
     {pr.map((r) => (
       <Card key={r.id}>
         <div className="row"><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{DAYS[r.days]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>

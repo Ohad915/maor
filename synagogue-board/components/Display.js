@@ -97,6 +97,9 @@ function Inner({ syn, cols, screenId, now, size, status }) {
   const grp = {};
   const rowsToday = rows0.filter((r) => !(r.days === 'week' && spec.has(fw(r))));
   const tOf = (r) => ovr(r)?.time || prayerTime(r, z);
+  const pa = st.ptAll || { mode: 'off', secs: 10 }, pdur = pa.secs || 10;
+  const allGrp = {};
+  rowsToday.filter((r) => (r.show ?? 'bar') !== 'off').forEach((r) => { (allGrp[fw(r)] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[fw(r)].n.push(r.note); });
   rowsToday.filter((r) => (r.show ?? 'bar') === 'bar').forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); grp[fw(r)].t.push(tOf(r)); if (r.note) grp[fw(r)].n.push(r.note); });
   const cMode = st.customs?.mode || 'auto', manual = (st.customs?.text || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const auto = [...holNames(now, !!z.shkia && z.now >= z.shkia), ...reminders(h)];
@@ -110,7 +113,8 @@ function Inner({ syn, cols, screenId, now, size, status }) {
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
-  rowsToday.filter((r) => ['block', 'full'].includes(r.show)).forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: r.show === 'full', dur: cf('ann').secs }));
+  rowsToday.filter((r) => ['block', 'full'].includes(r.show)).forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: r.show === 'full', dur: pdur }));
+  if (pa.mode && pa.mode !== 'off') slides.push({ k: 'tall', full: pa.mode === 'full', popup: pa.mode === 'popup', dur: pdur });
   const cur = slides[idx % (slides.length || 1)];
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : '');
@@ -132,14 +136,14 @@ function Inner({ syn, cols, screenId, now, size, status }) {
   useEffect(() => { if (rfPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, rf: p.rf + 1 })), cf('rf').secs * 1000); return () => clearInterval(t); }, [rfPages, cf('rf').secs]); // eslint-disable-line
 
   /* ----- heartbeat for the admin "screen health" indicator ----- */
-  const showing = cur ? (cur.a?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : 'פרשה')) : '—';
+  const showing = cur ? (cur.a?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : 'פרשה')) : '—';
   useEffect(() => {
     const beat = () => setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
     beat(); const t = setInterval(beat, sh ? 60000 : 15000); return () => clearInterval(t);
   }, [syn.id, screenId, showing, sh]);
 
   /* ----- slide content ----- */
-  let mid = null, full = null;
+  let mid = null, full = null, popup = null;
   const slide = (key, sty, lbl, body, foot, cls = '') => <div className={`an fade ${cls}`} key={key} style={sty}><div className="lb">{lbl}</div><div className="ab">{body}</div><div className="af">{foot}</div></div>;
   const emit = (el) => { if (cur.full) full = el; else mid = el; }, cl = cur?.full ? 'fsl' : '';
   if (sh) mid = <div className="an"><div className="lb">✦ הודעות לשבת ✦</div><div className="ab" style={{ justifyContent: 'flex-start' }}>{anns.map((a) => <div className="ai" key={a.id}><h3>{a.title}</h3><p>{a.content}</p></div>)}</div></div>;
@@ -148,6 +152,12 @@ function Inner({ syn, cols, screenId, now, size, status }) {
   else if (cur.k === 'm') mid = slide(idx + '-' + pg.mr, afs('mem'), '🕯 לעילוי נשמת', <><h3>{cur.m.name}</h3><p>{cur.m.gender === 'f' ? 'נפטרה' : 'נפטר'} {gem(cur.m.d)} ב{monthName(cur.m.month)}{tx && <><br />{tx}</>}</p></>, dotStr(tparts.length, pg.mr));
   else if (cur.k === 'p') mid = slide(idx, afs('pr'), '✦ פרשת השבוע ✦', <><h3>{ptitle}</h3>{st.pSub && <p>{st.pSub}</p>}</>, '');
   else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{r.name}</b>{r.note ? ' · ' + r.note : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
+  else if (cur.k === 'tall') {
+    const n = Object.keys(allGrp).length;
+    const body = <div className="ptl2" style={{ fontSize: Math.min(1, 8 / Math.max(n, 1)) + 'em' }}>{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
+    if (cur.popup) { popup = <div className="popup"><div className="pcard">{slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '')}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+    else emit(slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '', cl));
+  }
   else if (cur.k === 't') emit(slide(idx, afs('ann'), '🕍 זמני תפילות', <><h3>{cur.row.name}</h3><p>{cur.time}</p>{cur.row.note && <p>{cur.row.note}</p>}</>, '', cl));
   else emit(slide(idx + '-' + pg.mr, afs('hal'), '📖 הלכה ומנהגים', <><h3>{cur.t}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
 
@@ -207,7 +217,7 @@ function Inner({ syn, cols, screenId, now, size, status }) {
   return (
     <div className={`dp ${sh ? 'shb' : ''} fr-${frame}`} data-t={st.theme} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
-      {body}{full}
+      {body}{full}{popup}
       {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'נתונים שמורים' : status === 'error' ? 'שגיאת חיבור' : 'מצב גיבוי'}</span>}
     </div>);
 }

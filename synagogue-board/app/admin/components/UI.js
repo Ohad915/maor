@@ -28,9 +28,9 @@ export const FontSel = ({ value, onChange }) => <select value={value} onChange={
 export const ScreenSel = ({ value, onChange }) => (
   <select value={value || 'all'} onChange={(e) => onChange(e.target.value)}><option value="all">כל המסכים</option>{Object.entries(SCREEN_NAMES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>);
 /** Per-item display mode: off / carousel block / full screen (prayers also: fixed bottom bar). */
-export const ModeSel = ({ value, onChange, bar }) => (
+export const ModeSel = ({ value, onChange, bar, popup }) => (
   <select value={value || (bar ? 'bar' : 'block')} onChange={(e) => onChange(e.target.value)} title="אופן תצוגה">
-    <option value="off">כבוי</option>{bar && <option value="bar">בסרגל התחתון</option>}<option value="block">בלוק בקרוסלה</option><option value="full">מסך מלא</option>
+    <option value="off">כבוי</option>{bar && <option value="bar">בסרגל התחתון</option>}<option value="block">בלוק בקרוסלה</option><option value="full">מסך מלא</option>{popup && <option value="popup">חלון קופץ של כל זמני התפילות</option>}
   </select>);
 /** Per-component settings: font (David/Arial) and slide duration 1-30s. Text SIZE lives only in the block accordion. */
 export function DisplayCfg({ st, set, k }) {
