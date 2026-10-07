@@ -13,7 +13,8 @@ service cloud.firestore {
     // public TV screens sign in anonymously
     function isScreen() { return signedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous'; }
     function plan(sid) { return get(/databases/$(database)/documents/synagogues/$(sid)).data.plan; }
-    function subscriptionOk(sid) { return plan(sid).subscriptionStatus != 'expired'; }
+    // writes are blocked for expired subscriptions and for frozen (suspended) synagogues; super admin bypasses this
+    function subscriptionOk(sid) { return plan(sid).subscriptionStatus != 'expired' && get(/databases/$(database)/documents/synagogues/$(sid)).data.get('suspended', false) == false; }
 
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isSuper());

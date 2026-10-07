@@ -1,6 +1,6 @@
 'use client';
 import { MONTHS, gem } from '@/lib/hebrew';
-import { FONT_LABELS } from '@/lib/types';
+import { FONT_LABELS, SCREEN_NAMES } from '@/lib/types';
 
 export const Card = ({ title, children, className = '' }) => <div className={`cd ${className}`}>{title && <b>{title}</b>}{children}</div>;
 /** Text input that saves on blur (one Firestore write, not one per keystroke). */
@@ -25,13 +25,14 @@ export function HebPick({ value, onChange }) {
     </div>);
 }
 export const FontSel = ({ value, onChange }) => <select value={value} onChange={(e) => onChange(e.target.value)}>{Object.entries(FONT_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>;
-/** Per-component display settings: font (David/Arial), size 12-26, slide duration 1-30s. */
+export const ScreenSel = ({ value, onChange }) => (
+  <select value={value || 'all'} onChange={(e) => onChange(e.target.value)}><option value="all">כל המסכים</option>{Object.entries(SCREEN_NAMES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>);
+/** Per-component settings: font (David/Arial) and slide duration 1-30s. Text SIZE lives only in the block accordion. */
 export function DisplayCfg({ st, set, k }) {
-  const c = { font: 'david', size: 18, secs: 10, ...(st.cf || {})[k] };
+  const c = { font: 'david', secs: 10, ...(st.cf || {})[k] };
   return (
     <Card title="הגדרות תצוגה">
       <label>גופן</label><FontSel value={c.font} onChange={(v) => set(`cf.${k}.font`, v)} />
-      <Range label="גודל גופן" min={12} max={26} value={c.size} onChange={(v) => set(`cf.${k}.size`, v)} />
       <Range label="זמן תצוגת שקופית (שניות)" min={1} max={30} value={c.secs} onChange={(v) => set(`cf.${k}.secs`, v)} />
     </Card>);
 }

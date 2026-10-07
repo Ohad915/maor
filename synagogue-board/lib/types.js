@@ -28,4 +28,5 @@ export const DEFAULT_SETTINGS = {
 export const BLOCKS = [['cr', 'כותרת עליונה'], ['hd', 'תאריך וזמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'],
   ['mn', 'הודעות והלכה (פאנל מרכזי)'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'קוד QR לתרומות'], ['pb', 'זמני תפילות']];
 export const LAYOUTS = [['1', 'דגם 1 · קלאסי מופרד'], ['2', 'דגם 2 · כותרת משולבת'], ['3', 'דגם 3 · סימטרי מלכותי'], ['4', 'דגם 4 · מודרני מורחב']];
+export const ALL_SUBCOLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'members', 'receipts', 'donations', 'tickets', 'inventory', 'expenses', 'screens', 'private'];
 export const DISPLAY_COLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides'];

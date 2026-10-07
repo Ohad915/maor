@@ -10,7 +10,8 @@
 
 ## זרימת עבודה
 - גבאי נרשם ב-`/login` ← מצב *pending* ← אתם ב-`/super-admin` משייכים בית כנסת, בוחרים חבילה ומאשרים.
-- הגבאי מנהל ב-`/admin`. הטלוויזיה (Fully Kiosk) פותחת: `/display?s=<synagogueId>&screen=main-hall`
+- ב-`/super-admin` לכל בית כנסת: **כניסה כגבאי** (שליטה מלאה ב-`/admin?s=<id>`), **הקפא/הפשר** (הגבאי חסום והמסך מציג הודעת השהיה), **מחק** (מוחק את כל הנתונים).
+- הגבאי מנהל ב-`/admin`; כפתור **תצוגה מקדימה** פותח חלון חי של המסך. הטלוויזיה (Fully Kiosk) פותחת: `/display?s=<synagogueId>&screen=main-hall`
 
 ## מבנה Firestore
 - `users/{uid}`: uid, email, role (`super_admin|gabbai|sub_gabbai`), status (`pending|approved|rejected|suspended`), synagogueId, createdAt
@@ -22,3 +23,6 @@
 - סנכרון חי עם נדרים פלוס/משולם/Grow (דורש Cloud Function ומפתחות הספק). קיים ייבוא CSV.
 - אכיפת מגבלת הנצחות לפי חבילה בצד השרת (קיימת ב-UI בלבד). מגבלת המסכים נאכפת ב-rules לפי `index`.
 - קבלות סעיף 46: טיוטה בלבד, יש לאמת מול רואה חשבון ורשות המסים.
+
+## חיבור איטי / WebSockets חסומים
+המסך מציג מיד עותק שמור, ואם אין תשובה חיה תוך 4 שניות הוא קורא את הנתונים בקריאה חד-פעמית וממשיך לנסות ברקע. Firestore מוגדר לזיהוי אוטומטי של Long Polling. לכפיית Long Polling בסטרימר מסוים פתחו פעם אחת `/display?...&lp=1` (נשמר במכשיר; `lp=0` מבטל), או הגדירו `NEXT_PUBLIC_FORCE_LONG_POLLING=1`.

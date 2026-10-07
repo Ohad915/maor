@@ -4,7 +4,7 @@ import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { addItem, delItem, setPrivate } from '@/lib/db';
 import { useCol } from '@/lib/hooks';
-import { Card, Lock, Range, TextIn } from '../components/UI';
+import { Card, Lock, Range, ScreenSel, TextIn } from '../components/UI';
 
 const ils = (n) => (+n || 0).toLocaleString('he-IL') + ' ₪';
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
@@ -36,6 +36,7 @@ export default function BillingTab({ ctx }) {
         <label>טקסט מתחת ל-QR</label><TextIn value={st.donSub} placeholder="סרקו בנייד לתרומה מאובטחת" onSave={(v) => set('donSub', v)} />
         <label>קישור תשלום (URL)</label><TextIn value={st.payUrl} style={{ direction: 'ltr' }} onSave={(v) => set('payUrl', v)} />
         <Range label="גודל קוביית ה-QR %" min={50} max={150} value={st.qs} onChange={(v) => set('qs', v)} />
+        <label>מסך להצגה</label><ScreenSel value={st.donScreen} onChange={(v) => set('donScreen', v)} />
       </Card>
       <Card title="פרטי עמותה לקבלות">
         <label>שם העמותה</label><TextIn value={org.name} onSave={(v) => setPrivate(sid, 'org', { name: v })} />

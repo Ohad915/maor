@@ -1,11 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useProfile } from '@/lib/hooks';
-import { DEFAULT_SETTINGS, PLAN_PRESETS, defaultPlan } from '@/lib/types';
+import { ALL_SUBCOLS, DEFAULT_SETTINGS, PLAN_PRESETS, defaultPlan } from '@/lib/types';
 
 /** Only for role === 'super_admin'. Approve gabbaim, attach synagogues, manage plans. */
 export default function SuperAdmin() {
@@ -29,6 +29,14 @@ export default function SuperAdmin() {
   };
   const setPlan = (s, patch) => updateDoc(doc(db, 'synagogues', s.id), { plan: { ...s.plan, ...patch } });
   const setTier = (s, t) => setPlan(s, { planTier: t, ...PLAN_PRESETS[t] });
+  const freeze = (s) => updateDoc(doc(db, 'synagogues', s.id), { suspended: !s.suspended });
+  async function removeSyn(s) {
+    if (!confirm(`למחוק לצמיתות את "${s.name}" ואת כל הנתונים שלו?`)) return;
+    for (const c of ALL_SUBCOLS) { const q = await getDocs(collection(db, 'synagogues', s.id, c)); await Promise.all(q.docs.map((d) => deleteDoc(d.ref))); }
+    await deleteDoc(doc(db, 'synagogues', s.id));
+    // detach its gabbaim: back to pending until reassigned
+    await Promise.all(users.filter((u) => u.synagogueId === s.id && u.role !== 'super_admin').map((u) => setUser(u, { synagogueId: null, status: 'pending' })));
+  }
   const sorted = [...users].sort((a, b) => (a.status === 'pending' ? -1 : 1) - (b.status === 'pending' ? -1 : 1));
 
   return (
@@ -57,7 +65,10 @@ export default function SuperAdmin() {
         const p = s.plan || defaultPlan();
         return (
           <div className="cd" key={s.id}>
-            <b>{s.name}</b> <span style={{ fontSize: 12, color: 'var(--mu)' }}>({s.id})</span>
+            <div className="row"><div style={{ flex: '3 1 200px' }}><b>{s.name}</b> {s.suspended && <span className="tag bad">מושהה</span>} <span style={{ fontSize: 12, color: 'var(--mu)' }}>({s.id})</span></div>
+              <button className="b" style={{ flex: '0 0 auto' }} onClick={() => r.push(`/admin?s=${s.id}`)}>כניסה כגבאי</button>
+              <button className="b g" style={{ flex: '0 0 auto' }} onClick={() => freeze(s)}>{s.suspended ? 'הפשר' : 'הקפא'}</button>
+              <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => removeSyn(s)}>מחק</button></div>
             <div style={{ fontSize: 12, color: 'var(--mu)' }}>כתובת מסך: /display?s={s.id}&amp;screen=main-hall</div>
             <div className="row">
               <div><label>חבילה</label><select value={p.planTier} onChange={(e) => setTier(s, e.target.value)}><option value="basic">basic</option><option value="pro">pro</option><option value="premium">premium</option></select></div>
