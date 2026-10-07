@@ -11,6 +11,7 @@ export default function PreviewModal({ sid, onClose }) {
     <div className="pv" onClick={onClose}>
       <div className="row" style={{ flex: '0 0 auto', width: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <select value={screen} onChange={(e) => setScreen(e.target.value)}>{SCREENS.map((s) => <option key={s} value={s}>{SCREEN_NAMES[s]}</option>)}</select>
+        <a className="b g" style={{ textDecoration: 'none' }} href={`/display?s=${sid}&screen=${screen}`} target="_blank" rel="noreferrer">פתח בטאב חדש</a>
         <button className="b" onClick={onClose}>סגור תצוגה מקדימה</button>
       </div>
       <div className="pvx" style={{ width: 1280 * k, height: 720 * k, background: '#000' }} onClick={(e) => e.stopPropagation()}>

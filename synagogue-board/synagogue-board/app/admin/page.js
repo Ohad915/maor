@@ -56,7 +56,7 @@ function Panel({ sid, role, superMode }) {
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
-          <button className="b" onClick={() => setPv(true)}>תצוגה מקדימה</button>
+          <button className="b" type="button" onClick={() => setPv(true)}>תצוגה מקדימה חיה</button>
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>
         {(sub || tab === 'scr') && <ScreenTab ctx={ctx} />}
         {!sub && tab === 'fin' && <BillingTab ctx={ctx} />}

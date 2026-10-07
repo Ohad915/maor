@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { DISPLAY_COLS } from './types';
 
@@ -19,17 +19,39 @@ export function useProfile() {
   }, []);
   return s;
 }
-/** Live synagogue doc + all display collections. */
+/**
+ * Live synagogue data with a safety net for blocked WebSockets:
+ * 1) shows the last cached copy immediately, 2) if no live answer within 4s does a one-time getDoc/getDocs,
+ * 3) keeps retrying in the background every 30s until the live listener answers.
+ */
 export function useSynagogue(sid, extra = []) {
-  const [syn, setSyn] = useState(undefined), [cols, setCols] = useState({});
+  const [state, setState] = useState({ syn: undefined, cols: {}, status: 'loading', error: '' });
   useEffect(() => {
     if (!sid) return;
-    const un = [onSnapshot(doc(db, 'synagogues', sid), (s) => setSyn(s.exists() ? { id: s.id, ...s.data() } : null))];
-    [...DISPLAY_COLS, ...extra].forEach((n) => un.push(onSnapshot(collection(db, 'synagogues', sid, n),
-      (q) => setCols((c) => ({ ...c, [n]: q.docs.map((d) => ({ id: d.id, ...d.data() })) })))));
-    return () => un.forEach((u) => u());
+    let alive = true, live = false;
+    const names = [...DISPLAY_COLS, ...extra], KEY = 'syncache:' + sid;
+    try { const c = JSON.parse(localStorage.getItem(KEY)); if (c?.syn) setState({ syn: c.syn, cols: c.cols || {}, status: 'cached', error: '' }); } catch {}
+    const fetchOnce = async () => {
+      try {
+        const d = await getDoc(doc(db, 'synagogues', sid));
+        if (!alive || live) return;
+        if (!d.exists()) return setState((s) => ({ ...s, syn: null, status: 'fallback' }));
+        const cols = {};
+        await Promise.all(names.map(async (n) => { cols[n] = (await getDocs(collection(db, 'synagogues', sid, n))).docs.map((x) => ({ id: x.id, ...x.data() })); }));
+        if (alive && !live) setState({ syn: { id: d.id, ...d.data() }, cols, status: 'fallback', error: '' });
+      } catch (e) { if (alive && !live) setState((s) => ({ ...s, status: s.syn ? 'cached' : 'error', error: e.code || String(e) })); }
+    };
+    const un = [onSnapshot(doc(db, 'synagogues', sid), (s) => { live = true; setState((st) => ({ ...st, syn: s.exists() ? { id: s.id, ...s.data() } : null, status: 'live' })); }, () => fetchOnce())];
+    names.forEach((n) => un.push(onSnapshot(collection(db, 'synagogues', sid, n),
+      (q) => { live = true; setState((st) => ({ ...st, status: 'live', cols: { ...st.cols, [n]: q.docs.map((d) => ({ id: d.id, ...d.data() })) } })); }, () => {})));
+    const t = setTimeout(() => { if (!live) fetchOnce(); }, 4000);
+    const poll = setInterval(() => { if (!live) fetchOnce(); }, 30000);
+    return () => { alive = false; clearTimeout(t); clearInterval(poll); un.forEach((u) => u()); };
   }, [sid]); // eslint-disable-line
-  return { syn, cols };
+  useEffect(() => {
+    if (state.syn && (state.status === 'live' || state.status === 'fallback')) { try { localStorage.setItem('syncache:' + sid, JSON.stringify({ syn: state.syn, cols: state.cols })); } catch {} }
+  }, [state, sid]);
+  return state;
 }
 export function useCol(sid, name) {
   const [rows, set] = useState([]);

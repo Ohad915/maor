@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { LAYOUTS, SCREEN_NAMES } from '@/lib/types';
 import { gem, hebOf, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
-import { Card, DisplayCfg, HebPick, Lock, Range, Switch, TextIn, parseY } from '../components/UI';
+import { Card, DisplayCfg, HebPick, Lock, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
 
 const SUBS = [['prsh', 'פרשת שבוע'], ['hal', 'הלכה יומית'], ['ann', 'הודעות ואירועים'], ['mem', 'הנצחות ולעילוי נשמת'], ['rf', '🏥 רפואה שלמה'], ['pr', 'זמני תפילות'], ['dsg', 'עיצוב']];
@@ -37,7 +37,7 @@ function Parsha({ st, set }) {
 }
 
 function Halacha({ sid, st, set, cols }) {
-  const [t, setT] = useState(''), [x, setX] = useState('');
+  const [t, setT] = useState(''), [x, setX] = useState(''), [sc, setSc] = useState('all');
   return (<>
     <DisplayCfg st={st} set={set} k="hal" />
     <Card title="מנהגי היום / תזכורות בתפילה">
@@ -48,11 +48,12 @@ function Halacha({ sid, st, set, cols }) {
     <Card title="שקופיות הלכה">
       <div className="row">{[['off', 'כבוי'], ['block', 'בלוק בקרוסלה'], ['full', 'מסך מלא']].map(([k, l]) => <button key={k} className={`b ${st.hl.mode === k ? '' : 'g'}`} onClick={() => set('hl.mode', k)}>{l}</button>)}</div>
       <Switch label='שקופית "מנהגי היום" אוטומטית' on={st.hl.auto} onChange={(v) => set('hl.auto', v)} />
-      <label>כותרת</label><input value={t} onChange={(e) => setT(e.target.value)} /><label>תוכן</label><textarea value={x} onChange={(e) => setX(e.target.value)} />
-      <button className="b" onClick={() => { if (t.trim()) { addItem(sid, 'halacha', { title: t, text: x, on: true }); setT(''); setX(''); } }}>הוסף</button>
+      <Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} />
+      <label>כותרת</label><input value={t} onChange={(e) => setT(e.target.value)} /><label>תוכן (ירידות שורה נשמרות)</label><textarea value={x} onChange={(e) => setX(e.target.value)} /><label>מסך</label><ScreenSel value={sc} onChange={setSc} />
+      <button className="b" onClick={() => { if (t.trim()) { addItem(sid, 'halacha', { title: t, text: x, on: true, screen: sc }); setT(''); setX(''); } }}>הוסף</button>
     </Card>
     {(cols.halacha || []).map((i) => <Card key={i.id} className="row"><div style={{ flex: '3 1 200px' }}><b>{i.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{i.text}</div></div>
-      <label className="sw"><input type="checkbox" checked={!!i.on} onChange={(e) => updItem(sid, 'halacha', i.id, { on: e.target.checked })} /><i /></label><Del onClick={() => delItem(sid, 'halacha', i.id)} /></Card>)}
+      <ScreenSel value={i.screen} onChange={(v) => updItem(sid, 'halacha', i.id, { screen: v })} /><label className="sw"><input type="checkbox" checked={!!i.on} onChange={(e) => updItem(sid, 'halacha', i.id, { on: e.target.checked })} /><i /></label><Del onClick={() => delItem(sid, 'halacha', i.id)} /></Card>)}
   </>);
 }
 
@@ -60,12 +61,13 @@ function Announcements({ sid, st, set, cols, role, feat }) {
   const [f, setF] = useState({ title: '', content: '', screen: 'all', limited: false, from: { d: 1, m: 'Tishri' }, to: { d: 1, m: 'Tishri' } });
   return (<>
     {role !== 'sub_gabbai' && <DisplayCfg st={st} set={set} k="ann" />}
+    {role !== 'sub_gabbai' && <Card><Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} /></Card>}
     {role !== 'sub_gabbai' && (feat('runningTicker')
-      ? <Card title="סרגל עדכונים נע"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><Switch label="הצגה" on={st.vis?.tk !== false} onChange={(v) => set('vis.tk', v)} /></Card>
+      ? <Card title="סרגל עדכונים נע"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /><Switch label="הצגה" on={st.vis?.tk !== false} onChange={(v) => set('vis.tk', v)} /></Card>
       : <Lock title="סרגל עדכונים נע" />)}
     <Card title="הודעה חדשה">
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
-      <label>תוכן</label><textarea value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} />
+      <label>תוכן (ירידות שורה נשמרות)</label><textarea value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} />
       <label>מסך</label><select value={f.screen} onChange={(e) => setF({ ...f, screen: e.target.value })}><option value="all">כל המסכים</option>{Object.entries(SCREEN_NAMES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       <label><input type="checkbox" style={{ width: 'auto' }} checked={f.limited} onChange={(e) => setF({ ...f, limited: e.target.checked })} /> הגבל תוקף לפי תאריך עברי (חוזר מדי שנה)</label>
       {f.limited && <><label>מ- (יום וחודש עברי)</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} /><label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} /></>}
@@ -79,12 +81,12 @@ function Announcements({ sid, st, set, cols, role, feat }) {
 }
 
 function Memorials({ sid, st, set, cols, feat }) {
-  const [f, setF] = useState({ name: '', desc: '', gender: 'm', mode: 'y', d: 1, month: 'Tishri', y: '', from: { d: 1, m: 'Tishri' }, to: { d: 1, m: 'Tishri' } });
+  const [f, setF] = useState({ name: '', desc: '', screen: 'all', gender: 'm', mode: 'y', d: 1, month: 'Tishri', y: '', from: { d: 1, m: 'Tishri' }, to: { d: 1, m: 'Tishri' } });
   const mems = cols.memorials || [], limited = mems.length >= 10 && !feat('unlimitedMemorials');
   const h = hebOf(new Date(), false);
   const add = () => {
     if (!f.name.trim()) return; const y = parseY(f.y);
-    addItem(sid, 'memorials', { name: f.name, desc: f.desc, gender: f.gender, mode: f.mode, d: f.d, month: f.month, y, from: f.from, to: f.to });
+    addItem(sid, 'memorials', { name: f.name, desc: f.desc, screen: f.screen, gender: f.gender, mode: f.mode, d: f.d, month: f.month, y, from: f.from, to: f.to });
     setF({ ...f, name: '', desc: '', y: '' });
   };
   return (<>
@@ -98,7 +100,7 @@ function Memorials({ sid, st, set, cols, feat }) {
     {limited ? <Lock title="הנצחות ללא הגבלה (מעל 10)" /> : (
       <Card title="הנצחה חדשה">
         <label>שם הנפטר/ת</label><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        <label>הקדשה (רשות)</label><input value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} />
+        <label>הקדשה (רשות, ירידות שורה נשמרות)</label><textarea value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} /><label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
         <div className="row"><div><label>מין</label><select value={f.gender} onChange={(e) => setF({ ...f, gender: e.target.value })}><option value="m">זכר</option><option value="f">נקבה</option></select></div>
           <div><label>אופן הצגה</label><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="y">ביום הפטירה העברי</option><option value="r">בטווח תאריכים עברי</option><option value="p">קבוע (ללא תאריך)</option></select></div></div>
         {f.mode === 'y' && <><label>תאריך פטירה (יום, חודש, שנה עברית רשות)</label><HebPick value={{ d: f.d, m: f.month }} onChange={(v) => setF({ ...f, d: v.d, month: v.m })} /><input placeholder="תשפ״ה או 5785" value={f.y} onChange={(e) => setF({ ...f, y: e.target.value })} /></>}
@@ -106,12 +108,12 @@ function Memorials({ sid, st, set, cols, feat }) {
         <button className="b" onClick={add}>הוסף הנצחה</button>
       </Card>)}
     {mems.map((m) => <Card key={m.id} className="row"><div style={{ flex: '3 1 200px' }}><b>{m.name}</b>{m.desc && <small> {m.desc}</small>}
-      <div style={{ color: 'var(--mu)' }}>{m.mode === 'p' ? 'הצגה קבועה' : m.mode === 'r' ? `בטווח ${gem(m.from.d)} ${monthName(m.from.m)} – ${gem(m.to.d)} ${monthName(m.to.m)}` : `${gem(m.d)} ב${monthName(m.month)}${m.y ? ' ' + gem(m.y % 1000) : ''}${m.y && h.y > m.y ? ` · ${h.y - m.y} שנים` : ''}`}</div></div><Del onClick={() => delItem(sid, 'memorials', m.id)} /></Card>)}
+      <div style={{ color: 'var(--mu)' }}>{m.mode === 'p' ? 'הצגה קבועה' : m.mode === 'r' ? `בטווח ${gem(m.from.d)} ${monthName(m.from.m)} – ${gem(m.to.d)} ${monthName(m.to.m)}` : `${gem(m.d)} ב${monthName(m.month)}${m.y ? ' ' + gem(m.y % 1000) : ''}${m.y && h.y > m.y ? ` · ${h.y - m.y} שנים` : ''}`}</div></div><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} /><Del onClick={() => delItem(sid, 'memorials', m.id)} /></Card>)}
   </>);
 }
 
 function Refuah({ sid, st, set, cols }) {
-  const [f, setF] = useState({ name: '', note: '', from: { d: 1, m: 'Tishri' }, to: { d: 30, m: 'Tishri' } });
+  const [f, setF] = useState({ name: '', note: '', screen: 'all', from: { d: 1, m: 'Tishri' }, to: { d: 30, m: 'Tishri' } });
   const h = hebOf(new Date(), false);
   const add = () => { if (!f.name.trim()) return; addItem(sid, 'refuah', { ...f, ...resolveSpan(f.from, f.to, h) }); setF({ ...f, name: '', note: '' }); };
   return (<>
@@ -123,14 +125,14 @@ function Refuah({ sid, st, set, cols }) {
     </Card>
     <Card title="שם חדש">
       <label>שם החולה/ה (כולל שם האם)</label><input value={f.name} placeholder="פלוני בן פלונית" onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <label>בקשה / תפילה קצרה (רשות)</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+      <label>בקשה / תפילה קצרה (רשות)</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /><label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
       <label>תוקף מ- (יום וחודש עברי)</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} />
       <label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} />
       <button className="b" onClick={add}>הוסף</button>
     </Card>
     {(cols.refuah || []).map((r) => { const on = refuahOn(r, h); return (
       <Card key={r.id} className="row"><div style={{ flex: '3 1 200px' }}><b>{r.name}</b>{r.note && <small> {r.note}</small>}<div style={{ color: 'var(--mu)', fontSize: 13 }}>{gem(r.from.d)} {monthName(r.from.m)} – {gem(r.to.d)} {monthName(r.to.m)}</div></div>
-        <span className={`tag ${on ? 'ok' : ''}`}>{on ? 'פעיל' : 'לא פעיל / פג'}</span><Del onClick={() => delItem(sid, 'refuah', r.id)} /></Card>); })}
+        <span className={`tag ${on ? 'ok' : ''}`}>{on ? 'פעיל' : 'לא פעיל / פג'}</span><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'refuah', r.id, { screen: v })} /><Del onClick={() => delItem(sid, 'refuah', r.id)} /></Card>); })}
   </>);
 }
 
@@ -146,8 +148,8 @@ function Prayers({ sid, cols }) {
         <TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => updItem(sid, 'prayers', r.id, { val: v })} />
         <select value={r.days} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{[['week', 'חול'], ['fri', 'ערב שבת'], ['shab', 'שבת/חג'], ['mots', 'מוצ״ש'], ['all', 'תמיד']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         <TextIn value={r.note} placeholder="הערה (רשות)" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
-        <Del onClick={() => delItem(sid, 'prayers', r.id)} /></div></Card>))}
-    <button className="b" onClick={() => addItem(sid, 'prayers', { name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '' })}>+ הוסף תפילה</button>
+        <ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div></Card>))}
+    <button className="b" onClick={() => addItem(sid, 'prayers', { name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all' })}>+ הוסף תפילה</button>
     <h3 style={{ margin: '14px 0 6px' }}>דריסת זמן נקודתית</h3>
     <Card>
       <div className="row"><div><label>תפילה</label><select value={o.prayerId} onChange={(e) => setO({ ...o, prayerId: e.target.value })}><option value="">—</option>{pr.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
