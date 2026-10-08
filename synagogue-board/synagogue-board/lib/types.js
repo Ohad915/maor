@@ -18,12 +18,12 @@ export const PLAN_PRESETS = {
 };
 export const defaultPlan = (tier = 'basic') => ({ planTier: tier, ...PLAN_PRESETS[tier], subscriptionStatus: 'trial', validUntil: null });
 export const DEFAULT_SETTINGS = {
-  theme: 'gold', layout: '1', zoom: 1, anim: 'fade', accent: '', title: '', bg: '',
+  theme: 'gold', layout: '1', frame: 'royal', zoom: 1, anim: 'fade', accent: '', title: '', bg: '',
   pMode: 'auto', pTitle: '', pSub: '', pSlide: false,
   shma: 'gra', candle: 30, force: false, side: 32, qs: 100,
   donTitle: '', donSub: '', payUrl: '', tkText: '',
   vis: {}, cf: {}, blocks: {}, ipp: { yz: 3, rf: 3 },
-  customs: { mode: 'auto', text: '' }, hl: { mode: 'block', auto: true },
+  customs: { mode: 'auto', text: '' }, ptAll: { mode: 'off', secs: 10 }, hl: { mode: 'block', auto: true },
 };
 export const BLOCKS = [['cr', 'כותרת עליונה'], ['hd', 'תאריך וזמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'],
   ['mn', 'הודעות והלכה (פאנל מרכזי)'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'קוד QR לתרומות'], ['pb', 'זמני תפילות']];

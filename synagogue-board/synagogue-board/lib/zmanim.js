@@ -4,7 +4,10 @@ import { DateTime } from 'luxon';
 export const TZ = 'Asia/Jerusalem';
 export const fmt = (dt) => (dt ? dt.setZone(TZ).toFormat('HH:mm') : '—');
 
-/** Daily times from saved coordinates (kosher-zmanim). Sunset is sea-level, sunrise elevation-adjusted. */
+/**
+ * Daily times from the saved coordinates (kosher-zmanim). Pure local computation: it needs no network at all, so
+ * the screen shows exact times online and offline alike. Sunset is sea-level, sunrise elevation-adjusted.
+ */
 export function getZmanim(date, loc, shma = 'gra') {
   const geo = new GeoLocation('synagogue', +loc.lat, +loc.lng, +loc.elevation || 0, TZ);
   const cal = new ComplexZmanimCalendar(geo);
