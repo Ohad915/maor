@@ -21,7 +21,7 @@ const civil = (d) => {
   new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(d).forEach((x) => (p[x.type] = x.value));
   return { y: +p.year, m: +p.month - 1, d: +p.day };
 };
-const rdOf = (date, add = 0) => { const c = civil(date); return Math.floor(Date.UTC(c.y, c.m, c.d + add) / 864e5) + 719163; };
+export const rdOf = (date, add = 0) => { const c = civil(date); return Math.floor(Date.UTC(c.y, c.m, c.d + add) / 864e5) + 719163; };
 
 /** Current Hebrew date; after sunset the Hebrew day advances. */
 export function hebOf(date, afterSunset) {

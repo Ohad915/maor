@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'missing-key',
@@ -23,10 +23,13 @@ try {
     if (localStorage.getItem('forceLP') === '1') force = true;
   }
 } catch {}
+const net = force ? { experimentalForceLongPolling: true } : { experimentalAutoDetectLongPolling: true };
 let _db;
 try {
-  _db = initializeFirestore(app, force ? { experimentalForceLongPolling: true } : { experimentalAutoDetectLongPolling: true });
+  // Offline persistence: every document read is kept in IndexedDB (works across tabs) and served when the network is gone.
+  const canPersist = typeof window !== 'undefined' && 'indexedDB' in window;
+  _db = initializeFirestore(app, canPersist ? { ...net, localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) } : net);
 } catch {
-  _db = getFirestore(app); // already initialised (hot reload)
+  try { _db = initializeFirestore(app, net); } catch { _db = getFirestore(app); } // already initialised (hot reload) / persistence unsupported
 }
 export const db = _db;

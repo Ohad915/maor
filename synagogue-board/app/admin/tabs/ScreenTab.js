@@ -5,6 +5,7 @@ import { LAYOUTS, SCREEN_NAMES } from '@/lib/types';
 import { gem, hebOf, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { Card, DisplayCfg, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
+import WhatsAppImage from '../components/WhatsAppImage';
 
 const SUBS = [['prsh', 'פרשת שבוע'], ['hal', 'הלכה יומית'], ['ann', 'הודעות ואירועים'], ['mem', 'הנצחות ולעילוי נשמת'], ['rf', '🏥 רפואה שלמה'], ['pr', 'זמני תפילות'], ['dsg', 'עיצוב']];
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
@@ -75,10 +76,11 @@ function Halacha({ sid, st, set, cols }) {
   </>);
 }
 
-function Announcements({ sid, st, set, cols, role, feat }) {
+function Announcements({ sid, st, set, cols, role, feat, syn }) {
   const ed = useEditor({ title: '', content: '', screen: 'all', limited: false, from: HB, to: HB }), { f, setF } = ed;
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'announcements', ed.eid, f) : addItem(sid, 'announcements', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
+    {role !== 'sub_gabbai' && <WhatsAppImage syn={syn} cols={cols} st={st} />}
     {role !== 'sub_gabbai' && <DisplayCfg st={st} set={set} k="ann" />}
     {role !== 'sub_gabbai' && <Card><Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} /></Card>}
     {role !== 'sub_gabbai' && (feat('runningTicker')
@@ -167,12 +169,13 @@ function Refuah({ sid, st, set, cols }) {
 }
 
 const DAYS = { week: 'חול', fri: 'ערב שבת', shab: 'שבת/חג', mots: 'מוצ״ש', all: 'תמיד' };
-function Prayers({ sid, cols, st, set }) {
+function Prayers({ sid, cols, st, set, syn }) {
   const [open, setOpen] = useState(null);
   const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }), o = oe.f, setO = oe.setF;
   const pr = cols.prayers || [];
   const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
   return (<>
+    <WhatsAppImage syn={syn} cols={cols} st={st} />
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לבחור: כבוי / בסרגל התחתון / בלוק בקרוסלה / מסך מלא.</p>
     <Card title="כל זמני התפילות כשקופית">
       <label>אופן תצוגה</label>
@@ -220,6 +223,7 @@ function Design({ sid, st, set }) {
     <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /></Card>
     <Card title="עיצוב מסך ראשי">
       <label>דגם פריסת מסך</label><select value={st.layout} onChange={(e) => set('layout', e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <label>סגנון עיצוב הקוביות</label><select value={st.cardStyle || 'clean'} onChange={(e) => set('cardStyle', e.target.value)}>{[['gold', 'זהב יוקרתי (Golden Elegance)'], ['stone', 'אבן ירושלמית עתיקה (Jerusalem Stone)'], ['glass', 'זכוכית מודרנית (Glassmorphism)'], ['trad', 'מסורתי / תשמישי קדושה (Traditional)'], ['clean', 'נקי ומודרני (Minimalist)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <label>סגנון מסגרת ועיטורים</label><select value={st.frame || 'royal'} onChange={(e) => set('frame', e.target.value)}>{[['royal', 'זהב מלכותי (Royal Gold)'], ['stone', 'אבני הכותל (Jerusalem Stone)'], ['temple', 'היכל ובית המקדש (Temple Pillars)'], ['ornament', 'ערבסק / תחרה מסורתית (Ornament)'], ['clean', 'נקי / ללא מסגרת (Clean)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <label>ערכת נושא</label><Btns k="theme" opts={[['gold', 'זהב מלכותי'], ['classic', 'שיש קלאסי'], ['modern', 'מודרני כהה']]} />
       <label>זום כללי למסך</label><Btns k="zoom" opts={[[1, 'רגיל'], [1.25, 'גדול'], [1.5, 'ענק']]} />

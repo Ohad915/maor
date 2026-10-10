@@ -32,6 +32,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
           <div><label>קו אורך</label><input type="number" step=".0001" defaultValue={loc.lng} onBlur={(e) => save({ 'location.lng': +e.target.value })} /></div>
           <div><label>גובה (מ׳)</label><input type="number" defaultValue={loc.elevation || 0} onBlur={(e) => save({ 'location.elevation': +e.target.value })} /></div></div></details>
     </Card>
+    <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
     <Card title="זמני היום">
       <label>הדלקת נרות (דקות לפני שקיעה)</label><input type="number" defaultValue={st.candle} onBlur={(e) => set('candle', +e.target.value)} />
       <label>סוף זמן ק״ש</label><select value={st.shma} onChange={(e) => set('shma', e.target.value)}><option value="gra">גר״א</option><option value="mga">מג״א</option></select>

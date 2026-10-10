@@ -122,3 +122,17 @@ label{font-size:13px;color:var(--mu)}
 .pcard{width:72%;max-height:82%;display:flex;background:var(--dcd);border:.12em solid var(--dac);border-radius:1em;padding:1.2em 1.6em;box-shadow:0 0 3em #000,0 0 1.5em color-mix(in srgb,var(--dac) 40%,transparent);animation:f .5s;overflow:hidden}
 .pcard .an{flex:1}
 .ptl2{width:100%}.ptl2 .tr{font-size:1.5em;display:flex;justify-content:space-between;gap:1em;padding:.4em 0;border-bottom:.04em solid color-mix(in srgb,var(--dmu) 35%,transparent)}.ptl2 .tr i{font-style:normal;direction:ltr}
+
+/* ===== one slide at a time: the slide area has a fixed size and can never push other blocks ===== */
+.pn.mn{position:relative;overflow:hidden;min-height:0}
+.pn .an{position:absolute;inset:1.2em 1.7em 1.8em;flex:none;min-height:0;overflow:hidden}
+.bd{flex:1 1 0;min-height:0;overflow:hidden}
+/* ===== card styles ===== */
+.cs-gold :is(.pn,.hd,.pr,.cu,.pb){background:linear-gradient(#b8860b,#b8860b) left top/1.2em .14em no-repeat,linear-gradient(#b8860b,#b8860b) left top/.14em 1.2em no-repeat,linear-gradient(#b8860b,#b8860b) right top/1.2em .14em no-repeat,linear-gradient(#b8860b,#b8860b) right top/.14em 1.2em no-repeat,linear-gradient(#b8860b,#b8860b) left bottom/1.2em .14em no-repeat,linear-gradient(#b8860b,#b8860b) left bottom/.14em 1.2em no-repeat,linear-gradient(#b8860b,#b8860b) right bottom/1.2em .14em no-repeat,linear-gradient(#b8860b,#b8860b) right bottom/.14em 1.2em no-repeat,linear-gradient(160deg,#fffaf0,#f2e4bf);border:.07em solid #c9a23a;border-radius:.7em;box-shadow:0 .35em 1.1em #0007;color:#2b2110;--dac:#8a6410;--dac2:#b8860b;--dmu:#6b5a3a;--dln:#c9a23a}
+.cs-stone :is(.pn,.hd,.pr,.cu,.pb){background:linear-gradient(135deg,#f3e6c8,#e4d1a6 60%,#eedbb4) padding-box,repeating-linear-gradient(90deg,#c9ae7c 0 2.4em,#a98b5a 2.4em calc(2.4em + .08em),#d8bf92 calc(2.4em + .08em) 5em) border-box;border:.3em solid transparent;border-radius:.5em;box-shadow:inset 0 0 .9em #7a5a3455,0 .25em .8em #0006;color:#3b2a14;font-weight:700;--dac:#7a4a0c;--dac2:#9a6a1c;--dmu:#5c4524;--dln:#a98b5a}
+.cs-stone :is(.lb,.an h3,.yi b){font-weight:900}
+.cs-glass :is(.pn,.hd,.pr,.cu,.pb,.tk){background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:.06em solid rgba(255,255,255,.55);border-radius:1em;box-shadow:0 .4em 1.4em rgba(0,0,0,.35),inset 0 0 0 .04em rgba(255,255,255,.18);color:#fff;text-shadow:0 .05em .25em rgba(0,0,0,.55);--dac:#ffe08a;--dac2:#ffd24d;--dmu:#e8e8f0;--dln:rgba(255,255,255,.55)}
+.cs-glass .pg i{text-shadow:none}
+.cs-glass[data-t=classic] :is(.pn,.hd,.pr,.cu,.pb,.tk){background:rgba(255,255,255,.5);color:#222;text-shadow:none;--dac:#6b4a0a;--dmu:#444}
+.cs-trad :is(.pn,.hd,.pr,.cu,.pb){background:linear-gradient(160deg,#fbf5e6,#f0e4c6);border:.6em solid transparent;border-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='42' viewBox='0 0 42 42' fill='none' stroke='%235b3d10' stroke-width='1.6'%3E%3Crect x='1' y='1' width='40' height='40'/%3E%3Ccircle cx='7' cy='7' r='4'/%3E%3Ccircle cx='35' cy='7' r='4'/%3E%3Ccircle cx='7' cy='35' r='4'/%3E%3Ccircle cx='35' cy='35' r='4'/%3E%3Cpath d='M21 3l4 4-4 4-4-4zM21 31l4 4-4 4-4-4zM7 17l4 4-4 4-4-4zM35 17l4 4-4 4-4-4z'/%3E%3C/svg%3E") 14 round;border-radius:0;color:#2a1a08;--dac:#6b4a0a;--dac2:#8a6410;--dmu:#5a4220;--dln:#8a6410}
+.cs-trad :is(.pn,.hd,.pr,.cu,.pb) .qr{border-color:#6b4a0a}
