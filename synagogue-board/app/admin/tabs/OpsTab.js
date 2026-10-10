@@ -41,7 +41,11 @@ export function BudgetTab({ ctx: { sid, syn, st, set } }) {
   const bud = (c) => st.budget?.[c] ?? 0;
   const pdf = async () => { setBusy(true); try { await downloadPdf(budgetReportHtml({ name: syn.name, month: m, expenses: ex, receipts, donations, budget: st.budget }), `דוח-תקציב-${m}.pdf`); } finally { setBusy(false); } };
   const table = (p, div) => CATS.map((c) => { const a = sum(p, c), b = bud(c) / div; return <div className="row" key={c}><span>{c}</span><span>{ils(a)}</span><span className={`tag ${b && a > b ? 'bad' : 'ok'}`}>{ils(b)}</span></div>; });
+  const expM = sum(m), incM = receipts.filter((r) => r.kind?.startsWith('dues') && (r.date || '').startsWith(m)).reduce((a, r) => a + r.amount, 0) + donations.filter((x) => (x.date || '').startsWith(m)).reduce((a, x) => a + x.amount, 0);
+  const catSum = CATS.map((c) => [c, sum(m, c)]), mx = Math.max(1, ...catSum.map(([, v]) => v));
   return (<>
+    <div className="kpis"><div className="kpi"><small>הכנסות החודש</small><b>{ils(incM)}</b></div><div className="kpi"><small>הוצאות החודש</small><b>{ils(expM)}</b></div><div className="kpi"><small>יתרה</small><b style={{ color: incM - expM < 0 ? 'var(--bad)' : 'var(--ok)' }}>{ils(incM - expM)}</b></div></div>
+    <Card title={`הוצאות לפי קטגוריה · ${m}`}>{catSum.map(([c, v]) => <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}><span style={{ flex: '0 0 70px', fontSize: 13 }}>{c}</span><div style={{ flex: 1, background: 'var(--bg)', borderRadius: 6, height: 16, overflow: 'hidden' }}><div style={{ width: (v / mx) * 100 + '%', height: '100%', background: 'var(--ac)' }} /></div><b style={{ flex: '0 0 80px', fontSize: 13 }}>{ils(v)}</b></div>)}</Card>
     <button className="b" disabled={busy} onClick={pdf} style={{ marginBottom: 10 }}>{busy ? 'מכין…' : 'הורד דוח תקציב (PDF)'}</button>
     <Card title="הוצאה חדשה">
       <div className="row"><select value={e.cat} onChange={(x) => setE({ ...e, cat: x.target.value })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select><input type="number" placeholder="סכום ₪" value={e.amount} onChange={(x) => setE({ ...e, amount: x.target.value })} /><input type="date" value={e.date} onChange={(x) => setE({ ...e, date: x.target.value })} /></div>
@@ -52,5 +56,14 @@ export function BudgetTab({ ctx: { sid, syn, st, set } }) {
     <Card><b>דוח שנתי {m.slice(0, 4)}</b>{table(m.slice(0, 4), 1)}</Card>
     <Card title="תקציב שנתי לקטגוריה">{CATS.map((c) => <div className="row" key={c}><span>{c}</span><input type="number" defaultValue={bud(c)} onBlur={(x) => set(`budget.${c}`, +x.target.value)} /></div>)}</Card>
     {[...ex].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 20).map((x) => <Card key={x.id} className="row"><span style={{ flex: '3 1 160px' }}>{x.cat} · {ils(x.amount)}<br /><small style={{ color: 'var(--mu)' }}>{x.date} {x.note}</small></span><Del onClick={() => delItem(sid, 'expenses', x.id)} /></Card>)}
+  </>);
+}
+
+/** One tab: budget & expenses / service calls & inventory. */
+export default function OpsTab({ ctx }) {
+  const [sub, setSub] = useState('bud');
+  return (<>
+    <div className="pills">{[['bud', '📊 תקציב והוצאות'], ['mnt', '🔧 קריאות שירות ומלאי']].map(([k, l]) => <button key={k} className={`b ${sub === k ? '' : 'g'}`} onClick={() => setSub(k)}>{l}</button>)}</div>
+    {sub === 'bud' ? <BudgetTab ctx={ctx} /> : <MaintenanceTab ctx={ctx} />}
   </>);
 }

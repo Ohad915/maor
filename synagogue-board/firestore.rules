@@ -36,7 +36,7 @@ service cloud.firestore {
       // collections shown on the TV
       match /{col}/{id} {
         allow read: if isSuper() || isMember(sid)
-          || (isScreen() && col in ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides']);
+          || (isScreen() && col in ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'lessons']);
         // sub-gabbai: announcements only; gabbai: everything
         allow write: if isSuper() || (subscriptionOk(sid)
           && (isGabbai(sid) || (col == 'announcements' && isMember(sid))));

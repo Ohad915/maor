@@ -6,13 +6,14 @@ import { auth } from '@/lib/firebase';
 import { setSetting } from '@/lib/db';
 import { useCol, useProfile, useSynagogue } from '@/lib/hooks';
 import { DEFAULT_SETTINGS } from '@/lib/types';
-import ScreenTab from './tabs/ScreenTab';
+import ContentTab from './tabs/ContentTab';
+import DesignTab from './tabs/DesignTab';
 import BillingTab from './tabs/BillingTab';
-import { BudgetTab, MaintenanceTab } from './tabs/OpsTab';
+import OpsTab from './tabs/OpsTab';
 import SettingsTab from './tabs/SettingsTab';
 import PreviewModal from './components/PreviewModal';
 
-const TABS = [['scr', '🖥️', 'מסך ראשי'], ['fin', '💰', 'גבייה'], ['mnt', '🔧', 'תחזוקה'], ['bud', '📊', 'תקציב'], ['set', '⚙️', 'הגדרות']];
+const TABS = [['content', '🖥️', 'תוכן המסך'], ['design', '🎨', 'עיצוב ותצוגה'], ['fin', '💳', 'גבייה וחברים'], ['ops', '🛠️', 'תחזוקה ותקציב'], ['sys', '⚙️', 'הגדרות מערכת']];
 
 /**
  * Gabbai panel. Access: approved gabbai/sub-gabbai with a synagogueId,
@@ -33,7 +34,7 @@ function Panel({ sid, role, superMode }) {
   const r = useRouter();
   const { syn, cols } = useSynagogue(sid);
   const screens = useCol(sid, 'screens');
-  const [tab, setTab] = useState('scr'), [pv, setPv] = useState(false);
+  const [tab, setTab] = useState('content'), [pv, setPv] = useState(false);
   if (syn === undefined) return <p style={{ padding: 20 }}>טוען…</p>;
   if (syn === null) return <p style={{ padding: 20 }}>בית הכנסת לא נמצא.</p>;
   if (syn.suspended && !superMode) {
@@ -56,15 +57,16 @@ function Panel({ sid, role, superMode }) {
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
-          <button className="b" type="button" onClick={() => setPv(true)}>תצוגה מקדימה חיה</button>
+          
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>
-        {(sub || tab === 'scr') && <ScreenTab ctx={ctx} />}
+        {(sub || tab === 'content') && <ContentTab ctx={ctx} />}
+        {!sub && tab === 'design' && <DesignTab ctx={ctx} />}
         {!sub && tab === 'fin' && <BillingTab ctx={ctx} />}
-        {!sub && tab === 'mnt' && <MaintenanceTab ctx={ctx} />}
-        {!sub && tab === 'bud' && <BudgetTab ctx={ctx} />}
-        {!sub && tab === 'set' && <SettingsTab ctx={ctx} />}
+        {!sub && tab === 'ops' && <OpsTab ctx={ctx} />}
+        {!sub && tab === 'sys' && <SettingsTab ctx={ctx} />}
       </div>
       {!sub && <div className="nav">{TABS.map(([id, ic, l]) => <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}><b>{ic}</b>{l}</button>)}</div>}
+      <button className="fab" type="button" onClick={() => setPv(true)}>👁 צפה בתצוגה מקדימה</button>
       {pv && <PreviewModal sid={sid} onClose={() => setPv(false)} />}
     </div>);
 }

@@ -31,6 +31,11 @@ export default function BillingTab({ ctx }) {
   };
   return (
     <div className="admin-root">
+      <div className="kpis">
+        <div className="kpi"><small>גבייה החודש</small><b>{ils(receipts.filter((r) => (r.date || '').startsWith(new Date().toISOString().slice(0, 7))).reduce((a, r) => a + r.amount, 0) + donations.filter((x) => (x.date || '').startsWith(new Date().toISOString().slice(0, 7))).reduce((a, x) => a + x.amount, 0))}</b></div>
+        <div className="kpi"><small>חברים פעילים</small><b>{members.length}</b></div>
+        <div className="kpi"><small>חובות פתוחים</small><b style={{ color: 'var(--bad)' }}>{ils(members.reduce((a, mm) => a + Math.max(0, mm.fee - paid(mm)), 0))}</b></div>
+      </div>
       <Card title="פינת התרומה (QR) במסך">
         <label>כותרת התרומה</label><TextIn value={st.donTitle} placeholder="תרומה מהירה לבית הכנסת" onSave={(v) => set('donTitle', v)} />
         <label>טקסט מתחת ל-QR</label><TextIn value={st.donSub} placeholder="סרקו בנייד לתרומה מאובטחת" onSave={(v) => set('donSub', v)} />
@@ -65,7 +70,7 @@ export default function BillingTab({ ctx }) {
           <h2>{org.name || 'בית הכנסת'}</h2><div>{org.ngo && 'עמותה מס׳ ' + org.ngo}</div><h3>קבלה מס׳ {rc.no}</h3><div>תאריך: {rc.date}</div>
           <p>התקבל מאת: <b>{rc.name}</b>{rc.idn && ' · ת״ז ' + rc.idn}<br />סכום: <b>{ils(rc.amount)}</b>{rc.method && ' · ' + rc.method}</p>
           <small>{rc.t46 && org.s46 ? 'מוסד מוכר לצרכי סעיף 46 לפקודת מס הכנסה, אישור מס׳ ' + org.s46 : 'קבלה ללא זיכוי מס'}. טיוטה: יש לאמת מול רואה חשבון ורשות המסים.</small>
-          <div className="row noprt" style={{ marginTop: 12 }}><button className="b" onClick={() => window.print()}>הדפס</button><button className="b g" onClick={() => setRc(null)}>סגור</button></div>
+          <div className="row noprt" style={{ marginTop: 12 }}><button className="b" onClick={() => window.print()}>הדפס</button><button className="b g" onClick={() => window.open('https://wa.me/?text=' + encodeURIComponent(`קבלה מס׳ ${rc.no} · ${org.name || 'בית הכנסת'}\nמאת: ${rc.name}\nסכום: ${ils(rc.amount)}\nתאריך: ${rc.date}`), '_blank')}>שלח ב-WhatsApp</button><button className="b g" onClick={() => setRc(null)}>סגור</button></div>
         </div></div>)}
     </div>);
 }

@@ -9,6 +9,7 @@ import { Card, Switch, TextIn } from '../components/UI';
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
 export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
   const [msg, setMsg] = useState('');
+  const zm = st.zm || {};
   const loc = syn.location || { lat: 31.77, lng: 35.21, elevation: 0 };
   const ref = doc(db, 'synagogues', sid);
   async function find(city = syn.city, street = syn.street) {
@@ -35,8 +36,16 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
     <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
     <Card title="זמני היום">
       <label>הדלקת נרות (דקות לפני שקיעה)</label><input type="number" defaultValue={st.candle} onBlur={(e) => set('candle', +e.target.value)} />
-      <label>סוף זמן ק״ש</label><select value={st.shma} onChange={(e) => set('shma', e.target.value)}><option value="gra">גר״א</option><option value="mga">מג״א</option></select>
-      <Switch label="מצב שבת/חג ידני (לחגים)" on={st.force} onChange={(v) => set('force', v)} />
+      <label>נוסח / מנהג</label><select value={syn.nusach || 'ashkenaz'} onChange={(e) => save({ nusach: e.target.value })}><option value="ashkenaz">אשכנז</option><option value="sefard">ספרד</option><option value="edot_hamizrach">עדות המזרח</option></select>
+      <label>פרופיל מוכן (קובע ברירות מחדל, אפשר לכוונן)</label>
+      <div className="row">{[['ashkenaz', 'אשכנז / גר״א', { shma: 'gra', tzeit: '40', rt: false }], ['hasidic', 'מג״א / חסידי', { shma: 'mga', tzeit: '40', rt: true }], ['sefard', 'ספרד ועדות המזרח', { shma: 'gra', tzeit: '13.5z', rt: false }]].map(([k, l, p]) => <button key={k} className={`b ${zm.profile === k ? '' : 'g'}`} onClick={() => set('zm', { ...zm, profile: k, ...p })}>{l}</button>)}</div>
+      <label>סוף זמן קריאת שמע</label>
+      <div className="row">{[['gra', 'גר״א'], ['mga', 'מג״א'], ['both', 'שתי השיטות']].map(([k, l]) => <button key={k} className={`b ${(zm.shma || st.shma || 'gra') === k ? '' : 'g'}`} onClick={() => set('zm.shma', k)}>{l}</button>)}</div>
+      <label>צאת הכוכבים / יציאת שבת</label>
+      <select value={zm.tzeit || '8.5'} onChange={(e) => set('zm.tzeit', e.target.value)}><option value="8.5">8.5 מעלות</option><option value="13.5z">13.5 דקות זמניות</option><option value="20">20 דקות מהשקיעה</option><option value="30">30 דקות מהשקיעה</option><option value="40">40 דקות מהשקיעה</option></select>
+      <Switch label="הצג זמן רבינו תם (72 דקות)" on={!!zm.rt} onChange={(v) => set('zm.rt', v)} />
+      <Switch label="הצג נץ החמה הנראה (טופוגרפי)" on={zm.netzVisible !== false} onChange={(v) => set('zm.netzVisible', v)} />
+      <Switch label="הצג זמני שבת/חג (ידני, לחגים)" on={st.force} onChange={(v) => set('force', v)} />
     </Card>
     <Card title="מסכים">
       {SCREENS.map((id) => (

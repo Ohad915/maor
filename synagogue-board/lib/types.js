@@ -22,11 +22,12 @@ export const DEFAULT_SETTINGS = {
   pMode: 'auto', pTitle: '', pSub: '', pSlide: false,
   shma: 'gra', candle: 30, force: false, side: 32, qs: 100,
   donTitle: '', donSub: '', payUrl: '', tkText: '',
+  zm: { profile: 'ashkenaz', shma: 'gra', tzeit: '8.5', rt: false, netzVisible: true }, hfShow: false, hfText: '', waParsha: true, waHaftara: true,
   vis: {}, cf: {}, blocks: {}, ipp: { yz: 3, rf: 3 },
   customs: { mode: 'auto', text: '' }, ptAll: { mode: 'off', secs: 10 }, hl: { mode: 'block', auto: true },
 };
 export const BLOCKS = [['cr', 'כותרת עליונה'], ['hd', 'תאריך וזמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'],
   ['mn', 'הודעות והלכה (פאנל מרכזי)'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'קוד QR לתרומות'], ['pb', 'זמני תפילות']];
 export const LAYOUTS = [['1', 'דגם 1 · קלאסי מופרד'], ['2', 'דגם 2 · כותרת משולבת'], ['3', 'דגם 3 · סימטרי מלכותי'], ['4', 'דגם 4 · מודרני מורחב']];
-export const ALL_SUBCOLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'members', 'receipts', 'donations', 'tickets', 'inventory', 'expenses', 'screens', 'private'];
-export const DISPLAY_COLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides'];
+export const ALL_SUBCOLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'members', 'receipts', 'donations', 'tickets', 'inventory', 'expenses', 'screens', 'private', 'lessons'];
+export const DISPLAY_COLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'lessons'];
