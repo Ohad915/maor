@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -196,7 +196,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
       <b>{ptitle}</b>{hText && <div className="hf">הפטרה: {hText}</div>}{(st.pSub || pi.sp.length > 0) && <div>{pi.sp.map((x) => <i key={x}>{x}</i>)}{st.pSub && <i>{st.pSub}</i>}</div>}
     </Blk>);
   const cu = V('cu') && <Blk {...B({ id: 'cu', t: 'x', b: 2.6, cls: 'cu', mult: LM === '4' ? 1.3 : 1 })}><span className="cl">💡 מנהגי היום בתפילה:</span>{chips.map((c, i) => <i key={i}>{c}</i>)}</Blk>;
-  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}>{mid}{!full && slides.length > 1 && cur && <i className="prg" key={idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>;
+  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>;
   const yzList = mems.length ? mems : null, yc = chunk(yzList || [0], ipp('yz'), pg.yz);
   const yz = V('yz') && (
     <Blk {...B({ id: 'yz', t: 's', b: 3, cls: 'pn yz', share: R[1], style: { fontFamily: FONTS[cf('mem').font] } })}>
@@ -220,8 +220,15 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const bar = Object.entries(grp).map(([k, g]) => <span className="pg" key={k}>{k}:<i>{[...g.t].sort().join(' , ')}</i>{g.n.length > 0 && <small style={{ fontSize: '.55em', fontWeight: 500, marginInlineStart: '.4em' }}>{g.n.join(' · ')}</small>}</span>);
   const pb = <Blk {...B({ id: 'pb', t: 'x', b: 3.5, cls: 'pb' })}>{bar.length ? bar.flatMap((b, i) => (i ? [<span key={'d' + i} style={{ opacity: .6 }}>♦</span>, b] : [b])) : '—'}</Blk>;
   const pbl = <Blk {...B({ id: 'pb', t: 's', b: 3, cls: 'pn pbl', share: R[1] })}><div className="lb">🕍 זמני תפילות</div>{Object.entries(grp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}</i></div>)}</Blk>;
-  const tk = V('tk') && st.tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker && <div className="tk"><span>{st.tkText}</span></div>;
-  const col = (kids, f) => kids.some(Boolean) && <div className="sd" style={{ flex: f }}>{kids}</div>;
+  const first = (t) => (t || '').split('\n')[0];
+  const tkText = [st.tkText,
+    st.tkParsha && ptitle ? ptitle + (hText ? ` · הפטרה: ${hText}` : '') : '',
+    ...(cols.announcements || []).filter((a) => a.ticker && onS(a.screen) && annOn(a, h)).map((a) => a.title + (first(a.content) ? ' – ' + first(a.content) : '')),
+    ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && (l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week'))).map((l) => `שיעור ${l.title}${l.rabbi ? ' · ' + l.rabbi : ''} · ${prayerTime(l, z)}`),
+    ...rowsToday.filter((r) => r.ticker).map((r) => `${r.name}: ${tOf(r)}`),
+    ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${m.name}`)].filter(Boolean).join('   ✦   ');
+  const tk = V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker && <div className="tk"><span>{tkText}</span></div>;
+  const col = (kids, f) => kids.some(Boolean) && <div className="sd" style={{ flex: f }}>{Children.toArray(kids)}</div>;
 
   let body;
   if (LM === '3') body = <>{crown}{hd}{pr}{cu}<div className="bd">{col([yz, rf], 24)}{mn}{col([pbl, qr], 24)}</div>{tk}</>;

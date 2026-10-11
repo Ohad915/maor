@@ -5,6 +5,7 @@ import { Card, FontSel, Range, Switch, TextIn } from '../components/UI';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
 import WhatsAppImage from '../components/WhatsAppImage';
 
+const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'temple', cardStyle: 'gold' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'stone', cardStyle: 'stone' }], ['זהב קלאסי', { theme: 'gold', frame: 'royal', cardStyle: 'clean' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'clean' }]];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
 /** Fonts, slide durations and paging for every component, in ONE place (no duplicates in the content tabs). */
 function CompStyles({ st, set }) {
@@ -33,10 +34,14 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
   return (<>
     <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /></Card>
     <Card title="עיצוב מסך ראשי">
+      <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
+      <div className="row">{PRESETS.map(([l, p]) => <button key={l} className="b g" onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
       <label>דגם פריסת מסך</label><select value={st.layout} onChange={(e) => set('layout', e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <details style={{ margin: '8px 0' }}><summary style={{ cursor: 'pointer', color: 'var(--mu)' }}>התאמה מתקדמת (מסגרת, קוביות, ערכת צבעים)</summary>
       <label>סגנון עיצוב הקוביות</label><select value={st.cardStyle || 'clean'} onChange={(e) => set('cardStyle', e.target.value)}>{[['gold', 'זהב יוקרתי (Golden Elegance)'], ['stone', 'אבן ירושלמית עתיקה (Jerusalem Stone)'], ['glass', 'זכוכית מודרנית (Glassmorphism)'], ['trad', 'מסורתי / תשמישי קדושה (Traditional)'], ['clean', 'נקי ומודרני (Minimalist)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <label>סגנון מסגרת ועיטורים</label><select value={st.frame || 'royal'} onChange={(e) => set('frame', e.target.value)}>{[['royal', 'זהב מלכותי (Royal Gold)'], ['stone', 'אבני הכותל (Jerusalem Stone)'], ['temple', 'היכל ובית המקדש (Temple Pillars)'], ['ornament', 'ערבסק / תחרה מסורתית (Ornament)'], ['clean', 'נקי / ללא מסגרת (Clean)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <label>ערכת נושא</label><Btns k="theme" opts={[['gold', 'זהב מלכותי'], ['classic', 'שיש קלאסי'], ['modern', 'מודרני כהה']]} />
+      </details>
       <label>זום כללי למסך</label><Btns k="zoom" opts={[[1, 'רגיל'], [1.25, 'גדול'], [1.5, 'ענק']]} />
       <label>אפקט מעבר</label><Btns k="anim" opts={[['fade', 'דהייה'], ['slide', 'החלקה'], ['none', 'ללא']]} />
       <label>צבע מבטא</label><div className="row"><input type="color" value={st.accent || '#f2c85b'} onChange={(e) => set('accent', e.target.value)} />{st.accent && <button className="b g" onClick={() => set('accent', '')}>איפוס</button>}</div>

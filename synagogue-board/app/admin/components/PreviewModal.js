@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { SCREENS, SCREEN_NAMES } from '@/lib/types';
 import Display from '@/components/Display';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 /** Live pop-up of the TV screen. Renders the same Display component directly (no iframe), scaled to fit. */
 export default function PreviewModal({ sid, onClose }) {
@@ -17,7 +18,7 @@ export default function PreviewModal({ sid, onClose }) {
       </div>
       <div className="pvx" style={{ width: 1280 * k, height: 720 * k, background: '#000' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ width: 1280, height: 720, transform: `scale(${k})`, transformOrigin: '0 0' }}>
-          <Display key={screen} sid={sid} screenId={screen} fixedSize={{ w: 1280, h: 720 }} preview />
+          <ErrorBoundary key={screen}><Display sid={sid} screenId={screen} fixedSize={{ w: 1280, h: 720 }} preview /></ErrorBoundary>
         </div>
       </div>
     </div>);

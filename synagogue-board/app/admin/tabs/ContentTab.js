@@ -6,6 +6,7 @@ import { gem, hebOf, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { Card, HebPick, Lock, ModeSel, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
+const TkChk = ({ on, onChange }) => <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={!!on} onChange={(e) => onChange(e.target.checked)} />בסרגל הרץ</label>;
 const Edit = ({ onClick, on }) => <button className="b g" style={{ flex: '0 0 auto' }} onClick={onClick}>{on ? 'סגור עריכה' : 'ערוך'}</button>;
 const modeVal = (x) => x.mode ?? (x.on === false ? 'off' : 'block');
 const HB = { d: 1, m: 'Tishri' };
@@ -37,6 +38,7 @@ function Parsha({ st, set, syn }) {
   return (
     <Card title="📜 פרשת שבוע והפטרה">
       <Switch label="הצג פרשה במסך" on={st.vis?.pr !== false} onChange={(v) => set('vis.pr', v)} />
+      <Switch label="הצג בסרגל הרץ (Ticker)" on={st.tkParsha} onChange={(v) => set('tkParsha', v)} />
       <Switch label="הצג פרשה בתמונת WhatsApp" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} />
       <label>זיהוי הפרשה</label>
       <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`b ${st.pMode === k ? '' : 'g'}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
@@ -71,7 +73,7 @@ function Lessons({ sid, cols }) {
     {(cols.lessons || []).map((l) => (
       <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{[l.rabbi, l.place].filter(Boolean).join(' · ')}</div>
         <span className="tag">{LDAYS[l.days]}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa && <span className="tag ok">WhatsApp</span>}</div></div>
-        <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => updItem(sid, 'lessons', l.id, { mode: v })} /><ScreenSel value={l.screen} onChange={(v) => updItem(sid, 'lessons', l.id, { screen: v })} />
+        <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => updItem(sid, 'lessons', l.id, { mode: v })} /><TkChk on={l.ticker} onChange={(v) => updItem(sid, 'lessons', l.id, { ticker: v })} /><ScreenSel value={l.screen} onChange={(v) => updItem(sid, 'lessons', l.id, { screen: v })} />
           <Edit onClick={() => ed.load({ title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', tmode: l.tmode || 'fixed', val: l.val || '', showWa: !!l.showWa, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
   </>);
 }
@@ -120,7 +122,7 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
     {(cols.announcements || []).map((a) => (
       <Card key={a.id}><div style={{ flex: '3 1 200px' }}><b>{a.title}</b><div style={{ color: 'var(--mu)', fontSize: 14, whiteSpace: 'pre-line' }}>{a.content}</div>
         <span className="tag">{a.screen === 'all' || !a.screen ? 'כל המסכים' : SCREEN_NAMES[a.screen]}</span>{a.limited && <span className="tag">{gem(a.from.d)} {monthName(a.from.m)} – {gem(a.to.d)} {monthName(a.to.m)}</span>}</div>
-        <div className="row"><ModeSel value={modeVal(a)} onChange={(v) => updItem(sid, 'announcements', a.id, { mode: v })} />
+        <div className="row"><ModeSel value={modeVal(a)} onChange={(v) => updItem(sid, 'announcements', a.id, { mode: v })} /><TkChk on={a.ticker} onChange={(v) => updItem(sid, 'announcements', a.id, { ticker: v })} />
           <Edit onClick={() => ed.load({ title: a.title, content: a.content || '', screen: a.screen || 'all', limited: !!a.limited, from: a.from || HB, to: a.to || HB }, a.id)} /><Del onClick={() => delItem(sid, 'announcements', a.id)} /></div></Card>))}
   </>);
 }
@@ -153,7 +155,7 @@ function Memorials({ sid, st, set, cols, feat }) {
       </Card>)}</div>
     {mems.map((m) => <Card key={m.id}><div style={{ flex: '3 1 200px' }}><b>{m.name}</b>{m.desc && <small style={{ whiteSpace: 'pre-line' }}> {m.desc}</small>}
       <div style={{ color: 'var(--mu)' }}>{m.mode === 'p' ? 'הצגה קבועה' : m.mode === 'r' ? `בטווח ${gem(m.from.d)} ${monthName(m.from.m)} – ${gem(m.to.d)} ${monthName(m.to.m)}` : `${gem(m.d)} ב${monthName(m.month)}${m.y ? ' ' + gem(m.y % 1000) : ''}${m.y && h.y > m.y ? ` · ${h.y - m.y} שנים` : ''}`}</div></div>
-      <div className="row"><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} />
+      <div className="row"><TkChk on={m.ticker} onChange={(v) => updItem(sid, 'memorials', m.id, { ticker: v })} /><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} />
         <Edit onClick={() => ed.load({ name: m.name, desc: m.desc || '', screen: m.screen || 'all', gender: m.gender || 'm', mode: m.mode || 'y', d: m.d || 1, month: m.month || 'Tishri', y: m.y ? String(m.y) : '', from: m.from || HB, to: m.to || HB }, m.id)} />
         <Del onClick={() => delItem(sid, 'memorials', m.id)} /></div></Card>)}
   </>);
@@ -204,7 +206,7 @@ function Prayers({ sid, cols, st, set, syn }) {
     {pr.map((r) => (
       <Card key={r.id}>
         <div className="row"><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{DAYS[r.days]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
-        <div className="row"><ModeSel bar value={r.show} onChange={(v) => updItem(sid, 'prayers', r.id, { show: v })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
+        <div className="row"><ModeSel bar value={r.show} onChange={(v) => updItem(sid, 'prayers', r.id, { show: v })} /><TkChk on={r.ticker} onChange={(v) => updItem(sid, 'prayers', r.id, { ticker: v })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
           <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
         {open === r.id && (
           <div className="row">

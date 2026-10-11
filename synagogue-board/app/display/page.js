@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Display from '@/components/Display';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const Msg = ({ children }) => <div className="dp" style={{ width: '100vw', height: '100vh' }}><p style={{ margin: 'auto', textAlign: 'center' }}>{children}</p></div>;
 
@@ -20,5 +21,5 @@ export default function DisplayPage() {
   }, []);
   if (!q || !ready) return <Msg>מתחבר…</Msg>;
   if (!q.sid) return <Msg>חסר מזהה בית כנסת בכתובת (?s=...)</Msg>;
-  return <div style={{ width: '100vw', height: '100vh' }}><Display sid={q.sid} screenId={q.screen} /></div>;
+  return <div style={{ width: '100vw', height: '100vh' }}><ErrorBoundary><Display sid={q.sid} screenId={q.screen} /></ErrorBoundary></div>;
 }
