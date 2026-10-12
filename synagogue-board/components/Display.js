@@ -173,7 +173,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{r.name}</b>{r.note ? ' · ' + r.note : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
   else if (cur.k === 'tall') {
     const n = Object.keys(allGrp).length;
-    const body = <div className="ptl2" style={{ fontSize: Math.min(1, 8 / Math.max(n, 1)) + 'em' }}>{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
+    const body = <div className="ptl2" style={{ fontSize: Math.min(1, (cur.full ? 6 : 8) / Math.max(n, 1)) + 'em' }}>{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
     if (cur.popup) { popup = <div className="popup"><div className="pcard">{slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '')}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
     else emit(slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '', cl));
   }
@@ -245,7 +245,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const style = { fontSize: fs, '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
     ...(st.bg ? { background: `linear-gradient(${st.theme === 'classic' ? '#fffc,#fffc' : '#000a,#000c'}),url(${st.bg}) center/cover` } : {}) };
   return (
-    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-lm={LM} data-a={st.anim} style={style}>
+    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={!st.bg && st.tbg ? st.tbg : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
       {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}

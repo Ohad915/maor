@@ -173,3 +173,49 @@ label{font-size:13px;color:var(--mu)}
 .fsl .ab::before,.fsl .ab::after{display:none!important}
 .fsl .lb{color:#6b4a0a;text-shadow:0 1px 0 #fff8}.fsl .af{color:#6b4a0a}
 .fsl h3{font-size:3em!important}.fsl p{font-size:1.65em!important}
+/* ===== ניגודיות כפתורים (תיקון): טקסט בהיר על רקע כהה, hover/active בכל מצב ===== */
+.b{transition:filter .15s,background .15s,color .15s,transform .05s}
+.b:hover{filter:brightness(1.12)}.b:active{transform:translateY(1px);filter:brightness(.95)}
+.b:focus-visible{outline:2px solid #FFE885;outline-offset:2px}.b:disabled{opacity:.55;cursor:not-allowed}
+:root[data-theme="dark"] .b.g,:root[data-theme="dark"] .b.d{color:#FFE885}
+:root[data-theme="dark"] .b.d{color:#ff9d94}
+:root[data-theme="dark"] .b.g,:root[data-theme="dark"] .b.d{border-color:#d9b65799}
+:root[data-theme="dark"] .b.g:hover,:root[data-theme="dark"] .b.d:hover{background:#ffffff1a;color:#fff}
+:root[data-theme="dark"] .b.g:active,:root[data-theme="dark"] .b.d:active{background:#ffffff2e;color:#fff}
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .b.g{color:#FFE885;border-color:#d9b65799}
+:root:not([data-theme="light"]) .b.d{color:#ff9d94;border-color:#d9b65799}
+:root:not([data-theme="light"]) .b.g:hover,:root:not([data-theme="light"]) .b.d:hover{background:#ffffff1a;color:#fff}
+:root:not([data-theme="light"]) .b.g:active,:root:not([data-theme="light"]) .b.d:active{background:#ffffff2e;color:#fff}}
+:root[data-theme="light"] .b.g:hover{background:#0000000d}:root[data-theme="light"] .b.g:active{background:#0000001a}
+.plan .b.g{color:#fff!important;border-color:#fff8!important}.plan .b.g:hover{background:#ffffff26}
+/* מסך מלא – רשימת זמני תפילות על הקלף (צבע כהה קריא, לא יורש את צבע הטקסט הבהיר) */
+.fsl .ab{color:#2a1a05;justify-content:center}
+.fsl .ptl2{width:100%;color:#2a1a05}
+.fsl .ptl2 .tr{font-size:1.5em;padding:.22em 0;border-bottom:.04em solid #6b4a0a55;color:#2a1a05}
+.fsl .ptl2 .tr b{color:#5b3a05;font-weight:900}.fsl .ptl2 .tr i{color:#2a1a05;font-weight:700}.fsl .ptl2 .tr small{color:#5b3a05}
+/* יציבות קרוסלה: מסגרת הכרטיס בגובה קבוע, התוכן גולל/מתכווץ בתוכה ואינו משנה את הפריסה */
+.pn.mn{contain:layout size;min-height:0}
+.pn.mn>.slot,.pn .an{min-height:0}
+.pn .an .ab{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.pn .an .ab::-webkit-scrollbar{display:none}
+.pn .an{contain:layout}
+/* ===== תמונות רקע לערכות נושא (16:9, ממלאות 100% מהמסך) ===== */
+.dp[data-tbg]{background-color:#050b1f;background-repeat:no-repeat;background-position:center;background-size:100% 100%;--tcard:rgba(6,12,32,.74)}
+.dp[data-tbg=temple]{background-image:url(/images/themes/theme_temple_royalty.jpg);padding:6.4% 10.8% 5.2%}
+.dp[data-tbg=stone]{background-image:url(/images/themes/theme_jerusalem_stone.jpg);padding:3.2% 11.4% 4.6%;--tcard:rgba(255,251,240,.86);--dln:#8a6a2a}
+.dp[data-tbg=gold]{background-image:url(/images/themes/theme_classic_gold.jpg);padding:3.4% 12.6% 4.2%;--tcard:rgba(32,10,4,.72)}
+.dp[data-tbg=modern]{background-image:url(/images/themes/theme_modern_clean.jpg);padding:3.2% 10.4% 3.6%;--tcard:rgba(4,12,38,.72)}
+.dp[data-tbg]::before,.dp[data-tbg]::after,.dp[data-tbg] .cn{display:none!important}
+.dp[data-tbg] :is(.pn,.hd,.pr,.cu,.pb,.tk){background:var(--tcard)!important;border:.07em solid color-mix(in srgb,var(--dln) 75%,transparent)!important;border-image:none!important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 .2em .8em #0006}
+.dp[data-tbg=stone] :is(.pn,.hd,.pr,.cu,.pb,.tk){color:#2a2830;text-shadow:none}
+.dp[data-tbg=stone] .tk{background:linear-gradient(90deg,#8d5408,#d9b657)!important}
+.dp[data-tbg] .tk{background:linear-gradient(90deg,#8d5408,#d9b657)!important}
+/* קריאות: צבעי טקסט מפורשים לכל ערכת רקע (דורסים את צבעי סגנון הקוביות) */
+.dp[data-tbg=temple] :is(.pn,.hd,.pr,.cu,.pb),.dp[data-tbg=gold] :is(.pn,.hd,.pr,.cu,.pb){color:#f7f0dd;text-shadow:none;--dac:#f2c85b;--dac2:#c9861b;--dmu:#d3c79f;--dln:#b58a2c}
+.dp[data-tbg=modern] :is(.pn,.hd,.pr,.cu,.pb){color:#fff;text-shadow:none;--dac:#52e6ff;--dac2:#1b8fd0;--dmu:#b4bfd4;--dln:#2aa6c4}
+.dp[data-tbg=stone] :is(.pn,.hd,.pr,.cu,.pb){color:#2a2830;text-shadow:none;--dac:#6b4a0a;--dac2:#8a5f12;--dmu:#5a5040;--dln:#8a6a2a}
+.dp[data-tbg] .tk{color:#1b1200;text-shadow:none}
+.dp[data-tbg=stone] :is(.pn,.hd,.pr,.cu,.pb) :is(.lb,.an h3,.yi b){text-shadow:none}
+.dp[data-tbg] .pb{background:linear-gradient(180deg,#e8b84a,#b0670f)!important;color:#2a1604!important;text-shadow:none!important;border-color:#7a5410!important}
+.an .af{min-height:1.4em}

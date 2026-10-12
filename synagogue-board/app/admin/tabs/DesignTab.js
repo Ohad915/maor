@@ -5,7 +5,8 @@ import { Card, DebIn, FontSel, Range, Switch, TextIn } from '../components/UI';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
 import WhatsAppImage from '../components/WhatsAppImage';
 
-const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'temple', cardStyle: 'gold' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'stone', cardStyle: 'stone' }], ['זהב קלאסי', { theme: 'gold', frame: 'royal', cardStyle: 'clean' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'clean' }]];
+const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'clean', cardStyle: 'gold', tbg: 'temple', bg: '' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'clean', cardStyle: 'stone', tbg: 'stone', bg: '' }], ['זהב קלאסי', { theme: 'gold', frame: 'clean', cardStyle: 'clean', tbg: 'gold', bg: '' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'glass', tbg: 'modern', bg: '' }]];
+const TBGS = [['', 'ללא (צבע רגיל)'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
 /** Fonts, slide durations and paging for every component, in ONE place (no duplicates in the content tabs). */
 function CompStyles({ st, set }) {
@@ -42,6 +43,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
       <label>דגם פריסת מסך</label><div className="grid2">{LAYOUTS.map(([k, l]) => <button key={k} type="button" className={`opt ${String(st.layout) === k ? 'on' : ''}`} onClick={() => set('layout', k)}>{l}</button>)}</div>
       <label>סגנון עיצוב הקוביות</label><div className="grid2">{[['gold', 'זהב יוקרתי'], ['stone', 'אבן ירושלמית'], ['glass', 'זכוכית מודרנית'], ['trad', 'מסורתי / תשמישי קדושה'], ['clean', 'נקי ומודרני']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.cardStyle || 'clean') === k ? 'on' : ''}`} onClick={() => set('cardStyle', k)}>{l}</button>)}</div>
       <label>סגנון מסגרת ועיטורים</label><div className="grid2">{[['royal', 'זהב מלכותי'], ['stone', 'אבני הכותל'], ['temple', 'היכל ובית המקדש'], ['ornament', 'ערבסק / תחרה'], ['clean', 'נקי / ללא מסגרת']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.frame || 'royal') === k ? 'on' : ''}`} onClick={() => set('frame', k)}>{l}</button>)}</div>
+      <label>תמונת רקע של ערכת נושא</label><div className="grid2">{TBGS.map(([k, l]) => <button key={k} type="button" className={`opt ${(st.tbg || '') === k ? 'on' : ''}`} onClick={() => { set('tbg', k); if (k) set('bg', ''); }}>{l}</button>)}</div>
       <label>ערכת נושא</label><Btns k="theme" opts={[['gold', 'זהב מלכותי'], ['classic', 'שיש קלאסי'], ['modern', 'מודרני כהה']]} />
       <label>זום כללי למסך</label><Btns k="zoom" opts={[[1, 'רגיל'], [1.25, 'גדול'], [1.5, 'ענק']]} />
       <label>אפקט מעבר</label><Btns k="anim" opts={[['fade', 'דהייה'], ['slide', 'החלקה'], ['none', 'ללא']]} />

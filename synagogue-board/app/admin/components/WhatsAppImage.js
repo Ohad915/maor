@@ -5,7 +5,6 @@ import { annOn, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
 
-const TPL = [['asset', 'תבנית מעוצבת (ברירת מחדל)'], ['temple', 'וקטורי · מקדש'], ['kotel', 'אבני הכותל ועץ זית'], ['classic', 'זהב ונר קלאסי']];
 const GOLD = 'linear-gradient(135deg,#f6d77a,#a8761a 50%,#f6d77a)';
 const THEME = {
   temple: { bg: 'radial-gradient(120% 70% at 50% 0,#22398a,#0c1538 55%,#050a20)', fg: '#f7ecc8', ac: '#f2c85b', card: 'rgba(255,255,255,.07)', ln: '#d9b657' },
@@ -311,7 +310,7 @@ export async function renderPoster(d, greet) {
 
 /** WhatsApp image maker (lives only in the design tab): Shabbat/holiday or weekday poster, content toggles, share/download. */
 export default function WhatsAppImage({ syn, cols, st }) {
-  const [kind, setKind] = useState('shabbat'), [tpl, setTpl] = useState('asset'), [greet, setGreet] = useState('auto');
+  const [kind, setKind] = useState('shabbat'), [greet, setGreet] = useState('auto');
   const [opt, setOpt] = useState({ lessons: true, rt: false, netz: true, ann: true });
   const [vec, setVec] = useState(false), [d, setD] = useState(null), [png, setPng] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
   const ref = useRef(null), tg = (k) => (v) => setOpt({ ...opt, [k]: v });
@@ -320,10 +319,8 @@ export default function WhatsAppImage({ syn, cols, st }) {
     try {
       const data = await build({ syn, cols, st }, kind, opt);
       setD(data); setVec(false);
-      if (tpl === 'asset') {
-        try { setPng(await renderPoster(data, greet)); setBusy(false); return; }
-        catch (e) { setMsg('תבנית הרקע לא נטענה, נוצר עיצוב וקטורי חלופי.'); setVec(true); }
-      } else setVec(true);
+      try { setPng(await renderPoster(data, greet)); setBusy(false); return; }
+      catch (e) { setMsg('תבנית הרקע לא נטענה, נוצר עיצוב וקטורי חלופי.'); setVec(true); }
       await new Promise((r) => setTimeout(r, 200));
       if (document.fonts?.ready) await document.fonts.ready;
       const html2canvas = (await import('html2canvas')).default;
@@ -343,14 +340,13 @@ export default function WhatsAppImage({ syn, cols, st }) {
     <Card title="📲 מחולל תמונות לווטסאפ">
       <label>סוג התמונה</label>
       <div className="row">{[['shabbat', 'שבת ומועדים'], ['weekday', 'ימי חול']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
-      <div className="row"><div><label>סגנון</label><div className="grid2">{TPL.map(([k, l]) => <button key={k} type="button" className={`opt ${tpl === k ? 'on' : ''}`} onClick={() => setTpl(k)}>{l}</button>)}</div></div>
-        {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}</div>
+      {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}
       <Switch label="הצג שיעורי תורה" on={opt.lessons} onChange={tg('lessons')} />
       <Switch label="הצג זמן רבינו תם" on={opt.rt} onChange={tg('rt')} />
       <Switch label="הצג נץ החמה הנראה" on={opt.netz} onChange={tg('netz')} />
       <Switch label="הצג הודעות גבאי" on={opt.ann} onChange={tg('ann')} />
       <button className="b" disabled={busy} onClick={generate} style={{ marginTop: 8 }}>{busy ? 'יוצר…' : 'צור תמונה'}</button>
-      {d && vec && <div style={{ position: 'fixed', left: -12000, top: 0 }}><Poster d={d} tpl={tpl === 'asset' ? 'temple' : tpl} greet={greet} pref={ref} /></div>}
+      {d && vec && <div style={{ position: 'fixed', left: -12000, top: 0 }}><Poster d={d} tpl="temple" greet={greet} pref={ref} /></div>}
       {png && <>
         <img src={png} alt="תמונת זמנים" style={{ width: '100%', maxWidth: 420, display: 'block', margin: '12px auto', borderRadius: 10, border: '1px solid var(--ln)' }} />
         <div className="row"><button className="b" onClick={share}>שתף בווטסאפ</button><button className="b g" onClick={download}>הורד תמונה (PNG)</button></div>
