@@ -122,7 +122,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const pa = st.ptAll || { mode: 'off', secs: 10 }, pdur = pa.secs || 10;
   const inBar = (r) => r.bar ?? (r.show ?? 'bar') === 'bar';
   const allGrp = {};
-  rowsToday.filter((r) => (r.show ?? 'bar') !== 'off' || inBar(r)).forEach((r) => { (allGrp[r.name] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[r.name].n.push(r.note); });
+  rowsToday.forEach((r) => { (allGrp[r.name] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[r.name].n.push(r.note); });
   rowsToday.filter(inBar).forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); grp[fw(r)].t.push(tOf(r)); if (r.note) grp[fw(r)].n.push(r.note); });
   const cMode = st.customs?.mode || 'auto', manual = (st.customs?.text || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const auto = [...holNames(now, !!z.shkia && z.now >= z.shkia), ...reminders(h)];
@@ -249,17 +249,19 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else body = <>{crown}{hd}{pr}{cu}<div className="bd">{mn}{col([yz, rf, qr], sdw)}</div>{tk}{pb}</>;
 
   const clock = now.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false });
-  const bn = Object.entries(grp).length, rbox = (l, t, w, hh) => ({ position: 'absolute', left: l + '%', top: t + '%', width: w + '%', height: hh + '%' });
+  const rg = Object.keys(grp).length ? grp : allGrp, bn = Object.keys(rg).length, rbox = (l, t, w, hh) => ({ position: 'absolute', left: l + '%', top: t + '%', width: w + '%', height: hh + '%' });
   if (royal) {
-    const tkr = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
+    const zt = [['הנץ החמה', z.netz], ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], ['שקיעת החמה', z.shkia], ['צאת הכוכבים', z.tzeit], ...(z.dow === 6 ? [['רבינו תם', z.rt]] : [])].filter(([, t]) => t).map(([n, t]) => `${n}: ${fmt(t)}`).join('   ✦   ');
+    const tkr0 = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
+    const tkr = [tkr0, zt].filter(Boolean).join('   ✦   ');
     body = <div className="rl">
       <div className="rl-top" style={rbox(9.3, 8.5, 81.4, 11.5)}>
-        <div className="rl-date"><span className="rl-cal">🗓</span><div><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{gem(h.d)} ב{monthName(h.raw)}</small></div></div>
-        <div className="rl-times" style={{ '--rn': Math.max(bn, 1) }}>{bn ? Object.entries(grp).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
-        <div className="rl-name"><div><b>{st.title || syn.name}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><span>🕍</span></div>
+        <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{gem(h.d)} ב{monthName(h.raw)}</small></div></div>
+        <div className="rl-times" style={{ '--rn': Math.max(bn, 1) }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
+        <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
-      <div className="rl-parsha" style={rbox(13.5, 22.4, 73, 13)}><i>❧</i><b>{ptitle || syn.name}</b><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
-      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main', share: 0.3, fit: true, style: rbox(50.5, 37.8, 37.6, 48.8) })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{cur?.k === 'h' && !cur.full && <img className="rl-pic" src="/images/icons/challah_wheat.png" alt="" />}{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
+      <div className="rl-parsha" style={rbox(13.5, 22.4, 73, 13)}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
+      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main', share: 0.3, fit: true, style: rbox(50.5, 37.8, 37.6, 48.8) })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz', share: 0.27, style: rbox(12.7, 37.8, 35.5, 21.5) })}>
         <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
@@ -268,7 +270,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
       <div className="rl-bot" style={rbox(7.6, 89.8, 84.7, 7.6)}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
-        <div className="rl-tk">{tkr && <span>{tkr}</span>}</div>
+        <div className="rl-tk">{tkr && <span style={{ animationDuration: Math.max(28, tkr.length * 0.3) + 's' }}>{tkr}</span>}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;

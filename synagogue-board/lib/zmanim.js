@@ -49,7 +49,14 @@ export const dayType = (sh, dow) => (sh ? 'shab' : dow === 5 ? 'fri' : dow === 6
 export const PDAYS = { week: 'חול (ראשון–חמישי)', fri: 'ערב שבת / ערב חג', shab: 'שבת', chag: 'חג', mots: 'מוצ״ש', all: 'תמיד / יום יום' };
 const PD_ALIAS = { 'חול': 'week', weekday: 'week', sunthu: 'week', 'ערב שבת': 'fri', 'ערב חג': 'fri', erev: 'fri', friday: 'fri', 'שבת': 'shab', shabbat: 'shab', 'חג': 'chag', yomtov: 'chag', holiday: 'chag', 'מוצ״ש': 'mots', 'מוצאי שבת': 'mots', 'תמיד': 'all', 'יום יום': 'all', daily: 'all', always: 'all' };
 /** Normalises any stored day-type value (legacy / Hebrew label / missing) to week|fri|shab|chag|mots|all. Missing = every day. */
-export const pdayOf = (r) => (r.days ? (PDAYS[r.days] ? r.days : PD_ALIAS[String(r.days).trim()] || PD_ALIAS[String(r.days).trim().toLowerCase()] || 'all') : 'all');
+export const pdayOf = (r) => {
+  const v = String(r?.days ?? '').trim(); if (!v) return 'all'; if (PDAYS[v]) return v;
+  const l = v.toLowerCase(); if (PD_ALIAS[v] || PD_ALIAS[l]) return PD_ALIAS[v] || PD_ALIAS[l];
+  // flexible match: the admin form may store the long Hebrew label, e.g. "חול (ראשון–חמישי)"
+  if (v.includes('מוצ')) return 'mots'; if (v.includes('ערב')) return 'fri'; if (v.includes('חול') || /week|sun/.test(l)) return 'week';
+  if (v.includes('שבת') || /shab|sat/.test(l)) return 'shab'; if (v.includes('חג') || /chag|holi|yom/.test(l)) return 'chag';
+  return 'all';
+};
 /**
  * Filters prayer rows for today.
  *  ctx = { dt: 'week'|'fri'|'shab'|'mots' (from dayType), dow: 0-6, chag: today is Yom Tov (incl. its eve after candle-lighting), erev: today is an erev-chag day }
@@ -57,6 +64,14 @@ export const pdayOf = (r) => (r.days ? (PDAYS[r.days] ? r.days : PD_ALIAS[String
  *  A row with an explicit weekday list (r.dow) is shown on exactly those weekdays. A specific row replaces the generic "חול" row of the same prayer name.
  */
 export function getPrayersForToday(prayers, ctx, fw = (r) => String(r.name || '').split(' ')[0]) {
+  const res = filterPrayers(prayers, ctx, fw);
+  if (res.length || !(prayers || []).length) return res;
+  // safety net: nothing matched today's special state (forced Shabbat mode, chag detection...) -> fall back to the plain weekday (Sun–Thu = חול, Fri = ערב שבת + חול, Sat = שבת)
+  const dow = Number(ctx.dow), plain = filterPrayers(prayers, { dt: dow === 6 ? 'shab' : dow === 5 ? 'fri' : 'week', dow, chag: false, erev: false }, fw);
+  if (typeof console !== 'undefined') console.log('Raw prayers from DB:', prayers, 'Current Day Context:', ctx); console.warn('[prayers] no row matched ctx', JSON.stringify(ctx), 'days values:', [...new Set((prayers || []).map((r) => r.days))], '-> weekday fallback:', plain.length);
+  return plain;
+}
+function filterPrayers(prayers, ctx, fw) {
   const { dt, dow, chag = false, erev = false } = ctx, idx = dt === 'shab' && !chag ? 6 : dow;
   const kinds = new Set(['all']);
   if (chag) kinds.add('chag'); else if (dt === 'shab') kinds.add('shab');

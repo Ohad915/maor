@@ -268,3 +268,12 @@ label{font-size:13px;color:var(--mu)}
 .rl-ic img{max-width:100%;max-height:92%;object-fit:contain;filter:drop-shadow(0 .3cqw .4cqw #0005)}
 .rl-yz .rl-ic{flex-basis:17%}.rl-rf .rl-ic{flex-basis:24%}
 .rl-pic{flex:0 0 auto;height:38%;max-width:70%;align-self:center;object-fit:contain;margin-top:.3em;filter:drop-shadow(0 .3cqw .4cqw #0005)}
+
+.rl-cal{display:flex!important;align-items:center;justify-content:center;flex-direction:column;line-height:1;width:5cqw!important;height:5cqw!important;font-size:1em!important;text-align:center}
+.rl-cal b{font-size:1.9cqw;font-weight:900;color:#3a2606}.rl-cal small{font-size:.95cqw;font-weight:800;color:#4a3208;white-space:nowrap}
+.rl-name em{display:block;font-style:normal;font-size:1.1cqw;font-weight:800;color:#5b3a05;letter-spacing:.08em}
+.rl-name img{height:88%;max-width:7.5cqw;object-fit:contain;filter:drop-shadow(0 .15cqw .25cqw #0005)}
+.rl-name{height:100%}
+.rl-pt{display:flex;flex-direction:column;align-items:center;gap:.4cqw}
+.rl-pt b{font-size:5.4cqw!important}
+.rl-pt small{font-size:1.9cqw;font-weight:800;color:#5b3a05;letter-spacing:.06em}
