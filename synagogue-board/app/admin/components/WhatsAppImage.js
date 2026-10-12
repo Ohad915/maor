@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { fmt, getZmanim, prayerTime, zOpts } from '@/lib/zmanim';
-import { annOn, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
+import { annOn, lessonDays, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
 
@@ -163,7 +163,7 @@ async function build({ syn, cols, st }, kind, opt) {
   const sat = new Date(+now + ahead * 864e5), fri = new Date(+sat - 864e5), zs = getZmanim(sat, loc, zo), zf = getZmanim(fri, loc, zo);
   const pr = (cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
   const grp = (days, z) => Object.entries(pr.filter((r) => days.includes(r.days)).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
-  const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? ['shab', 'all'] : ['week', 'all']).includes(l.days)).map((l) => ({ t: l.title, who: [l.rabbi, l.place].filter(Boolean).join(' · '), time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
+  const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: [l.rabbi, l.place].filter(Boolean).join(' · '), time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
   const ann = opt.ann ? (cols.announcements || []).filter((a) => (a.mode ?? (a.on === false ? 'off' : 'block')) !== 'off' && annOn(a, hn)).slice(0, 3).map((a) => a.title + ((a.content || '').split('\n')[0] ? ' · ' + a.content.split('\n')[0].slice(0, 56) : '')) : [];
   const sel = (z) => (zo.shma === 'mga' ? ['סוף זמן ק״ש (מג״א)', fmt(z.shmaMga)] : ['סוף זמן ק״ש', fmt(z.shma)]);
   const base = { name: st.title || syn.name, lessons, ann };

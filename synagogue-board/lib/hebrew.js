@@ -83,3 +83,10 @@ export function reminders(h) {
   r.push(x >= 107 && x <= 614 ? 'אומרים "ותן טל ומטר לברכה"' : 'אומרים "ותן ברכה"');
   return r;
 }
+
+/* ---- lesson days: legacy `days` (week/shab/all) or explicit weekday list `dow` (0=ראשון … 6=שבת) ---- */
+export const LDAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+export const lessonDays = (l) => (Array.isArray(l.dow) ? l.dow : l.days === 'shab' ? [6] : l.days === 'all' ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5]);
+/** dt = dayType ('shab'|'fri'|'mots'|'week'), dow = JS weekday of the display day. */
+export const lessonOn = (l, dt, dow) => (Array.isArray(l.dow) ? l.dow.includes(dt === 'shab' ? 6 : dow === 6 ? -1 : dow) : l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week'));
+export const lessonDaysLabel = (l) => { const d = lessonDays(l); if (d.length === 7) return 'כל השבוע'; if (d.length === 6 && !d.includes(6)) return 'ימי חול'; if (d.length === 1 && d[0] === 6) return 'שבת'; return d.length ? d.map((i) => LDAY_NAMES[i]).join(' · ') : 'לא נבחרו ימים'; };

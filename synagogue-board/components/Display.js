@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
-import { annOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -122,9 +122,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const rowsToday = rows0.filter((r) => !(r.days === 'week' && spec.has(fw(r))));
   const tOf = (r) => ovr(r)?.time || prayerTime(r, z);
   const pa = st.ptAll || { mode: 'off', secs: 10 }, pdur = pa.secs || 10;
+  const inBar = (r) => r.bar ?? (r.show ?? 'bar') === 'bar';
   const allGrp = {};
-  rowsToday.filter((r) => (r.show ?? 'bar') !== 'off').forEach((r) => { (allGrp[fw(r)] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[fw(r)].n.push(r.note); });
-  rowsToday.filter((r) => (r.show ?? 'bar') === 'bar').forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); grp[fw(r)].t.push(tOf(r)); if (r.note) grp[fw(r)].n.push(r.note); });
+  rowsToday.filter((r) => (r.show ?? 'bar') !== 'off' || inBar(r)).forEach((r) => { (allGrp[r.name] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[r.name].n.push(r.note); });
+  rowsToday.filter(inBar).forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); grp[fw(r)].t.push(tOf(r)); if (r.note) grp[fw(r)].n.push(r.note); });
   const cMode = st.customs?.mode || 'auto', manual = (st.customs?.text || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const auto = [...holNames(now, !!z.shkia && z.now >= z.shkia), ...reminders(h)];
   const chips = cMode === 'manual' ? manual : cMode === 'both' ? [...auto, ...manual] : auto;
@@ -137,7 +138,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
-  lessons.filter((l) => l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week')).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
+  lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
   rowsToday.filter((r) => ['block', 'full'].includes(r.show)).forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: r.show === 'full', dur: pdur }));
   if (pa.mode && pa.mode !== 'off') slides.push({ k: 'tall', full: pa.mode === 'full', popup: pa.mode === 'popup', dur: pdur });
   const cur = slides[idx % (slides.length || 1)];
@@ -179,7 +180,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{r.name}</b>{r.note ? ' · ' + r.note : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
   else if (cur.k === 'tall') {
     const n = Object.keys(allGrp).length;
-    const body = <div className="ptl2" style={{ fontSize: Math.min(1, (cur.full ? 6 : 8) / Math.max(n, 1)) + 'em' }}>{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
+    const dk = cur.full ? { color: '#2a1a05' } : undefined;
+    const body = <div className="ptl2" style={{ fontSize: Math.min(1, (cur.full ? 6 : 8) / Math.max(n, 1)) + 'em', ...dk }}>{n === 0 && <div className="tr" style={dk}><b style={dk}>אין זמני תפילות להיום</b></div>}{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k} style={dk}><b style={dk}>{k}</b><i style={dk}>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
     if (cur.popup) { popup = <div className="popup"><div className="pcard">{slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '')}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
     else emit(slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '', cl));
   }
@@ -233,11 +235,12 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const pb = <Blk {...B({ id: 'pb', t: 'x', b: 3.5, cls: 'pb' })}>{bar.length ? bar.flatMap((b, i) => (i ? [<span key={'d' + i} style={{ opacity: .6 }}>♦</span>, b] : [b])) : '—'}</Blk>;
   const pbl = <Blk {...B({ id: 'pb', t: 's', b: 3, cls: 'pn pbl', share: R[1] })}><div className="lb">🕍 זמני תפילות</div>{Object.entries(grp).map(([k, g]) => <div className="tr" key={k}><b>{k}</b><i>{[...g.t].sort().join(' , ')}</i></div>)}</Blk>;
   const first = (t) => (t || '').split('\n')[0];
+  const pbShown = V('pb') && LM !== '3';
   const tkText = [st.tkText,
     st.tkParsha && ptitle ? ptitle + (hText ? ` · הפטרה: ${hText}` : '') : '',
     ...(cols.announcements || []).filter((a) => a.ticker && onS(a.screen) && annOn(a, h)).map((a) => a.title + (first(a.content) ? ' – ' + first(a.content) : '')),
-    ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && (l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week'))).map((l) => `שיעור ${l.title}${l.rabbi ? ' · ' + l.rabbi : ''} · ${prayerTime(l, z)}`),
-    ...rowsToday.filter((r) => r.ticker).map((r) => `${r.name}: ${tOf(r)}`),
+    ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && lessonOn(l, dt, z.dow)).map((l) => `שיעור ${l.title}${l.rabbi ? ' · ' + l.rabbi : ''} · ${prayerTime(l, z)}`),
+    ...rowsToday.filter((r) => r.ticker || (inBar(r) && !pbShown)).map((r) => `${r.name}: ${tOf(r)}`),
     ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${m.name}`)].filter(Boolean).join('   ✦   ');
   const tk = V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker && <div className="tk"><span>{tkText}</span></div>;
   const col = (kids, f) => kids.some(Boolean) && <div className="sd" style={{ flex: f }}>{Children.toArray(kids)}</div>;
