@@ -1,8 +1,20 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import { MONTHS, gem } from '@/lib/hebrew';
 import { FONT_LABELS, SCREEN_NAMES } from '@/lib/types';
 
-export const Card = ({ title, children, className = '' }) => <div className={`cd ${className}`}>{title && <b>{title}</b>}{children}</div>;
+/** fold: collapsed by default (an accordion) so long forms do not make the phone screen endless. */
+export const Card = ({ title, children, className = '', fold, open }) => fold
+  ? <details className={`cd fold ${className}`} open={open}><summary>{title}</summary>{children}</details>
+  : <div className={`cd ${className}`}>{title && <b>{title}</b>}{children}</div>;
+/** Slider / colour input with debounce: the screen follows live, but Firestore gets ONE write ~400ms after the last change. */
+export function DebIn({ value, onChange, delay = 400, ...p }) {
+  const [v, setV] = useState(value), t = useRef(null), last = useRef(value);
+  useEffect(() => { if (value !== last.current) { last.current = value; setV(value); } }, [value]);
+  useEffect(() => () => clearTimeout(t.current), []);
+  const push = (x) => { clearTimeout(t.current); t.current = setTimeout(() => { last.current = x; onChange(x); }, delay); };
+  return <input {...p} value={v} onChange={(e) => { const x = p.type === 'range' ? +e.target.value : e.target.value; setV(x); push(x); }} />;
+}
 /** Text input that saves on blur (one Firestore write, not one per keystroke). */
 export const TextIn = ({ value, onSave, area, ...p }) => {
   const C = area ? 'textarea' : 'input';
@@ -12,7 +24,7 @@ export const Switch = ({ on, onChange, label }) => (
   <div className="row"><b style={{ flex: '3 1 160px', fontWeight: 500 }}>{label}</b>
     <label className="sw"><input type="checkbox" checked={!!on} onChange={(e) => onChange(e.target.checked)} /><i /></label></div>);
 export const Range = ({ label, min, max, value, onChange }) => (
-  <><label>{label}: {value}</label><input type="range" min={min} max={max} value={value} onChange={(e) => onChange(+e.target.value)} /></>);
+  <><label>{label}: {value}</label><DebIn type="range" min={min} max={max} value={value} onChange={onChange} /></>);
 export const Lock = ({ title }) => (
   <div className="cd" style={{ borderStyle: 'dashed' }}><b>🔒 {title}</b><div style={{ color: 'var(--mu)', fontSize: 13 }}>זמין בחבילת PRO / פרימיום</div><button className="b" disabled>שדרג עכשיו</button></div>);
 /** Hebrew-only date picker: day (א׳-ל׳) + Hebrew month (incl. אדר א׳/ב׳). */

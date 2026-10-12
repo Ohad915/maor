@@ -58,7 +58,7 @@ function Panel({ sid, role, superMode }) {
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
-          
+          <button className="b g" type="button" title="תצוגה מקדימה של המסך" onClick={() => setPv(true)}>👁 תצוגה מקדימה</button>
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>
         <ErrorBoundary admin key={sub ? 'content' : tab}>
           {(sub || tab === 'content') && <ContentTab ctx={ctx} />}
@@ -69,7 +69,6 @@ function Panel({ sid, role, superMode }) {
         </ErrorBoundary>
       </div>
       {!sub && <div className="nav">{TABS.map(([id, ic, l]) => <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}><b>{ic}</b>{l}</button>)}</div>}
-      <button className="fab" type="button" onClick={() => setPv(true)}>👁 צפה בתצוגה מקדימה</button>
       {pv && <PreviewModal sid={sid} onClose={() => setPv(false)} />}
     </div>);
 }

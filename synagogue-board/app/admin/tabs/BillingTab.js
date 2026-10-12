@@ -36,28 +36,28 @@ export default function BillingTab({ ctx }) {
         <div className="kpi"><small>חברים פעילים</small><b>{members.length}</b></div>
         <div className="kpi"><small>חובות פתוחים</small><b style={{ color: 'var(--bad)' }}>{ils(members.reduce((a, mm) => a + Math.max(0, mm.fee - paid(mm)), 0))}</b></div>
       </div>
-      <Card title="פינת התרומה (QR) במסך">
+      <Card fold title="פינת התרומה (QR) במסך">
         <label>כותרת התרומה</label><TextIn value={st.donTitle} placeholder="תרומה מהירה לבית הכנסת" onSave={(v) => set('donTitle', v)} />
         <label>טקסט מתחת ל-QR</label><TextIn value={st.donSub} placeholder="סרקו בנייד לתרומה מאובטחת" onSave={(v) => set('donSub', v)} />
         <label>קישור תשלום (URL)</label><TextIn value={st.payUrl} style={{ direction: 'ltr' }} onSave={(v) => set('payUrl', v)} />
         <Range label="גודל קוביית ה-QR %" min={50} max={150} value={st.qs} onChange={(v) => set('qs', v)} />
         <label>מסך להצגה</label><ScreenSel value={st.donScreen} onChange={(v) => set('donScreen', v)} />
       </Card>
-      <Card title="פרטי עמותה לקבלות">
+      <Card fold title="פרטי עמותה לקבלות">
         <label>שם העמותה</label><TextIn value={org.name} onSave={(v) => setPrivate(sid, 'org', { name: v })} />
         <div className="row"><div><label>מס׳ עמותה</label><TextIn value={org.ngo} onSave={(v) => setPrivate(sid, 'org', { ngo: v })} /></div><div><label>מס׳ אישור סעיף 46</label><TextIn value={org.s46} onSave={(v) => setPrivate(sid, 'org', { s46: v })} /></div></div>
         <label>ספק סליקה</label>
         <select value={org.provider || 'nedarim'} onChange={(e) => setPrivate(sid, 'org', { provider: e.target.value })}><option value="nedarim">נדרים פלוס</option><option value="mesulam">משולם</option><option value="grow">Grow</option></select>
       </Card>
 
-      <Card title="הוספת חבר">
+      <Card fold title="הוספת חבר">
         <div className="row"><input placeholder="שם" value={m.name} onChange={(e) => setM({ ...m, name: e.target.value })} /><input placeholder="ת״ז (לקבלה)" value={m.idn} onChange={(e) => setM({ ...m, idn: e.target.value })} /><input type="number" placeholder="דמי חבר שנתיים ₪" value={m.fee} onChange={(e) => setM({ ...m, fee: e.target.value })} /></div>
         <button className="b" onClick={() => { if (m.name.trim()) { addItem(sid, 'members', { ...m, fee: +m.fee || 0 }); setM({ name: '', idn: '', fee: '' }); } }}>הוסף חבר</button>
       </Card>
       {members.map((mem) => <MemberRow key={mem.id} mem={mem} paid={paid(mem)} sid={sid} onPay={(a, me) => receipt(mem.name, mem.idn, a, 'dues:' + mem.id, me)} />)}
 
       {feat('customPaymentGateway') ? (
-        <Card title="סנכרון סליקה (ייבוא)">
+        <Card fold title="סנכרון סליקה (ייבוא)">
           <div style={{ color: 'var(--mu)', fontSize: 13 }}>שורות מייצוא הספק: שם,ת״ז,סכום,אסמכתא. אסמכתא קיימת לא תיובא פעמיים. סנכרון חי ב-API דורש Cloud Function עם מפתחות הספק.</div>
           <textarea style={{ direction: 'ltr' }} value={csv} onChange={(e) => setCsv(e.target.value)} /><button className="b g" onClick={importCsv}>ייבוא</button> {info}
         </Card>) : <Lock title="סנכרון סליקה (נדרים פלוס / משולם / Grow)" />}

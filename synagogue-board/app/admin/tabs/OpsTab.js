@@ -18,7 +18,7 @@ export function MaintenanceTab({ ctx: { sid, syn } }) {
   return (<>
     {low.length > 0 && <Card className="" ><span style={{ color: 'var(--bad)' }}>⚠ מלאי עומד להסתיים: {low.map((x) => x.name).join(', ')}</span></Card>}
     <button className="b" disabled={busy} onClick={pdf} style={{ marginBottom: 10 }}>{busy ? 'מכין…' : 'הורד דוח תחזוקה (PDF)'}</button>
-    <Card title="קריאת שירות / תקלה">
+    <Card fold title="קריאת שירות / תקלה">
       <div className="row"><input placeholder="תקלה" value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} /><input placeholder="מיקום" value={t.loc} onChange={(e) => setT({ ...t, loc: e.target.value })} /><div><label>בדיקה/תחזוקה קרובה</label><input type="date" value={t.nextCheck} onChange={(e) => setT({ ...t, nextCheck: e.target.value })} /></div></div>
       <button className="b" onClick={() => { if (t.title.trim()) { addItem(sid, 'tickets', { ...t, st: 0, by: 'גבאי' }); setT({ title: '', loc: '', nextCheck: '' }); } }}>הוסף קריאה</button>
     </Card>
@@ -47,14 +47,14 @@ export function BudgetTab({ ctx: { sid, syn, st, set } }) {
     <div className="kpis"><div className="kpi"><small>הכנסות החודש</small><b>{ils(incM)}</b></div><div className="kpi"><small>הוצאות החודש</small><b>{ils(expM)}</b></div><div className="kpi"><small>יתרה</small><b style={{ color: incM - expM < 0 ? 'var(--bad)' : 'var(--ok)' }}>{ils(incM - expM)}</b></div></div>
     <Card title={`הוצאות לפי קטגוריה · ${m}`}>{catSum.map(([c, v]) => <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}><span style={{ flex: '0 0 70px', fontSize: 13 }}>{c}</span><div style={{ flex: 1, background: 'var(--bg)', borderRadius: 6, height: 16, overflow: 'hidden' }}><div style={{ width: (v / mx) * 100 + '%', height: '100%', background: 'var(--ac)' }} /></div><b style={{ flex: '0 0 80px', fontSize: 13 }}>{ils(v)}</b></div>)}</Card>
     <button className="b" disabled={busy} onClick={pdf} style={{ marginBottom: 10 }}>{busy ? 'מכין…' : 'הורד דוח תקציב (PDF)'}</button>
-    <Card title="הוצאה חדשה">
+    <Card fold title="הוצאה חדשה">
       <div className="row"><select value={e.cat} onChange={(x) => setE({ ...e, cat: x.target.value })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select><input type="number" placeholder="סכום ₪" value={e.amount} onChange={(x) => setE({ ...e, amount: x.target.value })} /><input type="date" value={e.date} onChange={(x) => setE({ ...e, date: x.target.value })} /></div>
       <input placeholder="הערה" value={e.note} onChange={(x) => setE({ ...e, note: x.target.value })} />
       <button className="b" onClick={() => { if (+e.amount > 0) { addItem(sid, 'expenses', { ...e, amount: +e.amount }); setE({ ...e, amount: '', note: '' }); } }}>הוסף הוצאה</button>
     </Card>
     <Card><label>חודש לדוח</label><input type="month" value={m} onChange={(x) => setM(x.target.value)} /><b>דוח חודשי {m} (בפועל / תקציב)</b>{table(m, 12)}</Card>
     <Card><b>דוח שנתי {m.slice(0, 4)}</b>{table(m.slice(0, 4), 1)}</Card>
-    <Card title="תקציב שנתי לקטגוריה">{CATS.map((c) => <div className="row" key={c}><span>{c}</span><input type="number" defaultValue={bud(c)} onBlur={(x) => set(`budget.${c}`, +x.target.value)} /></div>)}</Card>
+    <Card fold title="תקציב שנתי לקטגוריה">{CATS.map((c) => <div className="row" key={c}><span>{c}</span><input type="number" defaultValue={bud(c)} onBlur={(x) => set(`budget.${c}`, +x.target.value)} /></div>)}</Card>
     {[...ex].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 20).map((x) => <Card key={x.id} className="row"><span style={{ flex: '3 1 160px' }}>{x.cat} · {ils(x.amount)}<br /><small style={{ color: 'var(--mu)' }}>{x.date} {x.note}</small></span><Del onClick={() => delItem(sid, 'expenses', x.id)} /></Card>)}
   </>);
 }

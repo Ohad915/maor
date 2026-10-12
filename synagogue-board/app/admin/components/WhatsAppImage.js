@@ -5,7 +5,7 @@ import { annOn, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
 
-const TPL = [['temple', 'מקדש וספר תורה ספרדי (ברירת מחדל)'], ['kotel', 'אבני הכותל ועץ זית'], ['classic', 'זהב ונר קלאסי']];
+const TPL = [['asset', 'תבנית מעוצבת (ברירת מחדל)'], ['temple', 'וקטורי · מקדש'], ['kotel', 'אבני הכותל ועץ זית'], ['classic', 'זהב ונר קלאסי']];
 const GOLD = 'linear-gradient(135deg,#f6d77a,#a8761a 50%,#f6d77a)';
 const THEME = {
   temple: { bg: 'radial-gradient(120% 70% at 50% 0,#22398a,#0c1538 55%,#050a20)', fg: '#f7ecc8', ac: '#f2c85b', card: 'rgba(255,255,255,.07)', ln: '#d9b657' },
@@ -15,82 +15,134 @@ const THEME = {
 
 /* ---------- illustrations (inline SVG: light, crisp, no image files) ---------- */
 const GD = <defs>
-  <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fbe7a1" /><stop offset=".5" stopColor="#c9941f" /><stop offset="1" stopColor="#f6d77a" /></linearGradient>
-  <linearGradient id="gm" x1="0" x2="1"><stop offset="0" stopColor="#fff" /><stop offset=".5" stopColor="#c9c9d6" /><stop offset="1" stopColor="#f4f4fa" /></linearGradient></defs>;
+  <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff1b8" /><stop offset=".25" stopColor="#e8bd4a" /><stop offset=".55" stopColor="#b9801c" /><stop offset=".8" stopColor="#e9c25a" /><stop offset="1" stopColor="#8a5a10" /></linearGradient>
+  <linearGradient id="gh" x1="0" x2="1"><stop offset="0" stopColor="#8a5a10" /><stop offset=".3" stopColor="#f7dd8a" /><stop offset=".6" stopColor="#c9941f" /><stop offset="1" stopColor="#7a4e0c" /></linearGradient>
+  <linearGradient id="gm" x1="0" x2="1"><stop offset="0" stopColor="#a9a9bd" /><stop offset=".18" stopColor="#f6f6fb" /><stop offset=".5" stopColor="#dcdce8" /><stop offset=".82" stopColor="#fbfbff" /><stop offset="1" stopColor="#9a9ab2" /></linearGradient>
+  <linearGradient id="gv" x1="0" x2="1"><stop offset="0" stopColor="#0a1a52" /><stop offset=".5" stopColor="#2a52c4" /><stop offset="1" stopColor="#0a1a52" /></linearGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity=".55" /></filter></defs>;
 
-/** Ornate golden frame around the whole poster: double gold line, beaded rail, corner medallions and mid-edge ornaments. */
+/** Flower rosette (corner medallion): layered gold petals around a jewel. */
+function Rosette({ r = 46 }) {
+  return <g filter="url(#sh)">
+    {Array.from({ length: 12 }, (_, i) => <ellipse key={i} cx="0" cy={-r * 0.66} rx={r * 0.2} ry={r * 0.36} fill="url(#gg)" stroke="#6b430a" strokeWidth="1.6" transform={`rotate(${i * 30})`} />)}
+    <circle r={r * 0.62} fill="url(#gh)" stroke="#6b430a" strokeWidth="3" /><circle r={r * 0.46} fill="#0d2a78" stroke="#f7dd8a" strokeWidth="3" />
+    {Array.from({ length: 8 }, (_, i) => <circle key={i} cx="0" cy={-r * 0.54} r="3.2" fill="#fff6cf" transform={`rotate(${i * 45})`} />)}
+    <circle r={r * 0.2} fill="url(#gg)" stroke="#6b430a" strokeWidth="2" /></g>;
+}
+/** Arabesque curls in the top corners (soft, light-blue / gold on the deep blue). */
+function Arabesque() {
+  const one = <g><g fill="none" strokeLinecap="round">
+      <path d="M250 10C180 20 120 60 110 130c-6 50 40 70 60 40 14-24-10-44-26-30" stroke="#6f95ea" strokeWidth="5" />
+      <path d="M250 60C200 70 160 100 150 150c-4 30 24 44 38 26" stroke="#d9b657" strokeWidth="3.5" />
+      <path d="M250 110C225 120 205 135 198 160" stroke="#6f95ea" strokeWidth="4" />
+      <path d="M250 190C215 195 190 215 186 245c-2 20 20 28 28 14" stroke="#d9b657" strokeWidth="3" />
+      <path d="M40 10c30 20 36 56 12 80" stroke="#6f95ea" strokeWidth="3.5" />
+    </g>
+    <g fill="#6f95ea">{[[110, 130], [186, 160], [214, 262], [52, 90]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="6" />)}</g>
+    <path d="M232 20c-24-22-60-14-72 8 30 0 52 4 72-8zM250 70c-26-10-56 2-62 24 28-6 44-12 62-24z" fill="#8ab0ff" opacity=".7" /></g>;
+  return <svg width="1080" height="340" viewBox="0 0 1080 340" style={{ position: 'absolute', top: 40, left: 0, opacity: .55, pointerEvents: 'none' }}>
+    <g transform="translate(780 0)">{one}</g><g transform="translate(300 0) scale(-1 1)">{one}</g>
+  </svg>;
+}
+/** Ornate golden double frame: wide embossed band, inner thin line, beaded rail, corner rosettes and mid-edge fleurons. */
 function Frame({ W, H, color }) {
   const mid = [[W / 2, 22], [W / 2, H - 22], [22, H / 2], [W - 22, H / 2]];
   return (
     <svg width={W} height={H} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>{GD}
-      <rect x="10" y="10" width={W - 20} height={H - 20} rx="22" fill="none" stroke="url(#gg)" strokeWidth="14" />
-      <rect x="26" y="26" width={W - 52} height={H - 52} rx="14" fill="none" stroke={color} strokeWidth="3" />
-      <rect x="36" y="36" width={W - 72} height={H - 72} rx="10" fill="none" stroke="url(#gg)" strokeWidth="5" strokeDasharray="1 13" strokeLinecap="round" />
-      {[[34, 34], [W - 34, 34], [34, H - 34], [W - 34, H - 34]].map(([x, y]) => <g key={x + '-' + y} transform={`translate(${x} ${y})`}>
-        <circle r="34" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" /><circle r="22" fill="none" stroke="#fff3c4" strokeWidth="2" />
-        <path d="M0-16l9 16-9 16-9-16z" fill="#7a5410" /><circle r="4" fill="#fff3c4" /></g>)}
-      {mid.map(([x, y]) => <g key={x + '-' + y} transform={`translate(${x} ${y})`}><path d="M0-18l16 18-16 18-16-18z" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" /><circle r="5" fill="#7a5410" /></g>)}
+      <rect x="9" y="9" width={W - 18} height={H - 18} rx="20" fill="none" stroke="url(#gg)" strokeWidth="18" />
+      <rect x="9" y="9" width={W - 18} height={H - 18} rx="20" fill="none" stroke="#fff3c4" strokeOpacity=".55" strokeWidth="2" strokeDasharray="2 10" strokeLinecap="round" />
+      <rect x="21" y="21" width={W - 42} height={H - 42} rx="14" fill="none" stroke="#6b430a" strokeWidth="3" />
+      <rect x="28" y="28" width={W - 56} height={H - 56} rx="12" fill="none" stroke="url(#gh)" strokeWidth="6" />
+      <rect x="40" y="40" width={W - 80} height={H - 80} rx="8" fill="none" stroke="url(#gg)" strokeWidth="5" strokeDasharray="1 13" strokeLinecap="round" />
+      <rect x="48" y="48" width={W - 96} height={H - 96} rx="6" fill="none" stroke={color} strokeWidth="2" strokeOpacity=".8" />
+      {[[36, 36], [W - 36, 36], [36, H - 36], [W - 36, H - 36]].map(([x, y]) => <g key={x + '-' + y} transform={`translate(${x} ${y})`}><Rosette r={46} /></g>)}
+      {mid.map(([x, y]) => <g key={x + '-' + y} transform={`translate(${x} ${y})`} filter="url(#sh)"><path d="M0-20l18 20-18 20-18-20z" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" /><circle r="6" fill="#0d2a78" stroke="#fff3c4" strokeWidth="2" /></g>)}
     </svg>);
 }
-/** Temple facade like the sample: gold pediment with marble inlay, four marble columns with gold capitals, dark-blue sign between them. */
+/** Corinthian capital: gold abacus, two volutes and acanthus leaves. */
+const Cap = ({ x, y }) => <g transform={`translate(${x} ${y})`} filter="url(#sh)">
+  <rect x="-42" y="0" width="84" height="14" rx="3" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" />
+  <path d="M-34 14c-16 0-22 20-6 26 10 3 14-10 4-12M34 14c16 0 22 20 6 26-10 3-14-10-4-12" fill="none" stroke="url(#gg)" strokeWidth="7" strokeLinecap="round" />
+  <path d="M-28 16h56l-6 48h-44z" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" />
+  {[-16, 0, 16].map((dx) => <path key={dx} d={`M${dx - 10} 62c-6-24 0-34 ${10 + 0} -44 10 10 16 20 10 44`} fill="#f2cf70" stroke="#6b430a" strokeWidth="1.6" />)}
+  <path d="M-14 24c6 8 22 8 28 0" fill="none" stroke="#6b430a" strokeWidth="2" /></g>;
+/** Temple facade: pediment with an arch, marble columns (flutes + gold veins), Corinthian capitals, steps; sign opening in the middle. */
 function Temple({ W = 940, H = 400 }) {
   const col = (x) => <g key={x}>
-    <rect x={x - 30} y="150" width="60" height="16" rx="4" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" />
-    <path d={`M${x - 26} 150c-8-14 4-22 12-16 2-10 22-10 24 0 8-6 20 2 12 16z`} fill="url(#gg)" stroke="#7a5410" strokeWidth="2" />
-    <rect x={x - 20} y="166" width="40" height={H - 206} fill="url(#gm)" /><rect x={x - 10} y="166" width="3" height={H - 206} fill="#9a9ab0" opacity=".5" /><rect x={x + 6} y="166" width="3" height={H - 206} fill="#9a9ab0" opacity=".5" />
-    <path d={`M${x - 8} 220l10 40 8-20 8 50`} stroke="#d5b66a" strokeWidth="2" fill="none" opacity=".7" />
-    <rect x={x - 28} y={H - 40} width="56" height="16" rx="3" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" /></g>;
+    <g filter="url(#sh)"><rect x={x - 25} y="206" width="50" height={H - 252} fill="url(#gm)" stroke="#8d8da6" strokeWidth="1.5" />
+      {[-15, -5, 5, 15].map((d) => <line key={d} x1={x + d} x2={x + d} y1="208" y2={H - 48} stroke="#8d8da6" strokeOpacity=".45" strokeWidth="1.5" />)}
+      <path d={`M${x - 14} 240q12 24 4 50t14 60M${x + 8} 226q-8 30 6 60`} fill="none" stroke="#d3ad5a" strokeOpacity=".75" strokeWidth="2" />
+      <rect x={x - 25} y="206" width="50" height={H - 252} fill="#000" opacity=".08" /></g>
+    <Cap x={x} y="146" />
+    <g filter="url(#sh)"><rect x={x - 36} y={H - 48} width="72" height="18" rx="4" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" /><rect x={x - 30} y={H - 56} width="60" height="10" rx="3" fill="url(#gg)" stroke="#6b430a" strokeWidth="1.5" /></g></g>;
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>{GD}
-      <rect x={W * 0.2} y="150" width={W * 0.6} height={H - 190} fill="#0a1a52" />
-      <path d={`M${W * 0.2} 150 Q${W / 2} 40 ${W * 0.8} 150z`} fill="#122a78" stroke="url(#gg)" strokeWidth="5" />
-      <path d={`M30 150 L${W / 2} 6 L${W - 30} 150 Z`} fill="url(#gg)" stroke="#7a5410" strokeWidth="3" />
-      <path d={`M70 146 L${W / 2} 28 L${W - 70} 146 Z`} fill="url(#gm)" stroke="#7a5410" strokeWidth="2" />
-      <path d={`M${W * 0.2} 146 Q${W / 2} 36 ${W * 0.8} 146 L${W * 0.8} 150 L${W * 0.2} 150z`} fill="#0a1a52" stroke="url(#gg)" strokeWidth="5" />
-      <path d={`M${W / 2 - 40} 54 q40-34 80 0 q-40 24-80 0z`} fill="url(#gg)" stroke="#7a5410" strokeWidth="2" />
-      <rect x="20" y="148" width={W - 40} height="14" rx="3" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" />
-      {[150, 255].map(col)}{[W - 255, W - 150].map(col)}
-      <rect x="40" y={H - 26} width={W - 80} height="12" fill="url(#gm)" stroke="#9a9ab0" /><rect x="10" y={H - 14} width={W - 20} height="14" fill="url(#gm)" stroke="#9a9ab0" />
+      <rect x="290" y="150" width={W - 580} height={H - 190} fill="#0a1a52" />
+      <g filter="url(#sh)">
+        <path d={`M14 156 L${W / 2} 4 L${W - 14} 156 Z`} fill="url(#gg)" stroke="#6b430a" strokeWidth="3" />
+        <path d={`M52 150 L${W / 2} 28 L${W - 52} 150 Z`} fill="url(#gm)" stroke="#8d8da6" strokeWidth="2" />
+        <path d={`M92 148 L${W / 2} 50 L${W - 92} 148 Z`} fill="none" stroke="url(#gg)" strokeWidth="6" strokeLinejoin="round" />
+        {Array.from({ length: 30 }, (_, i) => { const t = (i + 0.5) / 30; const x = 30 + t * (W / 2 - 30); return <g key={i}><rect x={x - 3} y={150 - (x - 14) * 0.325 + 4} width="6" height="9" fill="#6b430a" opacity=".7" transform={`rotate(-18 ${x} ${150 - (x - 14) * 0.325})`} /><rect x={W - x - 3} y={150 - (x - 14) * 0.325 + 4} width="6" height="9" fill="#6b430a" opacity=".7" transform={`rotate(18 ${W - x} ${150 - (x - 14) * 0.325})`} /></g>; })}
+        <path d={`M${290} 150 Q${W / 2} 28 ${W - 290} 150 Z`} fill="url(#gv)" stroke="url(#gg)" strokeWidth="8" />
+        <path d={`M${W / 2 - 46} 44 q46-34 92 0 q-46 28-92 0z`} fill="url(#gg)" stroke="#6b430a" strokeWidth="2" />
+        <circle cx={W / 2} cy="44" r="9" fill="#d33a4a" stroke="#fff3c4" strokeWidth="2" />
+        <rect x="6" y="150" width={W - 12} height="18" rx="4" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" /></g>
+      {[120, 225].map(col)}{[W - 225, W - 120].map(col)}
+      <g filter="url(#sh)"><rect x="50" y={H - 30} width={W - 100} height="12" fill="url(#gm)" stroke="#8d8da6" /><rect x="14" y={H - 18} width={W - 28} height="18" fill="url(#gm)" stroke="#8d8da6" /></g>
     </svg>);
 }
-const Leaf = ({ x, y, r, c }) => <ellipse cx={x} cy={y} rx="26" ry="8" fill={c} stroke="#7a5410" strokeWidth="1.5" transform={`rotate(${r} ${x} ${y})`} />;
-function Laurel({ flip }) { // golden olive branch beside the scroll
-  return <svg width="180" height="330" viewBox="-30 0 180 330" style={{ transform: flip ? 'scaleX(-1)' : 'none' }}>{GD}
-    <path d="M110 320 Q10 200 70 10" fill="none" stroke="#a8761a" strokeWidth="6" strokeLinecap="round" />
-    {Array.from({ length: 10 }, (_, i) => { const y = 300 - i * 28, x = 98 - Math.sin(i / 10 * 2.4) * 70; return <g key={i}><Leaf x={x - 22} y={y} r={-35} c="url(#gg)" /><Leaf x={x + 18} y={y - 12} r={30} c="url(#gg)" /></g>; })}
-    <Leaf x="66" y="8" r="-80" c="url(#gg)" /></svg>;
+/** Golden olive branch: thick gradient stem and leaf pairs with a centre vein and highlight. */
+const Leaf = ({ x, y, r, s = 1 }) => <g transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`}><path d="M0 0C14-22 46-22 66 0 46 22 14 22 0 0z" fill="url(#gh)" stroke="#6b430a" strokeWidth="2" /><path d="M4 0H60" stroke="#6b430a" strokeWidth="1.6" /><path d="M10-6C26-14 44-12 56-4" fill="none" stroke="#fff1b8" strokeOpacity=".7" strokeWidth="2" /></g>;
+function Laurel({ flip }) {
+  return <svg width="215" height="344" viewBox="-40 0 250 400" style={{ transform: flip ? 'scaleX(-1)' : 'none' }} filter="url(#sh)">{GD}
+    <path d="M150 392 Q-4 250 96 12" fill="none" stroke="url(#gh)" strokeWidth="11" strokeLinecap="round" /><path d="M150 392 Q-4 250 96 12" fill="none" stroke="#fff1b8" strokeOpacity=".5" strokeWidth="2.5" strokeLinecap="round" />
+    {Array.from({ length: 11 }, (_, i) => { const t = i / 10, y = 360 - i * 32, x = 142 - Math.sin(t * 2.6) * 108 + t * 6; return <g key={i}><Leaf x={x} y={y} r={-150 - t * 20} s={1.15 - t * 0.35} /><Leaf x={x} y={y - 10} r={-18 + t * 14} s={1.1 - t * 0.35} /></g>; })}
+    <Leaf x="96" y="20" r="-96" s=".8" /></svg>;
 }
-/** Ornate silver-and-gold scroll roller with finials. */
+/** Ornate silver-and-gold scroll roller: engraved cylinder with gold filigree, banded ends and finials. */
 function Roller({ x, H }) {
-  return <g>
-    <rect x={x - 38} y="104" width="76" height={H - 150} rx="26" fill="url(#gs)" stroke="#7a5410" strokeWidth="4" />
-    <rect x={x - 28} y="124" width="56" height={H - 190} rx="18" fill="none" stroke="url(#gg)" strokeWidth="5" />
-    {Array.from({ length: 5 }, (_, i) => <g key={i} transform={`translate(${x} ${160 + i * ((H - 270) / 4)})`}><path d="M0-16c14 0 18 14 4 18-12 3-8-10 0-8" fill="none" stroke="#b8861f" strokeWidth="4" /><path d="M0-16c-14 0-18 14-4 18 12 3 8-10 0-8" fill="none" stroke="#b8861f" strokeWidth="4" /><circle r="4" fill="#c9941f" cy="22" /></g>)}
-    <rect x={x - 44} y="92" width="88" height="22" rx="8" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" /><rect x={x - 44} y={H - 62} width="88" height="22" rx="8" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" />
-    <path d={`M${x - 10} ${H - 40} q10 40 20 0z`} fill="url(#gg)" stroke="#7a5410" strokeWidth="3" /><circle cx={x} cy={H - 6} r="12" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" />
-    <circle cx={x} cy="84" r="12" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" /></g>;
+  const top = 96, hh = H - 150;
+  return <g filter="url(#sh)">
+    <defs><pattern id="fil" width="46" height="46" patternUnits="userSpaceOnUse"><path d="M23 4c10 0 16 8 10 15-5 6-14 2-12-5 1-4 6-5 8-2M23 42c-10 0-16-8-10-15 5-6 14-2 12 5-1 4-6 5-8 2" fill="none" stroke="#b9801c" strokeWidth="3" strokeLinecap="round" /><circle cx="23" cy="23" r="3.5" fill="#d9a53a" /></pattern>
+      <linearGradient id="gcy" x1="0" x2="1"><stop offset="0" stopColor="#5d5f6c" stopOpacity=".7" /><stop offset=".25" stopColor="#fff" stopOpacity=".15" /><stop offset=".6" stopColor="#000" stopOpacity=".05" /><stop offset="1" stopColor="#000" stopOpacity=".55" /></linearGradient></defs>
+    <rect x={x - 40} y={top} width="80" height={hh} rx="14" fill="url(#gs)" stroke="#6b430a" strokeWidth="4" />
+    <rect x={x - 40} y={top} width="80" height={hh} rx="14" fill="url(#fil)" opacity=".95" /><rect x={x - 40} y={top} width="80" height={hh} rx="14" fill="url(#gcy)" />
+    {[top + 4, top + hh - 18].map((y) => <rect key={y} x={x - 46} y={y} width="92" height="16" rx="6" fill="url(#gg)" stroke="#6b430a" strokeWidth="2.5" />)}
+    {[top + 34, top + hh - 48].map((y) => <rect key={y} x={x - 43} y={y} width="86" height="8" rx="3" fill="url(#gg)" stroke="#6b430a" strokeWidth="1.5" />)}
+    <path d={`M${x - 26} ${top - 4} q26-34 52 0z`} fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /><circle cx={x} cy={top - 24} r="13" fill="url(#gg)" stroke="#6b430a" strokeWidth="3" />
+    <path d={`M${x - 26} ${top + hh + 2} q26 34 52 0z`} fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /><circle cx={x} cy={top + hh + 26} r="13" fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /></g>;
 }
-/** Torah scroll: two ornate rollers around a parchment, royal crown on top. Children are placed on the parchment. */
-function TorahCase({ children, W = 800, H = 400 }) {
-  const px = 160, pw = W - 2 * px;
+/** Large royal crown: velvet cap with gold ribs, jewelled band, pearls, orb and cross. */
+function Crown({ w = 300 }) {
+  const jw = [[-80, '#d33a4a'], [-40, '#2b6fe0'], [0, '#d33a4a'], [40, '#2b6fe0'], [80, '#d33a4a']];
+  return <svg width={w} height={w * 0.66} viewBox="-150 0 300 198" filter="url(#sh)">{GD}
+    <path d="M-102 128C-106 62-58 30 0 30S106 62 102 128z" fill="url(#gv)" stroke="#6b430a" strokeWidth="3" />
+    {[-60, -30, 30, 60].map((d) => <path key={d} d={`M${d * 1.5} 128C${d * 1.2} 90 ${d * 0.5} 54 0 32`} fill="none" stroke="#e8bd4a" strokeWidth="3" strokeOpacity=".8" />)}
+    <path d="M-104 128C-92 52-30 24 0 24S92 52 104 128" fill="none" stroke="url(#gg)" strokeWidth="11" strokeLinecap="round" />
+    <path d="M-104 128C-70 70-20 40 0 30S70 70 104 128" fill="none" stroke="url(#gh)" strokeWidth="7" strokeLinecap="round" />
+    <circle cx="0" cy="20" r="14" fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /><rect x="-5" y="-22" width="10" height="34" rx="2" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" /><rect x="-14" y="-12" width="28" height="9" rx="2" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" />
+    <rect x="-118" y="124" width="236" height="42" rx="12" fill="url(#gg)" stroke="#6b430a" strokeWidth="3.5" />
+    {jw.map(([x, c]) => <g key={x}><circle cx={x} cy="145" r="14" fill="url(#gh)" stroke="#6b430a" strokeWidth="2" /><circle cx={x} cy="145" r="9.5" fill={c} stroke="#fff3c4" strokeWidth="2" /><circle cx={x - 3} cy="142" r="2.6" fill="#fff" opacity=".8" /></g>)}
+    {[-60, -20, 20, 60, -100, 100].map((x) => <circle key={x} cx={x} cy="145" r="5" fill="#fff" stroke="#c9b27a" />)}
+    {Array.from({ length: 13 }, (_, i) => <circle key={i} cx={-108 + i * 18} cy="176" r="6" fill="#fff" stroke="#c9b27a" strokeWidth="1.5" />)}
+    <path d="M-118 134c-14-6-22 4-14 14M118 134c14-6 22 4 14 14" fill="none" stroke="url(#gg)" strokeWidth="6" strokeLinecap="round" /></svg>;
+}
+/** Torah scroll: two ornate rollers around an aged parchment; the crown sits big above it. Children are placed on the parchment. */
+function TorahCase({ children, W = 740, H = 400 }) {
+  const px = 170, pw = W - 2 * px;
   return (
     <div style={{ position: 'relative', width: W, height: H, margin: '0 auto' }}>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', inset: 0 }}>{GD}
-        <defs><linearGradient id="gs" x1="0" x2="1"><stop offset="0" stopColor="#8d8f99" /><stop offset=".35" stopColor="#f2f2f6" /><stop offset=".7" stopColor="#b9bbc6" /><stop offset="1" stopColor="#7d7f8a" /></linearGradient>
-          <linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f7ecd0" /><stop offset=".5" stopColor="#fdf6e3" /><stop offset="1" stopColor="#ecdcb4" /></linearGradient></defs>
-        <rect x={px} y="100" width={pw} height={H - 140} fill="url(#gp)" stroke="#a8761a" strokeWidth="2" /><rect x={px} y="100" width={pw} height="16" fill="#00000018" /><rect x={px} y={H - 56} width={pw} height="16" fill="#00000018" />
-        <Roller x={px - 6} H={H} /><Roller x={W - px + 6} H={H} />
-        <g transform={`translate(${W / 2} 0)`}>
-          <path d="M-70 92 L-80 40 Q0 16 80 40 L70 92z" fill="#142d86" stroke="#7a5410" strokeWidth="3" /><path d="M-70 92 L-80 40 L-40 60 L0 28 L40 60 L80 40 L70 92z" fill="#1d3ba8" stroke="#7a5410" strokeWidth="2" />
-          <rect x="-84" y="84" width="168" height="22" rx="6" fill="url(#gg)" stroke="#7a5410" strokeWidth="3" />
-          {[-60, -30, 0, 30, 60].map((x) => <circle key={x} cx={x} cy="95" r="5" fill="#fff" stroke="#c9b27a" />)}
-          {[[-38, 'm', '#d33a4a'], [0, 'm', '#2b6fe0'], [38, 'm', '#d33a4a']].map(([x, , c]) => <circle key={x} cx={x} cy="68" r="7" fill={c} stroke="#7a5410" strokeWidth="2" />)}
-          <circle cx="-84" cy="46" r="8" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" /><circle cx="84" cy="46" r="8" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" />
-          <rect x="-5" y="6" width="10" height="26" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" /><rect x="-13" y="14" width="26" height="9" fill="url(#gg)" stroke="#7a5410" strokeWidth="2" /></g>
+        <defs><linearGradient id="gs" x1="0" x2="1"><stop offset="0" stopColor="#7d7f8c" /><stop offset=".3" stopColor="#f6f6fa" /><stop offset=".65" stopColor="#c3c5d0" /><stop offset="1" stopColor="#6f717e" /></linearGradient>
+          <linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e9d6a8" /><stop offset=".12" stopColor="#fbf2d8" /><stop offset=".88" stopColor="#fbf2d8" /><stop offset="1" stopColor="#dcc691" /></linearGradient></defs>
+        <g filter="url(#sh)"><rect x={px} y="104" width={pw} height={H - 150} fill="url(#gp)" stroke="#a8761a" strokeWidth="2" /></g>
+        <Roller x={px - 4} H={H} /><Roller x={W - px + 4} H={H} />
       </svg>
-      <div style={{ position: 'absolute', left: px + 14, top: 130, width: pw - 28, height: H - 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#1b1204' }}>{children}</div>
+      <div style={{ position: 'absolute', left: px + 20, top: 132, width: pw - 40, height: H - 206, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#1b1204' }}>{children}</div>
     </div>);
 }
+/** Gold fleuron for the banner sides. */
+const Fleur = () => <svg width="70" height="70" viewBox="-35 -35 70 70">{GD}<g filter="url(#sh)" fill="url(#gg)" stroke="#6b430a" strokeWidth="1.5"><path d="M0-28c8 8 8 16 0 22-8-6-8-14 0-22z" /><path d="M0 28c8-8 8-16 0-22-8 6-8 14 0 22z" /><path d="M-28 0c8-8 16-8 22 0-6 8-14 8-22 0z" /><path d="M28 0c-8-8-16-8-22 0 6 8 14 8 22 0z" /><circle r="6" fill="#0d2a78" stroke="#fff3c4" strokeWidth="2" /></g></svg>;
 function Olive() { return <svg width="300" height="70" viewBox="0 0 300 70"><path d="M5 40 Q150 5 295 40" fill="none" stroke="#5b6b2a" strokeWidth="4" />{Array.from({ length: 14 }, (_, i) => <ellipse key={i} cx={20 + i * 20} cy={i % 2 ? 28 : 46} rx="14" ry="5" fill="#7a8a3a" />)}</svg>; }
 /** Row icons, drawn in gold. */
 function Ico({ k }) {
@@ -147,13 +199,14 @@ function Poster({ d, tpl, greet, pref }) {
   let free = MAXR - all.filter(([n]) => KEY.test(n)).length;
   const rows = all.length <= MAXR ? all : all.filter(([n]) => KEY.test(n) || free-- > 0), n = Math.max(rows.length, 1), gap = n > 12 ? 4 : n > 10 ? 5 : n > 8 ? 7 : 8
   // the rows area is ~730px: row height / font shrink with the number of rows (never below 44px), so nothing is cut or overlaps
-  const rh = Math.max(44, Math.min(78, Math.floor((730 - gap * (n - 1)) / n))), fs = Math.round(Math.min(40, rh * 0.47));
+  const rh = Math.max(44, Math.min(84, Math.floor((730 - gap * (n - 1)) / n))), fs = Math.round(Math.min(40, rh * 0.47));
   const nm = (d.name || '').replace(/^בית (ה)?כנסת\s+/, '').trim() || d.name, nfs = nm.length <= 8 ? 104 : nm.length <= 12 ? 84 : nm.length <= 18 ? 64 : 50;
-  const box = { position: 'relative', background: 'linear-gradient(180deg,#0d2257,#071538)', border: '3px solid #d9b657', borderRadius: 12, boxShadow: '0 3px 8px #0007', color: '#f7e7b0', display: 'flex', alignItems: 'center', justifyContent: 'center', height: rh };
-  const gold = { color: '#f6d77a', textShadow: '0 3px 0 #7a5410, 0 6px 10px #0009', fontWeight: 900 };
+  const box = { position: 'relative', background: 'linear-gradient(180deg,#0d2257,#071538)', border: '2px solid #e0bd5f', borderRadius: 12, boxShadow: '0 3px 8px #0007', color: '#f7e7b0', display: 'flex', alignItems: 'center', justifyContent: 'center', height: rh };
+  const gold = { color: '#f9df8e', textShadow: '0 0 22px #f6d77acc, 0 3px 0 #8a5a10, 0 6px 0 #5a3d0a, 0 10px 14px #000b', fontWeight: 900 };
   const pn = d.parsha.startsWith('פרשת ') ? d.parsha.slice(5) : d.parsha;
   return (
     <div ref={pref} dir="rtl" style={{ width: W, height: H, position: 'relative', overflow: 'hidden', background: t.bg, color: t.fg, fontFamily: "'Frank Ruhl Libre','David Libre',Heebo,serif", display: 'flex', flexDirection: 'column', padding: '64px 80px 70px', boxSizing: 'border-box', alignItems: 'stretch' }}>
+      <Arabesque />
       <Frame W={W} H={H} color={t.ln} />
       <div style={{ position: 'absolute', top: 54, right: 108, fontSize: 28, color: t.ac, fontWeight: 700 }}>בס״ד</div>
       <div style={{ position: 'relative', alignSelf: 'center', width: 940, height: 400, marginTop: 6 }}>
@@ -166,8 +219,9 @@ function Poster({ d, tpl, greet, pref }) {
       </div>
       {shab && d.parsha ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, marginTop: -6, position: 'relative' }}>
-          <div style={{ position: 'absolute', right: 0, top: 40 }}><Laurel /></div><div style={{ position: 'absolute', left: 0, top: 40 }}><Laurel flip /></div>
+          <div style={{ position: 'absolute', right: -8, top: 46 }}><Laurel /></div><div style={{ position: 'absolute', left: -8, top: 46 }}><Laurel flip /></div>
           <TorahCase>
+            <div style={{ position: 'absolute', top: -188, left: '50%', transform: 'translateX(-50%)', zIndex: 2, pointerEvents: 'none' }}><Crown w={292} /></div>
             <div style={{ fontSize: 42, fontWeight: 800 }}>{d.chag ? '' : 'שבת פרשת'}</div>
             <div style={{ fontSize: Math.max(52, Math.min(124, 330 / Math.max((d.chag ? d.parsha : pn).length * 0.5, 3))), fontWeight: 900, lineHeight: 1.05 }}>{d.chag ? d.parsha : pn}</div>
             {d.haftara && <div style={{ fontSize: 22, fontFamily: 'Heebo,Arial,sans-serif', marginTop: 4, whiteSpace: 'nowrap' }}>ההפטרה: {d.haftara}</div>}
@@ -177,29 +231,99 @@ function Poster({ d, tpl, greet, pref }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap }}>
         {rows.map(([n, v], i) => (
           <div key={i} style={{ display: 'flex', gap: 10, direction: 'rtl' }}>
-            <div style={{ ...box, width: rh }}><Inner /><Ico k={iconOf(n)} /></div>
-            <div style={{ ...box, flex: 1, fontSize: n.length > 22 ? fs - 8 : fs, fontWeight: 800, fontFamily: 'Heebo,Arial,sans-serif' }}><Inner />{n}</div>
-            <div style={{ ...box, width: 190, fontSize: fs + 4, fontWeight: 900, direction: 'ltr', fontFamily: 'Heebo,Arial,sans-serif' }}><Inner />{v}</div>
+            <div style={{ ...box, width: rh }}><Ico k={iconOf(n)} /></div>
+            <div style={{ ...box, flex: 1, fontSize: n.length > 22 ? fs - 8 : fs, fontWeight: 800, fontFamily: 'Heebo,Arial,sans-serif' }}>{n}</div>
+            <div style={{ ...box, width: 190, fontSize: fs + 4, fontWeight: 900, direction: 'ltr', fontFamily: 'Heebo,Arial,sans-serif' }}>{v}</div>
           </div>))}
       </div>
       <div style={{ flex: 1 }} />
       <div style={{ position: 'relative', background: 'linear-gradient(180deg,#0d2257,#06123a)', border: '5px solid #d9b657', borderRadius: 22, boxShadow: '0 4px 12px #0009', padding: '14px 10px', textAlign: 'center' }}><i style={{ position: 'absolute', inset: 6, border: '3px solid #7a5410', borderRadius: 16 }} /><i style={{ position: 'absolute', inset: 14, border: '2px solid #d9b657', borderRadius: 10 }} />
-        <span style={{ position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)', fontSize: 44, color: '#f6d77a' }}>✦</span><span style={{ position: 'absolute', left: 40, top: '50%', transform: 'translateY(-50%)', fontSize: 44, color: '#f6d77a' }}>✦</span>
+        <span style={{ position: 'absolute', right: 34, top: '50%', transform: 'translateY(-50%)' }}><Fleur /></span><span style={{ position: 'absolute', left: 34, top: '50%', transform: 'translateY(-50%) scaleX(-1)' }}><Fleur /></span>
         <div style={{ ...gold, fontSize: 92, lineHeight: 1.05 }}>{g}</div>
       </div>
     </div>);
 }
 
+
+/* ---------- Asset-overlay renderer: template_bg.png + dynamic text/icons drawn on ONE canvas (sharp PNG, 1080x1920) ---------- */
+const TPL_SRC = '/images/templates/template_bg.png', TW = 941, TH = 1672; // coordinates below are measured on the template (941x1672) and scaled
+const ICON_SVG = {
+  candle: '<path d="M24 4c5 6 5 10 0 13-5-3-5-7 0-13z" fill="#f2c85b"/><rect x="19" y="20" width="10" height="22" rx="2"/>',
+  sun: '<circle cx="24" cy="26" r="9" fill="#f2c85b"/><path d="M24 6v6M8 26h6M34 26h6M12 14l4 4M36 14l-4 4M6 42h36"/>',
+  moon: '<path d="M32 8a16 16 0 1 0 8 28A14 14 0 0 1 32 8z" fill="#f2c85b"/>',
+  star: '<path d="M24 5l5 12 13 1-10 9 3 13-11-7-11 7 3-13-10-9 13-1z" fill="#f2c85b"/>',
+  shul: '<path d="M6 42V22l18-14 18 14v20zM18 42V28h12v14"/>',
+  book: '<path d="M8 10h14a4 4 0 0 1 4 4v26a4 4 0 0 0-4-4H8zM40 10H26"/><path d="M40 10v26H26"/>',
+};
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('img ' + src)); i.src = src; });
+const iconImg = (k) => loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48" fill="none" stroke="#f2c85b" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[k] || ICON_SVG.shul}</svg>`));
+const SERIF = "'Frank Ruhl Libre','David Libre','David',serif", SANS = "Heebo,Arial,sans-serif";
+function fitFont(c, text, maxW, size, weight, fam, min = 14) { let z = size; for (; z > min; z -= 2) { c.font = `${weight} ${z}px ${fam}`; if (c.measureText(text).width <= maxW) break; } c.font = `${weight} ${z}px ${fam}`; return z; }
+function goldText(c, text, x, y, size, maxW, fam = SERIF) {
+  const z = fitFont(c, text, maxW, size, 900, fam, 20), d = Math.max(2, z / 22);
+  c.save(); c.fillStyle = '#5a3d0a'; c.fillText(text, x, y + d * 2.4); c.fillStyle = '#8a5a10'; c.fillText(text, x, y + d * 1.2);
+  c.shadowColor = 'rgba(246,215,122,.85)'; c.shadowBlur = z * 0.35; c.fillStyle = '#f9df8e'; c.fillText(text, x, y); c.restore();
+}
+export async function renderPoster(d, greet) {
+  const W = 1080, H = 1920, sx = W / TW, sy = H / TH, X = (v) => v * sx, Y = (v) => v * sy;
+  await Promise.all([document.fonts?.load?.('900 60px "Frank Ruhl Libre"'), document.fonts?.load?.('700 30px Heebo')].map((p) => Promise.resolve(p).catch(() => {})));
+  const bg = await loadImg(TPL_SRC), cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(bg, 0, 0, W, H);
+  c.direction = 'rtl'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  const shab = d.kind === 'shabbat', cx = X(470);
+  // sign in the temple
+  const nm = (d.name || '').replace(/^בית (ה)?כנסת\s+/, '').trim() || d.name;
+  goldText(c, 'בית הכנסת', cx, Y(232), 54, X(400));
+  goldText(c, nm, cx, Y(318), 112, X(440));
+  goldText(c, 'זמני תפילות ושיעורי תורה', cx, Y(392), 40, X(440), SANS);
+  // parchment: parsha + haftara (no verse numbers)
+  c.fillStyle = '#2a1a05';
+  const pw = X(236);
+  if (shab && d.parsha) {
+    const pn = d.chag ? d.parsha : d.parsha.replace(/^פרשת\s+/, '');
+    if (!d.chag) { fitFont(c, 'שבת פרשת', pw, 44, 800, SERIF); c.fillText('שבת פרשת', cx, Y(626)); }
+    fitFont(c, pn, pw, 104, 900, SERIF, 30); c.fillText(pn, cx, Y(d.chag ? 680 : 690));
+    if (d.haftara) { const t = 'ההפטרה: ' + d.haftara; fitFont(c, t, pw, 26, 600, SANS, 14); c.fillText(t, cx, Y(762)); }
+  } else {
+    fitFont(c, 'זמני היום', pw, 90, 900, SERIF); c.fillText('זמני היום', cx, Y(690));
+  }
+  // Hebrew date under the scroll
+  c.fillStyle = '#f2c85b'; fitFont(c, d.date, X(250), 34, 700, SANS, 16); c.fillText(d.date, cx, Y(835));
+  // rows: time (left box) | label (middle) | icon (right box)
+  const all = orderRows(d), KEY = /נרות|נץ|ק״ש|צאת|חצות|שקיעה|רבינו/, MAXR = 8;
+  let free = MAXR - all.filter(([n]) => KEY.test(n)).length;
+  const rows = all.length <= MAXR ? all : all.filter(([n]) => KEY.test(n) || free-- > 0);
+  const top0 = 872, pitch = 69.9, bh = 62;
+  for (let i = 0; i < MAXR; i++) {
+    const y = top0 + i * pitch, yc = Y(y + bh / 2);
+    if (i >= rows.length) { // unused template slot: paint over it with the template's own background strip
+      const k = bg.naturalWidth / TW; c.drawImage(bg, 92 * k, (y - 8) * k, 30 * k, (bh + 16) * k, X(130), Y(y - 8), X(686), Y(bh + 16)); continue; }
+    const [n, v] = rows[i];
+    c.fillStyle = '#f7e7b0'; fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc);
+    c.fillStyle = '#f9df8e'; fitFont(c, v, X(116), 44, 900, SANS, 20); c.direction = 'ltr'; c.fillText(v, X(203), yc); c.direction = 'rtl';
+    const im = await iconImg(iconOf(n)), sz = Y(48); c.drawImage(im, X(755) - sz / 2, yc - sz / 2, sz, sz);
+  }
+  // banner
+  const g = !shab ? 'יום מבורך!' : greet === 'chag' || (greet === 'auto' && d.chag) ? 'חג שמח!' : 'שבת שלום ומבורך!';
+  goldText(c, g, cx, Y(1538), 104, X(600));
+  return cv.toDataURL('image/png');
+}
+
 /** WhatsApp image maker (lives only in the design tab): Shabbat/holiday or weekday poster, content toggles, share/download. */
 export default function WhatsAppImage({ syn, cols, st }) {
-  const [kind, setKind] = useState('shabbat'), [tpl, setTpl] = useState('temple'), [greet, setGreet] = useState('auto');
+  const [kind, setKind] = useState('shabbat'), [tpl, setTpl] = useState('asset'), [greet, setGreet] = useState('auto');
   const [opt, setOpt] = useState({ lessons: true, rt: false, netz: true, ann: true });
-  const [d, setD] = useState(null), [png, setPng] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
+  const [vec, setVec] = useState(false), [d, setD] = useState(null), [png, setPng] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
   const ref = useRef(null), tg = (k) => (v) => setOpt({ ...opt, [k]: v });
   async function generate() {
     setBusy(true); setMsg(''); setPng('');
     try {
-      setD(await build({ syn, cols, st }, kind, opt));
+      const data = await build({ syn, cols, st }, kind, opt);
+      setD(data); setVec(false);
+      if (tpl === 'asset') {
+        try { setPng(await renderPoster(data, greet)); setBusy(false); return; }
+        catch (e) { setMsg('תבנית הרקע לא נטענה, נוצר עיצוב וקטורי חלופי.'); setVec(true); }
+      } else setVec(true);
       await new Promise((r) => setTimeout(r, 200));
       if (document.fonts?.ready) await document.fonts.ready;
       const html2canvas = (await import('html2canvas')).default;
@@ -226,7 +350,7 @@ export default function WhatsAppImage({ syn, cols, st }) {
       <Switch label="הצג נץ החמה הנראה" on={opt.netz} onChange={tg('netz')} />
       <Switch label="הצג הודעות גבאי" on={opt.ann} onChange={tg('ann')} />
       <button className="b" disabled={busy} onClick={generate} style={{ marginTop: 8 }}>{busy ? 'יוצר…' : 'צור תמונה'}</button>
-      {d && <div style={{ position: 'fixed', left: -12000, top: 0 }}><Poster d={d} tpl={tpl} greet={greet} pref={ref} /></div>}
+      {d && vec && <div style={{ position: 'fixed', left: -12000, top: 0 }}><Poster d={d} tpl={tpl === 'asset' ? 'temple' : tpl} greet={greet} pref={ref} /></div>}
       {png && <>
         <img src={png} alt="תמונת זמנים" style={{ width: '100%', maxWidth: 420, display: 'block', margin: '12px auto', borderRadius: 10, border: '1px solid var(--ln)' }} />
         <div className="row"><button className="b" onClick={share}>שתף בווטסאפ</button><button className="b g" onClick={download}>הורד תמונה (PNG)</button></div>

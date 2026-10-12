@@ -163,3 +163,13 @@ label{font-size:13px;color:var(--mu)}
 .fsl .ab h3{color:#5b3a05!important}.fsl .ab p,.fsl .ab small{color:#2a1a05!important}
 .fsl .af{color:#f6d77a}
 .fsl .ab{overflow:visible!important}
+/* collapsible cards (accordion) */
+.fold>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:2px 0}
+.fold>summary::-webkit-details-marker{display:none}.fold>summary::after{content:"▼";font-size:11px;color:var(--mu)}.fold[open]>summary::after{content:"▲"}
+.fold[open]>summary{margin-bottom:8px}
+/* מסך מלא: רקע היכל+מגילה על 100% מהמסך, הטקסט בתוך הקלף */
+.fsl{background:#06123a url(/images/templates/fullscreen_bg.jpg) center/100% 100% no-repeat!important;padding:17.8% 34% 18%!important;margin:0!important;width:100%;height:100%;box-sizing:border-box;overflow:hidden}
+.fsl .ab{background:none!important;border:0!important;box-shadow:none!important;min-width:0;width:100%;padding:0!important}
+.fsl .ab::before,.fsl .ab::after{display:none!important}
+.fsl .lb{color:#6b4a0a;text-shadow:0 1px 0 #fff8}.fsl .af{color:#6b4a0a}
+.fsl h3{font-size:3em!important}.fsl p{font-size:1.65em!important}

@@ -34,7 +34,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
           <div><label>גובה (מ׳)</label><input type="number" defaultValue={loc.elevation || 0} onBlur={(e) => save({ 'location.elevation': +e.target.value })} /></div></div></details>
     </Card>
     <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
-    <Card title="זמני היום">
+    <Card fold title="זמני היום">
       <label>הדלקת נרות (דקות לפני שקיעה)</label><input type="number" defaultValue={st.candle} onBlur={(e) => set('candle', +e.target.value)} />
       <label>נוסח / מנהג</label><select value={syn.nusach || 'ashkenaz'} onChange={(e) => save({ nusach: e.target.value })}><option value="ashkenaz">אשכנז</option><option value="sefard">ספרד</option><option value="edot_hamizrach">עדות המזרח</option></select>
       <label>פרופיל מוכן (קובע ברירות מחדל, אפשר לכוונן)</label>
@@ -47,7 +47,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
       <Switch label="הצג נץ החמה הנראה (טופוגרפי)" on={zm.netzVisible !== false} onChange={(v) => set('zm.netzVisible', v)} />
       <Switch label="הצג זמני שבת/חג (ידני, לחגים)" on={st.force} onChange={(v) => set('force', v)} />
     </Card>
-    <Card title="מסכים">
+    <Card fold title="מסכים">
       {SCREENS.map((id) => (
         <div className="row" key={id} style={{ fontSize: 13 }}>
           <span style={{ flex: '0 0 14px' }}>{screens.some((s) => s.id === id) ? (online(id) ? '🟢' : '🔴') : '⚪'}</span><b style={{ flex: '1 1 80px' }}>{SCREEN_NAMES[id]}</b>

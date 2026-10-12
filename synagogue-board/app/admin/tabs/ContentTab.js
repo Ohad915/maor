@@ -83,12 +83,12 @@ function Halacha({ sid, st, set, cols }) {
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'halacha', ed.eid, f) : addItem(sid, 'halacha', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
-    <Card title="מנהגי היום / תזכורות בתפילה (הפס העליון)">
+    <Card fold title="מנהגי היום / תזכורות בתפילה (הפס העליון)">
       <Switch label="הצגת הפס במסך" on={st.vis?.cu !== false} onChange={(v) => set('vis.cu', v)} />
       <div className="row">{[['auto', 'אוטומטי'], ['both', 'אוטומטי + ידני'], ['manual', 'ידני בלבד']].map(([k, l]) => <button key={k} className={`b ${(st.customs?.mode || 'auto') === k ? '' : 'g'}`} onClick={() => set('customs.mode', k)}>{l}</button>)}</div>
       <label>טקסט ידני (שורה לכל תזכורת)</label><TextIn area value={st.customs?.text} onSave={(v) => set('customs.text', v)} />
     </Card>
-    <Card title='שקופית "מנהגי היום" האוטומטית'>
+    <Card fold title='שקופית "מנהגי היום" האוטומטית'>
       <div className="row">{[['off', 'כבוי'], ['block', 'בלוק בקרוסלה'], ['full', 'מסך מלא']].map(([k, l]) => <button key={k} className={`b ${am === k ? '' : 'g'}`} onClick={() => set('hl.autoMode', k)}>{l}</button>)}</div>
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הלכה' : 'הלכה חדשה'}>
