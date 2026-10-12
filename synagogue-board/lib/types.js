@@ -21,7 +21,7 @@ export const DEFAULT_SETTINGS = {
   theme: 'gold', layout: '1', frame: 'royal', cardStyle: 'clean', zoom: 1, anim: 'fade', accent: '', title: '', bg: '', tbg: '',
   pMode: 'auto', pTitle: '', pSub: '', pSlide: false,
   shma: 'gra', candle: 30, force: false, side: 32, qs: 100,
-  donTitle: '', donSub: '', payUrl: '', tkText: '',
+  donTitle: '', donSub: '', payUrl: '', tkText: '', subtitle: '', footerText: '',
   zm: { profile: 'ashkenaz', shma: 'gra', tzeit: '8.5', rt: false, netzVisible: true }, hfShow: false, hfText: '', waParsha: true, waHaftara: true,
   vis: {}, cf: {}, blocks: {}, ipp: { yz: 3, rf: 3 },
   customs: { mode: 'auto', text: '' }, ptAll: { mode: 'off', secs: 10 }, hl: { mode: 'block', auto: true },

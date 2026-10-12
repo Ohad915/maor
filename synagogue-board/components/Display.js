@@ -256,8 +256,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const tkr = [tkr0, zt].filter(Boolean).join('   ✦   ');
     body = <div className="rl">
       <div className="rl-top" style={rbox(9.3, 8.5, 81.4, 11.5)}>
-        <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{gem(h.d)} ב{monthName(h.raw)}</small></div></div>
-        <div className="rl-times" style={{ '--rn': Math.max(bn, 1) }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
+        <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
+        <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
         <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
       <div className="rl-parsha" style={rbox(13.5, 22.4, 73, 13)}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>

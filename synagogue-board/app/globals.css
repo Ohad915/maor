@@ -277,3 +277,13 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt{display:flex;flex-direction:column;align-items:center;gap:.4cqw}
 .rl-pt b{font-size:5.4cqw!important}
 .rl-pt small{font-size:1.9cqw;font-weight:800;color:#5b3a05;letter-spacing:.06em}
+
+/* ===== תיקוני הכלה ===== */
+.rl-dd b{font-size:1.75cqw}.rl-dd small{font-size:1.5cqw;letter-spacing:.04em}
+.rl-times>div{padding:0 1.4cqw}
+.rl-times b{font-size:var(--tf,2.4cqw)!important}
+.rl-pt{gap:.2cqw;line-height:1.05;max-height:100%}
+.rl-pt b{font-size:4.5cqw!important;line-height:1.05}
+.rl-pt small{font-size:1.45cqw!important;line-height:1.1;padding-bottom:.2cqw}
+.rl-parsha{overflow:hidden}
+.rl-tk{margin:0 1.2cqw;max-width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}

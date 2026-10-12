@@ -5,6 +5,20 @@ import { Card, DebIn, FontSel, Range, Switch, TextIn } from '../components/UI';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
 import WhatsAppImage from '../components/WhatsAppImage';
 
+/** Dropdown of ready-made texts + a custom option; empty value = the default text. */
+function PickText({ label, value, def, opts, onSave }) {
+  const cur = value || '', known = !cur || opts.includes(cur), [custom, setCustom] = useState(!known);
+  const sel = custom ? '__c' : cur;
+  return (<>
+    <label>{label}</label>
+    <select value={sel} onChange={(e) => { if (e.target.value === '__c') setCustom(true); else { setCustom(false); onSave(e.target.value === '' ? '' : e.target.value); } }}>
+      <option value="">ברירת מחדל ({def})</option>
+      {opts.filter((o) => o !== def).map((o) => <option key={o} value={o}>{o}</option>)}
+      <option value="__c">טקסט מותאם אישית…</option>
+    </select>
+    {custom && <TextIn value={cur} onSave={onSave} placeholder={def} />}
+  </>);
+}
 const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'clean', cardStyle: 'gold', tbg: 'temple', bg: '' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'clean', cardStyle: 'stone', tbg: 'stone', bg: '' }], ['זהב קלאסי', { theme: 'gold', frame: 'clean', cardStyle: 'clean', tbg: 'gold', bg: '' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'glass', tbg: 'modern', bg: '' }]];
 const TBGS = [['', 'אוטומטי לפי ערכת נושא'], ['none', 'ללא תמונת רקע'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
@@ -38,7 +52,9 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
       <div className="grid2">{PRESETS.map(([l, p]) => <button key={l} type="button" className={`opt ${Object.entries(p).every(([k, v]) => st[k] === v) ? 'on' : ''}`} onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
     </Card>
     <details className="cd fold"><summary>⚙️ הגדרות מתקדמות (פריסה, מסגרת, גופנים, גדלי קוביות, צבעים)</summary>
-    <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /></Card>
+    <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
+      <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
+    </Card>
     <Card title="עיצוב המסך">
       <label>דגם פריסת מסך</label><div className="grid2">{LAYOUTS.map(([k, l]) => <button key={k} type="button" className={`opt ${String(st.layout) === k ? 'on' : ''}`} onClick={() => set('layout', k)}>{l}</button>)}</div>
       <label>סגנון עיצוב הקוביות</label><div className="grid2">{[['gold', 'זהב יוקרתי'], ['stone', 'אבן ירושלמית'], ['glass', 'זכוכית מודרנית'], ['trad', 'מסורתי / תשמישי קדושה'], ['clean', 'נקי ומודרני']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.cardStyle || 'clean') === k ? 'on' : ''}`} onClick={() => set('cardStyle', k)}>{l}</button>)}</div>
