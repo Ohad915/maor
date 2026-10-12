@@ -31,3 +31,9 @@ export const BLOCKS = [['cr', 'כותרת עליונה'], ['hd', 'תאריך ו�
 export const LAYOUTS = [['1', 'דגם 1 · קלאסי מופרד'], ['2', 'דגם 2 · כותרת משולבת'], ['3', 'דגם 3 · סימטרי מלכותי'], ['4', 'דגם 4 · מודרני מורחב']];
 export const ALL_SUBCOLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'members', 'receipts', 'donations', 'tickets', 'inventory', 'expenses', 'screens', 'private', 'lessons'];
 export const DISPLAY_COLS = ['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'lessons'];
+
+/** Theme background images (public/images/themes) + default image per colour theme. */
+export const TBG_FILES = { temple: 'theme_temple_royalty', stone: 'theme_jerusalem_stone', gold: 'theme_classic_gold', modern: 'theme_modern_clean' };
+export const TBG_BY_THEME = { gold: 'temple', classic: 'stone', modern: 'modern' };
+export const tbgKeyOf = (st) => (st.bg || st.tbg === 'none' ? '' : (TBG_FILES[st.tbg] ? st.tbg : TBG_BY_THEME[st.theme] || ''));
+export const tbgPath = (k) => (TBG_FILES[k] ? `/images/themes/${TBG_FILES[k]}.jpg` : '');

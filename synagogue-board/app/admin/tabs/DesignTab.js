@@ -6,7 +6,7 @@ import BlockDesignAccordion from '../components/BlockDesignAccordion';
 import WhatsAppImage from '../components/WhatsAppImage';
 
 const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'clean', cardStyle: 'gold', tbg: 'temple', bg: '' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'clean', cardStyle: 'stone', tbg: 'stone', bg: '' }], ['זהב קלאסי', { theme: 'gold', frame: 'clean', cardStyle: 'clean', tbg: 'gold', bg: '' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'glass', tbg: 'modern', bg: '' }]];
-const TBGS = [['', 'ללא (צבע רגיל)'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
+const TBGS = [['', 'אוטומטי לפי ערכת נושא'], ['none', 'ללא תמונת רקע'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
 /** Fonts, slide durations and paging for every component, in ONE place (no duplicates in the content tabs). */
 function CompStyles({ st, set }) {

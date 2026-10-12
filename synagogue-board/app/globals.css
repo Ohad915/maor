@@ -201,11 +201,11 @@ label{font-size:13px;color:var(--mu)}
 .pn .an .ab::-webkit-scrollbar{display:none}
 .pn .an{contain:layout}
 /* ===== תמונות רקע לערכות נושא (16:9, ממלאות 100% מהמסך) ===== */
-.dp[data-tbg]{background-color:#050b1f;background-repeat:no-repeat;background-position:center;background-size:100% 100%;--tcard:rgba(6,12,32,.74)}
-.dp[data-tbg=temple]{background-image:url(/images/themes/theme_temple_royalty.jpg);padding:6.4% 10.8% 5.2%}
-.dp[data-tbg=stone]{background-image:url(/images/themes/theme_jerusalem_stone.jpg);padding:3.2% 11.4% 4.6%;--tcard:rgba(255,251,240,.86);--dln:#8a6a2a}
-.dp[data-tbg=gold]{background-image:url(/images/themes/theme_classic_gold.jpg);padding:3.4% 12.6% 4.2%;--tcard:rgba(32,10,4,.72)}
-.dp[data-tbg=modern]{background-image:url(/images/themes/theme_modern_clean.jpg);padding:3.2% 10.4% 3.6%;--tcard:rgba(4,12,38,.72)}
+.dp[data-tbg]{isolation:isolate;background-color:#050b1f;background-repeat:no-repeat;background-position:center;background-size:cover;--tcard:rgba(6,12,32,.74)}
+.dp[data-tbg=temple]{padding:6.4% 10.8% 5.2%}
+.dp[data-tbg=stone]{padding:3.2% 11.4% 4.6%;--tcard:rgba(255,251,240,.86);--dln:#8a6a2a}
+.dp[data-tbg=gold]{padding:3.4% 12.6% 4.2%;--tcard:rgba(32,10,4,.72)}
+.dp[data-tbg=modern]{padding:3.2% 10.4% 3.6%;--tcard:rgba(4,12,38,.72)}
 .dp[data-tbg]::before,.dp[data-tbg]::after,.dp[data-tbg] .cn{display:none!important}
 .dp[data-tbg] :is(.pn,.hd,.pr,.cu,.pb,.tk){background:var(--tcard)!important;border:.07em solid color-mix(in srgb,var(--dln) 75%,transparent)!important;border-image:none!important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 .2em .8em #0006}
 .dp[data-tbg=stone] :is(.pn,.hd,.pr,.cu,.pb,.tk){color:#2a2830;text-shadow:none}

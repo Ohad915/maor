@@ -7,7 +7,7 @@ import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { annOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
-import { DEFAULT_SETTINGS, FONTS, SCREENS } from '@/lib/types';
+import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
 /* ---------- relative block size (50% = Auto) and per-block colors ---------- */
@@ -91,6 +91,12 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   /* ----- content ----- */
   const pi = parshaInfo(now, z.dow, !!z.tzeit && z.now >= z.tzeit);
   const ptitle = st.pMode === 'manual' && st.pTitle ? st.pTitle : pi.title;
+  const tbgKey = tbgKeyOf(st), tbgSrc = tbgPath(tbgKey), [tbgBad, setTbgBad] = useState('');
+  useEffect(() => { // verify the theme image really loads; otherwise warn with the exact missing path and fall back to the plain theme
+    if (!tbgSrc || typeof Image === 'undefined') return; const im = new Image();
+    im.onload = () => setTbgBad(''); im.onerror = () => { console.warn('Failed to load theme image:', tbgSrc); setTbgBad(tbgSrc); }; im.src = tbgSrc;
+  }, [tbgSrc]);
+  const tbgOn = tbgKey && tbgBad !== tbgSrc;
   const hfOn = !!st.hfShow && !st.hfText, [haf, setHaf] = useState('');
   useEffect(() => {
     if (!hfOn) { setHaf(''); return; }
@@ -242,10 +248,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else body = <>{crown}{hd}{pr}{cu}<div className="bd">{mn}{col([yz, rf, qr], sdw)}</div>{tk}{pb}</>;
 
   const frame = st.vis?.frm === false ? 'clean' : st.frame || 'royal';
-  const style = { fontSize: fs, '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
+  const style = { fontSize: fs, ...(tbgOn ? { backgroundImage: `url(${tbgSrc})` } : {}), '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
     ...(st.bg ? { background: `linear-gradient(${st.theme === 'classic' ? '#fffc,#fffc' : '#000a,#000c'}),url(${st.bg}) center/cover` } : {}) };
   return (
-    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={!st.bg && st.tbg ? st.tbg : undefined} data-lm={LM} data-a={st.anim} style={style}>
+    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={tbgOn ? tbgKey : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
       {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}
