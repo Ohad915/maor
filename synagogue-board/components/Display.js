@@ -8,6 +8,7 @@ import { dayType, fmt, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zma
 import { haftaraHe } from '@/lib/haftara';
 import { annOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS } from '@/lib/types';
+import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
 /* ---------- relative block size (50% = Auto) and per-block colors ---------- */
 const bk = (st, k) => { const b = st.blocks?.[k] || {}; return { w: (b.w ?? 50) / 50, h: (b.h ?? 50) / 50, b }; };
@@ -57,12 +58,17 @@ function splitText(text, cap) {
 const chunk = (arr, n, p) => { const pages = Math.max(1, Math.ceil(arr.length / n)); return { pages, items: arr.slice((p % pages) * n, (p % pages) * n + n) }; };
 
 export default function Display({ sid, screenId, fixedSize, preview }) {
-  const { syn, cols, status } = useSynagogue(sid);
+  const live = useSynagogue(sid);
+  // no connection / empty or missing document and nothing cached: calm demo board (zmanim are computed locally) instead of a network error
+  const offlineNow = typeof navigator !== 'undefined' && !navigator.onLine;
+  const demo = !live.syn && (live.syn === null || live.status === 'error' || offlineNow);
+  const syn = demo ? DEMO_SYN : live.syn, status = demo ? 'demo' : live.status;
+  const cols = { ...live.cols, prayers: live.cols?.prayers?.length ? live.cols.prayers : DEMO_PRAYERS };
   const [now, setNow] = useState(() => new Date());
   const [size, setSize] = useState({ w: 1280, h: 720 });
   useEffect(() => { if (fixedSize) { setSize(fixedSize); return; } const u = () => setSize({ w: innerWidth, h: innerHeight }); u(); addEventListener('resize', u); return () => removeEventListener('resize', u); }, [fixedSize?.w, fixedSize?.h]); // eslint-disable-line
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(t); }, []);
-  if (!syn) return <div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>{syn === null ? 'בית הכנסת לא נמצא' : status === 'error' || (typeof navigator !== 'undefined' && !navigator.onLine) ? 'אין חיבור לרשת ועדיין לא נשמרו נתונים במכשיר. המסך יתעדכן אוטומטית ברגע שיהיה חיבור.' : 'טוען נתונים…'}</p></div>;
+  if (!syn) return <div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div>;
   if (syn.suspended) return <div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div>;
   return <Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} />;
 }
@@ -152,7 +158,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : 'פרשה')) : '—';
   useEffect(() => {
     if (preview) return;
-    const beat = () => !navigator.onLine || setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
+    const beat = () => !navigator.onLine || syn.id === 'demo' || setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
     beat(); const t = setInterval(beat, 15000); return () => clearInterval(t);
   }, [syn.id, screenId, showing]);
 
@@ -242,6 +248,6 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
-      {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}
+      {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}
     </div>);
 }

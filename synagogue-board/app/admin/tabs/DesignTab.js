@@ -29,17 +29,17 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
     rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 1400 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); set('bg', c.toDataURL('image/jpeg', 0.6)); }; im.src = rd.result; };
     rd.readAsDataURL(file);
   };
-  const Btns = ({ k, opts }) => <div className="row">{opts.map(([v, l]) => <button key={v} className={`b ${st[k] === v ? '' : 'g'}`} onClick={() => set(k, v)}>{l}</button>)}</div>;
+  const Btns = ({ k, opts }) => <div className="row">{opts.map(([v, l]) => <button key={String(v)} type="button" className={`opt ${st[k] === v ? 'on' : ''}`} onClick={() => set(k, v)}>{l}</button>)}</div>;
   const V = [['cr', 'כותרת עליונה'], ['hd', 'פס התאריך העליון'], ['zm', 'סרגל זמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות'], ['tk', 'סרגל עדכונים נע']];
   return (<>
     <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /></Card>
     <Card title="עיצוב מסך ראשי">
       <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
-      <div className="row">{PRESETS.map(([l, p]) => <button key={l} className="b g" onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
-      <label>דגם פריסת מסך</label><select value={st.layout} onChange={(e) => set('layout', e.target.value)}>{LAYOUTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-      <details style={{ margin: '8px 0' }}><summary style={{ cursor: 'pointer', color: 'var(--mu)' }}>התאמה מתקדמת (מסגרת, קוביות, ערכת צבעים)</summary>
-      <label>סגנון עיצוב הקוביות</label><select value={st.cardStyle || 'clean'} onChange={(e) => set('cardStyle', e.target.value)}>{[['gold', 'זהב יוקרתי (Golden Elegance)'], ['stone', 'אבן ירושלמית עתיקה (Jerusalem Stone)'], ['glass', 'זכוכית מודרנית (Glassmorphism)'], ['trad', 'מסורתי / תשמישי קדושה (Traditional)'], ['clean', 'נקי ומודרני (Minimalist)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-      <label>סגנון מסגרת ועיטורים</label><select value={st.frame || 'royal'} onChange={(e) => set('frame', e.target.value)}>{[['royal', 'זהב מלכותי (Royal Gold)'], ['stone', 'אבני הכותל (Jerusalem Stone)'], ['temple', 'היכל ובית המקדש (Temple Pillars)'], ['ornament', 'ערבסק / תחרה מסורתית (Ornament)'], ['clean', 'נקי / ללא מסגרת (Clean)']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <div className="grid2">{PRESETS.map(([l, p]) => <button key={l} type="button" className={`opt ${Object.entries(p).every(([k, v]) => st[k] === v) ? 'on' : ''}`} onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
+      <label>דגם פריסת מסך</label><div className="grid2">{LAYOUTS.map(([k, l]) => <button key={k} type="button" className={`opt ${String(st.layout) === k ? 'on' : ''}`} onClick={() => set('layout', k)}>{l}</button>)}</div>
+      <details open style={{ margin: '8px 0' }}><summary style={{ cursor: 'pointer', color: 'var(--mu)' }}>התאמה מתקדמת (מסגרת, קוביות, ערכת צבעים)</summary>
+      <label>סגנון עיצוב הקוביות</label><div className="grid2">{[['gold', 'זהב יוקרתי'], ['stone', 'אבן ירושלמית'], ['glass', 'זכוכית מודרנית'], ['trad', 'מסורתי / תשמישי קדושה'], ['clean', 'נקי ומודרני']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.cardStyle || 'clean') === k ? 'on' : ''}`} onClick={() => set('cardStyle', k)}>{l}</button>)}</div>
+      <label>סגנון מסגרת ועיטורים</label><div className="grid2">{[['royal', 'זהב מלכותי'], ['stone', 'אבני הכותל'], ['temple', 'היכל ובית המקדש'], ['ornament', 'ערבסק / תחרה'], ['clean', 'נקי / ללא מסגרת']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.frame || 'royal') === k ? 'on' : ''}`} onClick={() => set('frame', k)}>{l}</button>)}</div>
       <label>ערכת נושא</label><Btns k="theme" opts={[['gold', 'זהב מלכותי'], ['classic', 'שיש קלאסי'], ['modern', 'מודרני כהה']]} />
       </details>
       <label>זום כללי למסך</label><Btns k="zoom" opts={[[1, 'רגיל'], [1.25, 'גדול'], [1.5, 'ענק']]} />

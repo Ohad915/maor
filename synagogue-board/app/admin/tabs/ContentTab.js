@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
 import { gem, hebOf, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
-import { Card, HebPick, Lock, ModeSel, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
+import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
 const TkChk = ({ on, onChange }) => <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={!!on} onChange={(e) => onChange(e.target.checked)} />בסרגל הרץ</label>;
@@ -26,7 +26,7 @@ export default function ContentTab({ ctx }) {
   const cur = role === 'sub_gabbai' ? 'ann' : sub; // sub-gabbai: announcements only
   return (
     <>
-      {role !== 'sub_gabbai' && <div className="pills">{SUBS.map(([k, l]) => <button key={k} className={`b ${cur === k ? '' : 'g'}`} onClick={() => setSub(k)}>{l}</button>)}</div>}
+      {role !== 'sub_gabbai' && <div className="pills">{SUBS.map(([k, l]) => <button key={k} className={`opt ${cur === k ? 'on' : ''}`} onClick={() => setSub(k)}>{l}</button>)}</div>}
       {cur === 'prsh' && <Parsha {...ctx} />}{cur === 'pr' && <Prayers {...ctx} />}{cur === 'les' && <Lessons {...ctx} />}
       {cur === 'ann' && <><Announcements {...ctx} />{role !== 'sub_gabbai' && <Halacha {...ctx} />}</>}
       {cur === 'mem' && <><Memorials {...ctx} /><Refuah {...ctx} /></>}
@@ -41,7 +41,7 @@ function Parsha({ st, set, syn }) {
       <Switch label="הצג בסרגל הרץ (Ticker)" on={st.tkParsha} onChange={(v) => set('tkParsha', v)} />
       <Switch label="הצג פרשה בתמונת WhatsApp" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} />
       <label>זיהוי הפרשה</label>
-      <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`b ${st.pMode === k ? '' : 'g'}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
+      <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`opt ${st.pMode === k ? 'on' : ''}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
       <label>שם פרשה / אירוע (במצב ידני)</label><TextIn value={st.pTitle} onSave={(v) => set('pTitle', v)} placeholder="פרשת בראשית" />
       <label>כותרת משנה</label><TextIn value={st.pSub} onSave={(v) => set('pSub', v)} placeholder="שבת חתן" />
       <Switch label="להציג גם כשקופית בקרוסלה" on={st.pSlide} onChange={(v) => set('pSlide', v)} />

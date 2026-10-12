@@ -31,7 +31,7 @@ export function getZmanim(date, loc, o = {}) {
 
 /** Exact-minute prayer time: fixed "HH:MM", or minutes relative to sunset/sunrise. No rounding. */
 export function prayerTime(rule, z) {
-  const mode = rule.mode ?? rule.tmode;
+  const mode = rule.tmode ?? rule.mode;
   if (mode === 'fixed') return rule.val;
   const base = mode === 'sunset' ? z.shkia : z.netz;
   return base ? fmt(base.plus({ minutes: Number(rule.val) || 0 })) : '—';

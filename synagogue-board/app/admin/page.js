@@ -11,6 +11,7 @@ import DesignTab from './tabs/DesignTab';
 import BillingTab from './tabs/BillingTab';
 import OpsTab from './tabs/OpsTab';
 import SettingsTab from './tabs/SettingsTab';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import PreviewModal from './components/PreviewModal';
 
 const TABS = [['content', '🖥️', 'תוכן המסך'], ['design', '🎨', 'עיצוב ותצוגה'], ['fin', '💳', 'גבייה וחברים'], ['ops', '🛠️', 'תחזוקה ותקציב'], ['sys', '⚙️', 'הגדרות מערכת']];
@@ -59,11 +60,13 @@ function Panel({ sid, role, superMode }) {
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
           
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>
-        {(sub || tab === 'content') && <ContentTab ctx={ctx} />}
-        {!sub && tab === 'design' && <DesignTab ctx={ctx} />}
-        {!sub && tab === 'fin' && <BillingTab ctx={ctx} />}
-        {!sub && tab === 'ops' && <OpsTab ctx={ctx} />}
-        {!sub && tab === 'sys' && <SettingsTab ctx={ctx} />}
+        <ErrorBoundary admin key={sub ? 'content' : tab}>
+          {(sub || tab === 'content') && <ContentTab ctx={ctx} />}
+          {!sub && tab === 'design' && <DesignTab ctx={ctx} />}
+          {!sub && tab === 'fin' && <BillingTab ctx={ctx} />}
+          {!sub && tab === 'ops' && <OpsTab ctx={ctx} />}
+          {!sub && tab === 'sys' && <SettingsTab ctx={ctx} />}
+        </ErrorBoundary>
       </div>
       {!sub && <div className="nav">{TABS.map(([id, ic, l]) => <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}><b>{ic}</b>{l}</button>)}</div>}
       <button className="fab" type="button" onClick={() => setPv(true)}>👁 צפה בתצוגה מקדימה</button>
