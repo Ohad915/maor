@@ -44,3 +44,30 @@ export function isShabbat(z, candle, force) {
   return (z.dow === 5 && z.now >= z.shkia.minus({ minutes: candle })) || (z.dow === 6 && z.now < z.tzeit);
 }
 export const dayType = (sh, dow) => (sh ? 'shab' : dow === 5 ? 'fri' : dow === 6 ? 'mots' : 'week');
+
+/* ---------- which prayer rows apply TODAY ---------- */
+export const PDAYS = { week: 'חול (ראשון–חמישי)', fri: 'ערב שבת / ערב חג', shab: 'שבת', chag: 'חג', mots: 'מוצ״ש', all: 'תמיד / יום יום' };
+const PD_ALIAS = { 'חול': 'week', weekday: 'week', sunthu: 'week', 'ערב שבת': 'fri', 'ערב חג': 'fri', erev: 'fri', friday: 'fri', 'שבת': 'shab', shabbat: 'shab', 'חג': 'chag', yomtov: 'chag', holiday: 'chag', 'מוצ״ש': 'mots', 'מוצאי שבת': 'mots', 'תמיד': 'all', 'יום יום': 'all', daily: 'all', always: 'all' };
+/** Normalises any stored day-type value (legacy / Hebrew label / missing) to week|fri|shab|chag|mots|all. Missing = every day. */
+export const pdayOf = (r) => (r.days ? (PDAYS[r.days] ? r.days : PD_ALIAS[String(r.days).trim()] || PD_ALIAS[String(r.days).trim().toLowerCase()] || 'all') : 'all');
+/**
+ * Filters prayer rows for today.
+ *  ctx = { dt: 'week'|'fri'|'shab'|'mots' (from dayType), dow: 0-6, chag: today is Yom Tov (incl. its eve after candle-lighting), erev: today is an erev-chag day }
+ *  Sun–Thu: "חול".  Friday / erev chag: "ערב שבת/ערב חג" + "חול".  Shabbat: "שבת".  Chag: "חג" (+ "שבת" rows that have no "חג" row of the same prayer).
+ *  A row with an explicit weekday list (r.dow) is shown on exactly those weekdays. A specific row replaces the generic "חול" row of the same prayer name.
+ */
+export function getPrayersForToday(prayers, ctx, fw = (r) => String(r.name || '').split(' ')[0]) {
+  const { dt, dow, chag = false, erev = false } = ctx, idx = dt === 'shab' && !chag ? 6 : dow;
+  const kinds = new Set(['all']);
+  if (chag) kinds.add('chag'); else if (dt === 'shab') kinds.add('shab');
+  else { kinds.add('week'); if (dt === 'fri' || erev) kinds.add('fri'); if (dt === 'mots') kinds.add('mots'); }
+  const hasDow = (r) => Array.isArray(r.dow) && r.dow.length > 0;
+  const rows = (prayers || []).filter((r) => (hasDow(r) ? r.dow.includes(idx) : kinds.has(pdayOf(r))));
+  const specific = new Set(rows.filter((r) => !hasDow(r) && !['week', 'all'].includes(pdayOf(r))).map(fw));
+  return rows.filter((r) => {
+    if (hasDow(r)) return true; const k = pdayOf(r);
+    if (k === 'week' && specific.has(fw(r))) return false;
+    if (chag && k === 'shab' && rows.some((x) => !hasDow(x) && pdayOf(x) === 'chag' && fw(x) === fw(r))) return false;
+    return true;
+  });
+}

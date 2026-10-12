@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
+import { PDAYS, pdayOf } from '@/lib/zmanim';
 import { gem, hebOf, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
@@ -199,7 +200,7 @@ function Refuah({ sid, st, set, cols }) {
   </>);
 }
 
-const DAYS = { week: 'חול', fri: 'ערב שבת', shab: 'שבת/חג', mots: 'מוצ״ש', all: 'תמיד' };
+const DAYS = PDAYS;
 function Prayers({ sid, cols, st, set, syn }) {
   const [open, setOpen] = useState(null);
   const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }), o = oe.f, setO = oe.setF;
@@ -215,7 +216,7 @@ function Prayers({ sid, cols, st, set, syn }) {
     </Card>
     {pr.map((r) => (
       <Card key={r.id}>
-        <div className="row"><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{DAYS[r.days]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
+        <div className="row"><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join(' · ') : DAYS[pdayOf(r)]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
         <div className="row"><ModeSel bar value={r.show} onChange={(v) => updItem(sid, 'prayers', r.id, { show: v })} /><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />הצג בסרגל התחתון</label><TkChk on={r.ticker} onChange={(v) => updItem(sid, 'prayers', r.id, { ticker: v })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
           <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
         {open === r.id && (
@@ -223,7 +224,9 @@ function Prayers({ sid, cols, st, set, syn }) {
             <TextIn value={r.name} onSave={(v) => updItem(sid, 'prayers', r.id, { name: v })} />
             <select value={r.mode} onChange={(e) => updItem(sid, 'prayers', r.id, { mode: e.target.value })}><option value="fixed">קבוע</option><option value="sunset">משקיעה</option><option value="sunrise">מהנץ</option></select>
             <TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => updItem(sid, 'prayers', r.id, { val: v })} />
-            <select value={r.days} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            <div style={{ flex: '1 1 100%' }}><label>סוג יום</label><select value={pdayOf(r)} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+              <label style={{ marginTop: 6 }}>או ימים ספציפיים בשבוע (אופציונלי – גובר על סוג היום)</label>
+              <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} /></div>
             <TextIn value={r.note} placeholder="הערה (רשות)" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
           </div>)}
       </Card>))}

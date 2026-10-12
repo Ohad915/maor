@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { fmt, getZmanim, prayerTime, zOpts } from '@/lib/zmanim';
+import { pdayOf } from '@/lib/zmanim';
 import { annOn, lessonDays, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
@@ -162,7 +163,8 @@ async function build({ syn, cols, st }, kind, opt) {
   let ahead = (6 - z0.dow + 7) % 7; if (z0.dow === 6 && z0.tzeit && z0.now >= z0.tzeit) ahead = 7;
   const sat = new Date(+now + ahead * 864e5), fri = new Date(+sat - 864e5), zs = getZmanim(sat, loc, zo), zf = getZmanim(fri, loc, zo);
   const pr = (cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
-  const grp = (days, z) => Object.entries(pr.filter((r) => days.includes(r.days)).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
+  const KD = { fri: [5], shab: [6], chag: [6], week: [0, 1, 2, 3, 4], all: [0, 1, 2, 3, 4, 5, 6], mots: [] };
+  const grp = (days, z) => Object.entries(pr.filter((r) => (Array.isArray(r.dow) && r.dow.length ? days.some((d) => (KD[d] || []).some((i) => r.dow.includes(i))) : days.includes(pdayOf(r)))).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
   const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: [l.rabbi, l.place].filter(Boolean).join(' · '), time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
   const ann = opt.ann ? (cols.announcements || []).filter((a) => (a.mode ?? (a.on === false ? 'off' : 'block')) !== 'off' && annOn(a, hn)).slice(0, 3).map((a) => a.title + ((a.content || '').split('\n')[0] ? ' · ' + a.content.split('\n')[0].slice(0, 56) : '')) : [];
   const sel = (z) => (zo.shma === 'mga' ? ['סוף זמן ק״ש (מג״א)', fmt(z.shmaMga)] : ['סוף זמן ק״ש', fmt(z.shma)]);
@@ -172,7 +174,7 @@ async function build({ syn, cols, st }, kind, opt) {
     const haf = st.waHaftara === false ? '' : st.hfText || (await haftaraHe(rdOf(sat), syn.nusach));
     return { ...base, kind, parsha: st.waParsha === false ? '' : pi.title, special: pi.sp.join(' · '), chag: !pi.title.startsWith('פרשת'), haftara: haf, date: `${gem(hs.d)} ב${monthName(hs.raw)} ה׳${gem(hs.y % 1000)}`,
       times: [['הדלקת נרות', zf.shkia && fmt(zf.shkia.minus({ minutes: st.candle }))], opt.netz && ['הנץ החמה', fmt(zs.netz)], sel(zs), ['שקיעה', fmt(zs.shkia)], ['צאת השבת', fmt(zs.tzeit)], opt.rt && ['רבינו תם', fmt(zs.rt)]].filter(Boolean),
-      groups: [['ערב שבת', grp(['fri'], zf)], ['שבת', grp(['shab', 'all'], zs)], ['מוצאי שבת', grp(['mots'], zs)]].filter(([, r]) => r.length) };
+      groups: [['ערב שבת', grp(['fri'], zf)], ['שבת', grp(['shab', 'chag', 'all'], zs)], ['מוצאי שבת', grp(['mots'], zs)]].filter(([, r]) => r.length) };
   }
   return { ...base, kind, parsha: '', date: `${gem(hn.d)} ב${monthName(hn.raw)} ה׳${gem(hn.y % 1000)}`,
     times: [opt.netz && ['הנץ החמה', fmt(z0.netz)], sel(z0), ['חצות היום', fmt(z0.chatzot)], ['שקיעה', fmt(z0.shkia)], ['צאת הכוכבים', fmt(z0.tzeit)], opt.rt && ['רבינו תם', fmt(z0.rt)]].filter(Boolean),

@@ -4,9 +4,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
-import { dayType, fmt, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
+import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
-import { annOn, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, chagInfo, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -91,7 +91,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   /* ----- content ----- */
   const pi = parshaInfo(now, z.dow, !!z.tzeit && z.now >= z.tzeit);
   const ptitle = st.pMode === 'manual' && st.pTitle ? st.pTitle : pi.title;
-  const tbgKey = tbgKeyOf(st), tbgSrc = tbgPath(tbgKey), [tbgBad, setTbgBad] = useState('');
+  const tbgKey = tbgKeyOf(st), royal = tbgKey === 'temple' && LM !== '3', tbgSrc = tbgPath(tbgKey), [tbgBad, setTbgBad] = useState('');
   useEffect(() => { // verify the theme image really loads; otherwise warn with the exact missing path and fall back to the plain theme
     if (!tbgSrc || typeof Image === 'undefined') return; const im = new Image();
     im.onload = () => setTbgBad(''); im.onerror = () => { console.warn('Failed to load theme image:', tbgSrc); setTbgBad(tbgSrc); }; im.src = tbgSrc;
@@ -113,13 +113,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const lessons = (cols.lessons || []).filter((l) => modeOf(l) !== 'off' && onS(l.screen));
   const hal = (cols.halacha || []).filter((x) => modeOf(x) !== 'off' && onS(x.screen));
   const dt = dayType(sh, z.dow);
-  const rows0 = (cols.prayers || []).filter((r) => onS(r.screen)).filter((r) => r.days === 'all' || r.days === dt || (dt !== 'shab' && r.days === 'week'));
-  const fw = (r) => r.name.split(' ')[0];
-  const spec = new Set(rows0.filter((r) => r.days === dt && dt !== 'week').map(fw));
+  const fw = (r) => String(r.name || '').split(' ')[0];
+  const rowsToday = getPrayersForToday((cols.prayers || []).filter((r) => onS(r.screen)), { dt, dow: z.dow, ...chagInfo(now, z, st.candle) }, fw);
   const rcm = (h.d === 1 && h.raw !== 'Tishri') || h.d === 30;
   const ovr = (r) => (cols.overrides || []).find((o) => o.prayerId === r.id && (o.kind === 'rc' ? rcm : o.kind === 'h' && o.day === h.d && (o.month === h.raw || (o.month === 'Adar' && h.raw === 'Adar II'))));
   const grp = {};
-  const rowsToday = rows0.filter((r) => !(r.days === 'week' && spec.has(fw(r))));
   const tOf = (r) => ovr(r)?.time || prayerTime(r, z);
   const pa = st.ptAll || { mode: 'off', secs: 10 }, pdur = pa.secs || 10;
   const inBar = (r) => r.bar ?? (r.show ?? 'bar') === 'bar';
@@ -131,10 +129,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const chips = cMode === 'manual' ? manual : cMode === 'both' ? [...auto, ...manual] : auto;
 
   const slides = [];
-  if (st.pSlide && V('pr')) slides.push({ k: 'p', dur: cf('pr').secs });
+  if (st.pSlide && V('pr') && !royal) slides.push({ k: 'p', dur: cf('pr').secs });
   anns.forEach((a) => slides.push({ k: 'a', a, full: modeOf(a) === 'full', dur: cf('ann').secs }));
-  if (V('memPop')) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
-  if (V('rf') && V('rfPop') && refs.length) slides.push({ k: 'r', dur: cf('rf').secs });
+  if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
+  if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
@@ -181,7 +179,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (cur.k === 'tall') {
     const n = Object.keys(allGrp).length;
     const dk = cur.full ? { color: '#2a1a05' } : undefined;
-    const body = <div className="ptl2" style={{ fontSize: Math.min(1, (cur.full ? 6 : 8) / Math.max(n, 1)) + 'em', ...dk }}>{n === 0 && <div className="tr" style={dk}><b style={dk}>אין זמני תפילות להיום</b></div>}{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k} style={dk}><b style={dk}>{k}</b><i style={dk}>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
+    const rpc = Math.max(1, Math.ceil(n / 2)); const body = <div className="ptl2" style={cur.full ? { fontSize: `min(${n > 1 ? 5.3 : 10}cqw, ${(48 / rpc).toFixed(2)}cqh)`, gridTemplateRows: `repeat(${rpc}, auto)`, gridTemplateColumns: n > 1 ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', ...dk } : { fontSize: Math.min(1, 8 / Math.max(n, 1)) + 'em', ...dk }}>{n === 0 && <div className="tr" style={dk}><b style={dk}>אין זמני תפילות להיום</b></div>}{Object.entries(allGrp).map(([k, g]) => <div className="tr" key={k} style={dk}><b style={dk}>{k}</b><i style={dk}>{[...g.t].sort().join(' , ')}{g.n.length > 0 && <small> {g.n.join(' · ')}</small>}</i></div>)}</div>;
     if (cur.popup) { popup = <div className="popup"><div className="pcard">{slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '')}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
     else emit(slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '', cl));
   }
@@ -250,11 +248,36 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (LM === '4') body = <>{crown}{hd}{pr}<div className="bd">{mn}{col([yz, rf, qr], 50)}</div>{cu}{tk}{pb}</>;
   else body = <>{crown}{hd}{pr}{cu}<div className="bd">{mn}{col([yz, rf, qr], sdw)}</div>{tk}{pb}</>;
 
+  const clock = now.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false });
+  const bn = Object.entries(grp).length, rbox = (l, t, w, hh) => ({ position: 'absolute', left: l + '%', top: t + '%', width: w + '%', height: hh + '%' });
+  if (royal) {
+    const tkr = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
+    body = <div className="rl">
+      <div className="rl-top" style={rbox(9.3, 8.5, 81.4, 11.5)}>
+        <div className="rl-date"><span className="rl-cal">🗓</span><div><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{gem(h.d)} ב{monthName(h.raw)}</small></div></div>
+        <div className="rl-times" style={{ '--rn': Math.max(bn, 1) }}>{bn ? Object.entries(grp).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
+        <div className="rl-name"><div><b>{st.title || syn.name}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><span>🕍</span></div>
+      </div>
+      <div className="rl-parsha" style={rbox(13.5, 22.4, 73, 13)}><i>❧</i><b>{ptitle || syn.name}</b><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
+      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main', share: 0.3, fit: true, style: rbox(50.5, 37.8, 37.6, 48.8) })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{cur?.k === 'h' && !cur.full && <img className="rl-pic" src="/images/icons/challah_wheat.png" alt="" />}{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
+      {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz', share: 0.27, style: rbox(12.7, 37.8, 35.5, 21.5) })}>
+        <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
+        <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
+      {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf', share: 0.27, style: rbox(12.7, 60.9, 35.5, 25.7) })}>
+        <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
+        <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
+      <div className="rl-bot" style={rbox(7.6, 89.8, 84.7, 7.6)}>
+        <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
+        <div className="rl-tk">{tkr && <span>{tkr}</span>}</div>
+        <div className="rl-clk">{clock}</div>
+      </div>
+    </div>;
+  }
   const frame = st.vis?.frm === false ? 'clean' : st.frame || 'royal';
-  const style = { fontSize: fs, ...(tbgOn ? { backgroundImage: `url(${tbgSrc})` } : {}), '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
+  const style = { fontSize: fs, ...(royal ? { backgroundImage: 'url(/images/templates/royal_bg.png)', backgroundSize: '100% 100%' } : tbgOn ? { backgroundImage: `url(${tbgSrc})` } : {}), '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
     ...(st.bg ? { background: `linear-gradient(${st.theme === 'classic' ? '#fffc,#fffc' : '#000a,#000c'}),url(${st.bg}) center/cover` } : {}) };
   return (
-    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={tbgOn ? tbgKey : undefined} data-lm={LM} data-a={st.anim} style={style}>
+    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
       {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}

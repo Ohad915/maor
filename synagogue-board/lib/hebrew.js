@@ -90,3 +90,13 @@ export const lessonDays = (l) => (Array.isArray(l.dow) ? l.dow : l.days === 'sha
 /** dt = dayType ('shab'|'fri'|'mots'|'week'), dow = JS weekday of the display day. */
 export const lessonOn = (l, dt, dow) => (Array.isArray(l.dow) ? l.dow.includes(dt === 'shab' ? 6 : dow === 6 ? -1 : dow) : l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week'));
 export const lessonDaysLabel = (l) => { const d = lessonDays(l); if (d.length === 7) return 'כל השבוע'; if (d.length === 6 && !d.includes(6)) return 'ימי חול'; if (d.length === 1 && d[0] === 6) return 'שבת'; return d.length ? d.map((i) => LDAY_NAMES[i]).join(' · ') : 'לא נבחרו ימים'; };
+
+/** Yom Tov detection for prayer-day selection: chag = Yom Tov now (from candle-lighting of its eve until tzeit), erev = eve of Yom Tov (before candle-lighting). */
+export function chagInfo(date, z, candle = 30) {
+  const hd = new HDate(rdOf(date, 0)), nx = new HDate(rdOf(date, 1));
+  const ev = (d) => HebrewCalendar.getHolidaysOnDate(d, true) || [];
+  const has = (d, f) => ev(d).some((e) => e.getFlags() & f);
+  const after = !!z.shkia && z.now >= z.shkia.minus({ minutes: candle }), beforeTzeit = !z.tzeit || z.now < z.tzeit;
+  const chagDay = has(hd, flags.CHAG), eveOfChag = has(nx, flags.CHAG);
+  return { chag: (chagDay && beforeTzeit) || (eveOfChag && after), erev: eveOfChag && !after };
+}
