@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "מאור - ניהול בית כנסת",
+  "short_name": "מאור",
+  "description": "לוח דיגיטלי חכם וניהול בית כנסת: זמני תפילה, הנצחות, הודעות, גבייה ותחזוקה.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080d20",
+  "theme_color": "#0b1226",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "ניהול", "url": "/admin", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "כניסה", "url": "/login", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
