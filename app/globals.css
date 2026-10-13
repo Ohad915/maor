@@ -292,3 +292,9 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt{gap:.3cqh;justify-content:center;line-height:1}
 .rl-pt b{font-size:min(4.5cqw,7.4cqh)!important;line-height:1!important;padding-bottom:.2cqh}
 .rl-pt small{font-size:min(1.3cqw,2.1cqh)!important;line-height:1.1!important;margin-top:-.2cqh;padding:0 0 .3cqh;text-align:center}
+/* באנר פרשה v3: גריד קשיח – שורת ההפטרה תמיד בתוך הקלף */
+.rl-parsha{position:relative;display:flex!important;align-items:stretch!important;overflow:hidden;padding:0!important}
+.rl-parsha>i{align-self:center}
+.rl-pt{display:grid!important;grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center;height:100%;padding:.8cqh 0 1.6cqh;gap:0}
+.rl-pt b{font-size:min(4.2cqw,6.2cqh)!important;line-height:1!important;padding:0!important;overflow:visible;align-self:center}
+.rl-pt small{font-size:min(1.25cqw,2cqh)!important;line-height:1.15!important;margin:0!important;padding:0!important;align-self:end}
