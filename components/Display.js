@@ -29,8 +29,6 @@ function royBox(st, k, l, t, w, h, anchor = 'c') {
   const nl = Math.max(0, Math.min(100 - nw, anchor === 'l' ? l : anchor === 'r' ? l + w - nw : l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
   const style = { position: 'absolute', left: nl + '%', top: nt + '%', width: nw + '%', height: nh + '%', flex: 'none', alignSelf: 'auto' };
   const cls = [];
-  if (b.bg) { style['--cbg'] = b.bg; cls.push('rl-cbg'); }
-  if (b.bd) { style['--cbd'] = b.bd; cls.push('rl-cbd'); }
   if (b.tx) { style['--ctx'] = b.tx; cls.push('rl-ctx'); }
   const resized = fw !== 1 || fh !== 1;
   if (resized) cls.push('rl-sized');

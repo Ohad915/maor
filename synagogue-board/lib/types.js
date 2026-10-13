@@ -37,3 +37,6 @@ export const TBG_FILES = { temple: 'theme_temple_royalty', stone: 'theme_jerusal
 export const TBG_BY_THEME = { gold: 'temple', classic: 'stone', modern: 'modern' };
 export const tbgKeyOf = (st) => (st.bg || st.tbg === 'none' ? '' : (TBG_FILES[st.tbg] ? st.tbg : TBG_BY_THEME[st.theme] || ''));
 export const tbgPath = (k) => (TBG_FILES[k] ? `/images/themes/${TBG_FILES[k]}.jpg` : '');
+
+/** True when the royal (מקדש ומלכות) fixed-parchment layout is active. */
+export const isRoyal = (st) => tbgKeyOf(st) === 'temple' && String(st.layout) !== '3';

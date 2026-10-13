@@ -4,14 +4,14 @@ import { BLOCKS } from '@/lib/types';
 import { DebIn } from './UI';
 
 /** One accordion row per block: width/height (50% = Auto), background/border/text colour overrides. */
-export default function BlockDesignAccordion({ st, set, sid }) {
+export default function BlockDesignAccordion({ st, set, sid, royal = false }) {
   const [open, setOpen] = useState({});
   const blocks = st.blocks || {};
   const reset = (k) => set(`blocks.${k}`, {});
   return (
     <div className="cd">
       <b>גודל וצבע הקוביות</b>
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>50% = Auto. מתחת ל-50% הקובייה קטנה מהאוטומטי, מעליו גדולה ממנו. צבע ייעודי פעיל רק אם שונה במפורש.</div>
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>50% = Auto. מתחת ל-50% הקובייה קטנה מהאוטומטי, מעליו גדולה ממנו. צבע ייעודי פעיל רק אם שונה במפורש.{royal ? ' (במצב מקדש ומלכות הרקע והמסגרת קבועים.)' : ''}</div>
       {BLOCKS.map(([k, label]) => {
         const b = blocks[k] || {}, w = b.w ?? 50, h = b.h ?? 50, fs = b.fs ?? 18, o = open[k];
         const col = (f, l) => (
@@ -21,7 +21,7 @@ export default function BlockDesignAccordion({ st, set, sid }) {
         return (
           <div key={k}>
             <button className={`accb ${o ? 'o' : ''}`} onClick={() => setOpen({ ...open, [k]: !o })}>
-              <span>{label}{(w !== 50 || h !== 50 || fs !== 18 || b.bg || b.bd || b.tx) && ' ●'}</span><span>{o ? '▲' : '▼'}</span></button>
+              <span>{label}{(w !== 50 || h !== 50 || fs !== 18 || (!royal && (b.bg || b.bd)) || b.tx) && ' ●'}</span><span>{o ? '▲' : '▼'}</span></button>
             {o && (
               <div className="accbody">
                 <label>רוחב: {w === 50 ? 'Auto (50%)' : w + '%'}</label><DebIn type="range" min="10" max="100" value={w} onChange={(x) => set(`blocks.${k}.w`, x)} />
@@ -29,7 +29,7 @@ export default function BlockDesignAccordion({ st, set, sid }) {
                 <button className="b g" onClick={() => { set(`blocks.${k}.w`, 50); set(`blocks.${k}.h`, 50); }}>חזור ל-Auto (50%)</button>
                 <label>גודל טקסט בקובייה: {fs === 18 ? 'Auto (18)' : fs}</label><DebIn type="range" min="12" max="30" value={fs} onChange={(x) => set(`blocks.${k}.fs`, x)} />
                 <button className="b g" onClick={() => set(`blocks.${k}.fs`, 18)}>גודל טקסט: חזור לברירת מחדל</button>
-                {col('bg', 'צבע רקע')}{col('bd', 'צבע מסגרת')}{col('tx', 'צבע טקסט')}
+                {!royal && col('bg', 'צבע רקע')}{!royal && col('bd', 'צבע מסגרת')}{col('tx', 'צבע טקסט')}
               </div>)}
           </div>);
       })}
