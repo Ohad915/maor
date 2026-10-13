@@ -46,7 +46,7 @@ export const ModeSel = ({ value, onChange, bar, popup }) => (
   </select>);
 /** Per-component settings: font (David/Arial) and slide duration 1-30s. Text SIZE lives only in the block accordion. */
 export function DisplayCfg({ st, set, k }) {
-  const c = { font: 'david', secs: 10, ...(st.cf || {})[k] };
+  const c = { font: 'david', secs: 10, ...(st.cf || {}).all, ...(st.cf || {})[k] };
   return (
     <Card title="הגדרות תצוגה">
       <label>גופן</label><FontSel value={c.font} onChange={(v) => set(`cf.${k}.font`, v)} />

@@ -322,3 +322,9 @@ label{font-size:13px;color:var(--mu)}
 .rl-yz .lb,.rl-rf .lb{font-size:1.25em!important;font-weight:900!important}
 .rl-yz .yi b,.rl-rf .yi b{font-size:1.25em!important;font-weight:900!important;line-height:1.15}
 .rl-yz .yi small,.rl-rf .yi small{font-size:.9em!important;font-weight:700!important}
+/* royal bottom bar: static (centered, no motion) vs running ticker */
+.rl-tk{gap:1.5cqw;justify-content:center}
+.rl-stat{direction:rtl;text-align:center;font-weight:800;color:#2a1a05;line-height:1.15;max-width:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100%;padding:0 1cqw;white-space:nowrap}
+.rl-run{flex:1 1 0;min-width:0;overflow:hidden;height:100%;display:flex;align-items:center;direction:ltr;white-space:nowrap}
+.rl-run span{direction:rtl;display:inline-block;padding-left:100%;font-size:2.1cqw;font-weight:800;color:#2a1a05;animation:tk 28s linear infinite}
+.rl-tk>span{display:none}

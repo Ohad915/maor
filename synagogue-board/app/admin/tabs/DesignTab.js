@@ -25,14 +25,25 @@ const TBGS = [['', 'אוטומטי לפי ערכת נושא'], ['none', 'ללא 
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
 /** Fonts, slide durations and paging for every component, in ONE place (no duplicates in the content tabs). */
 function CompStyles({ st, set }) {
+  const [open, setOpen] = useState(false);
+  const g = { font: 'david', secs: 10, ...(st.cf || {}).all };
+  const ov = (k) => (st.cf || {})[k] || {};
   return (
     <Card title="גופנים, זמני שקופיות וגלילה">
-      {COMPS.map(([k, l]) => { const c = { font: 'david', secs: 10, ...(st.cf || {})[k] }; return (
-        <div key={k} style={{ borderBottom: '1px solid var(--ln)', paddingBottom: 8, marginBottom: 8 }}>
-          <b>{l}</b>
-          <div className="row"><FontSel value={c.font} onChange={(v) => set(`cf.${k}.font`, v)} /></div>
-          <Range label="זמן שקופית (שניות)" min={1} max={30} value={c.secs} onChange={(v) => set(`cf.${k}.secs`, v)} />
-        </div>); })}
+      <label>גופן ראשי ללוח (חל על כל הקוביות)</label>
+      <div className="row"><FontSel value={g.font} onChange={(v) => set('cf.all.font', v)} /></div>
+      <Range label="זמן שקופית כללי (שניות)" min={1} max={30} value={g.secs} onChange={(v) => set('cf.all.secs', v)} />
+      <button type="button" className={`accb ${open ? 'o' : ''}`} onClick={() => setOpen(!open)}><span>התאמה אישית לפי קובייה (רשות){COMPS.some(([k]) => ov(k).font || ov(k).secs) && ' ●'}</span><span>{open ? '▲' : '▼'}</span></button>
+      {open && <div className="accbody">
+        <div style={{ color: 'var(--mu)', fontSize: 13 }}>כאן אפשר לדרוס את הגופן או את זמן השקופית עבור קובייה מסוימת. ללא דריסה, הקובייה משתמשת בהגדרות הכלליות.</div>
+        {COMPS.map(([k, l]) => { const o = ov(k); return (
+          <div key={k} style={{ borderBottom: '1px solid var(--ln)', paddingBottom: 8, marginBottom: 8 }}>
+            <b>{l}{(o.font || o.secs) && ' ●'}</b>
+            <div className="row"><FontSel value={o.font || g.font} onChange={(v) => set(`cf.${k}.font`, v)} /></div>
+            <Range label={`זמן שקופית (שניות)${o.secs ? '' : ' · כללי'}`} min={1} max={30} value={o.secs || g.secs} onChange={(v) => set(`cf.${k}.secs`, v)} />
+            {(o.font || o.secs) && <button type="button" className="b g" onClick={() => { set(`cf.${k}.font`, ''); set(`cf.${k}.secs`, 0); }}>חזור להגדרה הכללית</button>}
+          </div>); })}
+      </div>}
       <Range label="שמות בעמוד · הנצחות" min={1} max={8} value={st.ipp?.yz || 3} onChange={(v) => set('ipp.yz', v)} />
       <Range label="שמות בעמוד · רפואה שלמה" min={1} max={8} value={st.ipp?.rf || 3} onChange={(v) => set('ipp.rf', v)} />
       <Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} />
@@ -56,6 +67,8 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
     <details className="cd fold"><summary>⚙️ הגדרות מתקדמות (פריסה, מסגרת, גופנים, גדלי קוביות, צבעים)</summary>
     <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
       <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
+      <label>אופן הצגה בסרגל התחתון (מקדש ומלכות)</label><div className="grid2">{[['both', 'קבוע + טקסט רץ'], ['static', 'תצוגה קבועה בלבד'], ['ticker', 'טקסט רץ בלבד']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.barMode || 'both') === k ? 'on' : ''}`} onClick={() => set('barMode', k)}>{l}</button>)}</div>
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>קבוע: התפילות שסומנו ״הצג בסרגל התחתון״ במרכז, בלי תנועה. רץ: הודעות וזמני היום בגלילה.</div>
     </Card>
     <Card title="עיצוב המסך">
       {royal && <div style={{ color: 'var(--mu)', fontSize: 13 }}>במצב ״מקדש ומלכות״ העיצוב (קלף וזהב) קבוע. ניתן לשנות כאן גודל, מיקום וסדר בלבד.</div>}

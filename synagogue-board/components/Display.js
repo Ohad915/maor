@@ -94,7 +94,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const h = hebOf(now, !!z.shkia && z.now >= z.shkia);
   const LM = st.layout || '1';
   const fs = (size.h > size.w ? size.w / 52 : Math.min(size.w / 72, size.h / 40)) * st.zoom;
-  const cf = (k) => ({ font: 'david', size: 18, secs: 10, ...(st.cf || {})[k] });
+  const cf = (k) => { const a = st.cf || {}, o = a[k] || {}; return { size: 18, ...a.all, ...o, font: o.font || a.all?.font || 'david', secs: o.secs || a.all?.secs || 10 }; }; // global (cf.all) < per-component override
   const afs = (k) => ({ '--af': FONTS[cf(k).font] }); // text size comes from the block (accordion), font from the component
   const onS = (s) => !s || s === 'all' || s === screenId;
   const V = (k) => (st.vis || {})[k] !== false;
@@ -266,8 +266,14 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const rg = Object.keys(grp).length ? grp : allGrp, bn = Object.keys(rg).length, rbox = (l, t, w, hh) => ({ position: 'absolute', left: l + '%', top: t + '%', width: w + '%', height: hh + '%' });
   if (royal) {
     const zt = [['הנץ החמה', z.netz], ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], ['שקיעת החמה', z.shkia], ['צאת הכוכבים', z.tzeit], ...(z.dow === 6 ? [['רבינו תם', z.rt]] : [])].filter(([, t]) => t).map(([n, t]) => `${n}: ${fmt(t)}`).join('   ✦   ');
-    const tkr0 = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
-    const tkr = [tkr0, zt].filter(Boolean).join('   ✦   ');
+    const SEP = '   ✦   ', bm = st.barMode || 'both';
+    const stat = Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join(SEP); // prayers marked "show in bottom bar"
+    const run = [tkText, zt].filter(Boolean).join(SEP); // announcements / ticker text / zmanim
+    const fitCw = (t) => Math.max(1.05, Math.min(2.1, 44 / Math.max(10, t.length * 0.56))) + 'cqw';
+    const marq = (t) => <div className="rl-run"><span style={{ animationDuration: Math.max(28, t.length * 0.3) + 's' }}>{t}</span></div>;
+    const barBody = bm === 'ticker' ? marq([stat, run].filter(Boolean).join(SEP))
+      : bm === 'static' ? <div className="rl-stat" style={{ fontSize: fitCw(stat || run) }}>{stat || run}</div>
+      : <>{stat && <div className="rl-stat" style={{ fontSize: fitCw(stat), flex: '0 1 auto' }}>{stat}</div>}{run && marq(run)}</>;
     const RB = { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8, 'r'), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l'), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l'), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
     body = <div className="rl">
       <div className={'rl-top ' + RB.hd.cls} style={RB.hd.style}>
@@ -288,7 +294,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
       <div className="rl-bot" style={rbox(7.6, 89.8, 84.7, 7.6)}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
-        <div className="rl-tk">{tkr && <span style={{ animationDuration: Math.max(28, tkr.length * 0.3) + 's' }}>{tkr}</span>}</div>
+        <div className="rl-tk">{barBody}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;
