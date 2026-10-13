@@ -267,12 +267,13 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (royal) {
     const zt = [['הנץ החמה', z.netz], ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], ['שקיעת החמה', z.shkia], ['צאת הכוכבים', z.tzeit], ...(z.dow === 6 ? [['רבינו תם', z.rt]] : [])].filter(([, t]) => t).map(([n, t]) => `${n}: ${fmt(t)}`).join('   ✦   ');
     const SEP = '   ✦   ', bm = st.barMode || 'both';
-    const stat = Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join(SEP); // prayers marked "show in bottom bar"
-    const run = [tkText, zt].filter(Boolean).join(SEP); // announcements / ticker text / zmanim
+    const zb = (st.zm || {}).bar || 'off'; // zmanim in the bar only when explicitly requested: 'static' | 'run'
+    const stat = [Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join(SEP), zb === 'static' ? zt : ''].filter(Boolean).join(SEP); // prayers marked "show in bottom bar" (+ zmanim if chosen)
+    const run = [tkText, zb === 'run' ? zt : ''].filter(Boolean).join(SEP); // ONLY explicit ticker items: ticker text, announcements/lessons/parsha flagged to run (+ zmanim if chosen)
     const fitCw = (t) => Math.max(1.05, Math.min(2.1, 44 / Math.max(10, t.length * 0.56))) + 'cqw';
     const marq = (t) => <div className="rl-run"><span style={{ animationDuration: Math.max(28, t.length * 0.3) + 's' }}>{t}</span></div>;
-    const barBody = bm === 'ticker' ? marq([stat, run].filter(Boolean).join(SEP))
-      : bm === 'static' ? <div className="rl-stat" style={{ fontSize: fitCw(stat || run) }}>{stat || run}</div>
+    const barBody = bm === 'ticker' ? ([stat, run].some(Boolean) ? marq([stat, run].filter(Boolean).join(SEP)) : null)
+      : bm === 'static' ? (stat || run) ? <div className="rl-stat" style={{ fontSize: fitCw(stat || run) }}>{stat || run}</div> : null
       : <>{stat && <div className="rl-stat" style={{ fontSize: fitCw(stat), flex: '0 1 auto' }}>{stat}</div>}{run && marq(run)}</>;
     const RB = { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8, 'r'), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l'), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l'), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
     body = <div className="rl">
