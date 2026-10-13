@@ -298,3 +298,7 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt{display:grid!important;grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center;height:100%;padding:.8cqh 0 1.6cqh;gap:0}
 .rl-pt b{font-size:min(4.2cqw,6.2cqh)!important;line-height:1!important;padding:0!important;overflow:visible;align-self:center}
 .rl-pt small{font-size:min(1.25cqw,2cqh)!important;line-height:1.15!important;margin:0!important;padding:0!important;align-self:end}
+/* parsha v4: robust safe margins */
+.rl-pt{padding:1.2cqh 0 2.4cqh!important;grid-template-rows:minmax(0,1fr) auto!important}
+.rl-pt b{font-size:min(3.8cqw,5.4cqh)!important}
+.rl-pt small{font-size:min(1.15cqw,1.8cqh)!important;line-height:1.1!important;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
