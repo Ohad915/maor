@@ -63,7 +63,10 @@ export const pdayOf = (r) => {
  *  Sun–Thu: "חול".  Friday / erev chag: "ערב שבת/ערב חג" + "חול".  Shabbat: "שבת".  Chag: "חג" (+ "שבת" rows that have no "חג" row of the same prayer).
  *  A row with an explicit weekday list (r.dow) is shown on exactly those weekdays. A specific row replaces the generic "חול" row of the same prayer name.
  */
+/** Stable sort by admin-defined `order` (rows without one keep their original relative position, after ordered rows). */
+export const sortPrayers = (arr) => (arr || []).map((r, i) => [r, i]).sort(([a, i], [b, j]) => ((typeof a.order === 'number' ? a.order : 1e6) - (typeof b.order === 'number' ? b.order : 1e6)) || i - j).map(([r]) => r);
 export function getPrayersForToday(prayers, ctx, fw = (r) => String(r.name || '').split(' ')[0]) {
+  prayers = sortPrayers(prayers);
   const res = filterPrayers(prayers, ctx, fw);
   if (res.length || !(prayers || []).length) return res;
   // safety net: nothing matched today's special state (forced Shabbat mode, chag detection...) -> fall back to the plain weekday (Sun–Thu = חול, Fri = ערב שבת + חול, Sat = שבת)

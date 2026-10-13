@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
-import { PDAYS, pdayOf } from '@/lib/zmanim';
+import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
 import { gem, hebOf, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
@@ -204,7 +204,9 @@ const DAYS = PDAYS;
 function Prayers({ sid, cols, st, set, syn }) {
   const [open, setOpen] = useState(null);
   const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }), o = oe.f, setO = oe.setF;
-  const pr = cols.prayers || [];
+  const pr = sortPrayers(cols.prayers || []);
+  const [drag, setDrag] = useState(null);
+  const moveTo = async (from, to) => { if (from === to || to < 0 || to >= pr.length) return; const a = pr.slice(); const [x] = a.splice(from, 1); a.splice(to, 0, x); await Promise.all(a.map((r, i) => (r.order === i + 1 ? null : updItem(sid, 'prayers', r.id, { order: i + 1 })))); };
   const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
   return (<>
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לסמן ״הצג בסרגל התחתון״ ובנוסף לבחור שקופית: ללא / בלוק בקרוסלה / מסך מלא (או כבוי).</p>
@@ -214,9 +216,10 @@ function Prayers({ sid, cols, st, set, syn }) {
       <Range label="זמן תצוגה לשקופית (בשניות)" min={1} max={30} value={st.ptAll?.secs || 10} onChange={(v) => set('ptAll.secs', v)} />
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות (גם שורות בודדות שהוגדרו לקרוסלה או למסך מלא).</div>
     </Card>
-    {pr.map((r) => (
-      <Card key={r.id}>
-        <div className="row"><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join(' · ') : DAYS[pdayOf(r)]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
+    {pr.map((r, ri) => (
+      <div key={r.id} draggable onDragStart={() => setDrag(ri)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) moveTo(drag, ri); setDrag(null); }} style={drag === ri ? { opacity: 0.5 } : undefined}>
+      <Card>
+        <div className="row"><span title="גרור לשינוי סדר" style={{ cursor: 'grab', flex: '0 0 auto' }}>⠿</span><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === 0} onClick={() => moveTo(ri, ri - 1)}>⬆️</button><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === pr.length - 1} onClick={() => moveTo(ri, ri + 1)}>⬇️</button><span className="tag">{ri + 1}</span><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join(' · ') : DAYS[pdayOf(r)]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
         <div className="row"><ModeSel bar value={r.show} onChange={(v) => updItem(sid, 'prayers', r.id, { show: v })} /><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />הצג בסרגל התחתון</label><TkChk on={r.ticker} onChange={(v) => updItem(sid, 'prayers', r.id, { ticker: v })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
           <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
         {open === r.id && (
@@ -229,8 +232,8 @@ function Prayers({ sid, cols, st, set, syn }) {
               <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} /></div>
             <TextIn value={r.note} placeholder="הערה (רשות)" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
           </div>)}
-      </Card>))}
-    <button className="b" onClick={async () => { const d = await addItem(sid, 'prayers', { name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true }); setOpen(d.id); }}>+ הוסף תפילה</button>
+      </Card></div>))}
+    <button className="b" onClick={async () => { const d = await addItem(sid, 'prayers', { order: pr.length + 1, name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true }); setOpen(d.id); }}>+ הוסף תפילה</button>
     <h3 style={{ margin: '14px 0 6px' }}>דריסת זמן נקודתית</h3>
     <div ref={oe.ref}><Card title={oe.eid ? 'עריכת דריסה' : null}>
       <div className="row"><div><label>תפילה</label><select value={o.prayerId} onChange={(e) => setO({ ...o, prayerId: e.target.value })}><option value="">—</option>{pr.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>

@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { fmt, getZmanim, prayerTime, zOpts } from '@/lib/zmanim';
-import { pdayOf } from '@/lib/zmanim';
+import { pdayOf, sortPrayers } from '@/lib/zmanim';
 import { annOn, lessonDays, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
@@ -162,7 +162,7 @@ async function build({ syn, cols, st }, kind, opt) {
   const now = new Date(), z0 = getZmanim(now, loc, zo), hn = hebOf(now, false);
   let ahead = (6 - z0.dow + 7) % 7; if (z0.dow === 6 && z0.tzeit && z0.now >= z0.tzeit) ahead = 7;
   const sat = new Date(+now + ahead * 864e5), fri = new Date(+sat - 864e5), zs = getZmanim(sat, loc, zo), zf = getZmanim(fri, loc, zo);
-  const pr = (cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
+  const pr = sortPrayers(cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
   const KD = { fri: [5], shab: [6], chag: [6], week: [0, 1, 2, 3, 4], all: [0, 1, 2, 3, 4, 5, 6], mots: [] };
   const grp = (days, z) => Object.entries(pr.filter((r) => (Array.isArray(r.dow) && r.dow.length ? days.some((d) => (KD[d] || []).some((i) => r.dow.includes(i))) : days.includes(pdayOf(r)))).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
   const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: [l.rabbi, l.place].filter(Boolean).join(' · '), time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
