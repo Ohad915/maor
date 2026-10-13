@@ -168,7 +168,7 @@ label{font-size:13px;color:var(--mu)}
 .fold>summary::-webkit-details-marker{display:none}.fold>summary::after{content:"▼";font-size:11px;color:var(--mu)}.fold[open]>summary::after{content:"▲"}
 .fold[open]>summary{margin-bottom:8px}
 /* מסך מלא: רקע היכל+מגילה על 100% מהמסך, הטקסט בתוך הקלף */
-.fsl{background:#06123a url(/images/templates/fullscreen_bg.jpg) center/100% 100% no-repeat!important;padding:17.8% 34% 18%!important;margin:0!important;width:100%;height:100%;box-sizing:border-box;overflow:hidden}
+.fsl{background:#06123a url(/images/templates/fullscreen_wide_bg.jpg) center/100% 100% no-repeat!important;padding:17.5% 29.2% 13.6%!important;container-type:size;margin:0!important;width:100%;height:100%;box-sizing:border-box;overflow:hidden}
 .fsl .ab{background:none!important;border:0!important;box-shadow:none!important;min-width:0;width:100%;padding:0!important}
 .fsl .ab::before,.fsl .ab::after{display:none!important}
 .fsl .lb{color:#6b4a0a;text-shadow:0 1px 0 #fff8}.fsl .af{color:#6b4a0a}
@@ -219,3 +219,76 @@ label{font-size:13px;color:var(--mu)}
 .dp[data-tbg=stone] :is(.pn,.hd,.pr,.cu,.pb) :is(.lb,.an h3,.yi b){text-shadow:none}
 .dp[data-tbg] .pb{background:linear-gradient(180deg,#e8b84a,#b0670f)!important;color:#2a1604!important;text-shadow:none!important;border-color:#7a5410!important}
 .an .af{min-height:1.4em}
+
+.fsl .ptl2{display:grid!important;grid-auto-flow:column;column-gap:2.5em;align-content:center;width:100%;min-height:0}.fsl .ptl2 .tr{font-size:1em;padding:.18em 0;gap:.6em;align-items:center;line-height:1.15}.fsl .ptl2 .tr b{white-space:nowrap}.fsl .ptl2 .tr i{white-space:nowrap}
+
+/* ===== מסך ראשי "מקדש ומלכות": פריסה מדויקת על גבי royal_bg.png (1376×768) ===== */
+.dp[data-royal]{padding:0!important;background-color:#050b1f;background-repeat:no-repeat;background-position:center;overflow:hidden}
+.dp[data-royal]::before,.dp[data-royal]::after,.dp[data-royal] .cn{display:none!important}
+.rl{position:absolute;inset:0;container-type:size;color:#2a1a05;font-family:var(--af,'Frank Ruhl Libre','David Libre',serif)}
+.rl-top,.rl-bot,.rl-parsha{display:flex;align-items:center;box-sizing:border-box}
+.rl-top{padding:0 1.6cqw;gap:1.2cqw}
+.rl-date{display:flex;align-items:center;gap:.9cqw;flex:0 0 20%}
+.rl-cal{font-size:2.6cqw;width:3.6cqw;height:3.6cqw;border-radius:50%;display:grid;place-items:center;background:radial-gradient(#fff6d6,#e0b84e);border:.18cqw solid #a8761a;box-shadow:0 .1cqw .3cqw #0006}
+.rl-date b{display:block;font-size:1.75cqw;font-weight:900;color:#3a2606;line-height:1.15}.rl-date small{font-size:1.45cqw;color:#4a3208;font-weight:700}
+.rl-times{flex:1;display:flex;justify-content:space-evenly;align-items:center;height:80%}
+.rl-times>div{flex:1;text-align:center;padding:0 .4cqw;border-inline-start:.12cqw solid #b58a2c88;line-height:1.15;min-width:0}.rl-times>div:first-child{border:0}
+.rl-times small{display:block;font-size:min(1.7cqw,8.2cqw/var(--rn));font-weight:800;color:#3a2606;white-space:nowrap}
+.rl-times b{display:block;font-size:min(2.6cqw,12cqw/var(--rn));font-weight:900;color:#1d1202;white-space:nowrap;direction:ltr}
+.rl-name{display:flex;align-items:center;gap:.8cqw;flex:0 0 25%;justify-content:flex-start}
+.rl-name b{display:block;font-size:1.65cqw;font-weight:900;color:#3a2606;line-height:1.1}.rl-name small{display:block;font-size:1cqw;color:#5b3a05;font-weight:700;letter-spacing:.05em}
+.rl-name span{font-size:3.4cqw;filter:drop-shadow(0 .1cqw .2cqw #0006)}
+.rl-parsha{justify-content:center;gap:3cqw;border-radius:.9cqw;border:.2cqw solid #b58a2c;box-shadow:inset 0 0 0 .25cqw #f7ecd0,inset 0 0 0 .38cqw #b58a2c,0 .3cqw 1cqw #000a;background:radial-gradient(120% 140% at 50% 40%,#fdf6e3,#f1e0b4 70%,#dfc58a)}
+.rl-parsha b{font-size:6.4cqw;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff2a8,#e0a91d 45%,#8b5a08);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:.08cqw #5b3a05;filter:drop-shadow(0 .2cqw .15cqw #5b3a0099) drop-shadow(0 0 .6cqw #ffe9a066)}
+.rl-parsha i{font-style:normal;font-size:4cqw;color:#b58a2c;text-shadow:0 .1cqw 0 #fff8}
+/* כרטיסיות (הקלף כבר מצוייר ברקע) */
+.rl-main,.rl-card{box-sizing:border-box;padding:1.1cqw 1.7cqw;overflow:hidden;color:#2a1a05;text-shadow:none;background:none!important;border:0!important;display:flex;flex-direction:column;position:absolute}
+.rl-main .slot,.rl-main .an{flex:1;min-height:0;display:flex;flex-direction:column;height:100%}
+.rl-main .an{background:none;border:0;box-shadow:none;padding:0;text-align:center;justify-content:flex-start;gap:.3em}
+.rl-main .an .lb,.rl-card .lb{color:#5b3a05;font-weight:900;font-size:1.25em;text-shadow:0 1px 0 #fff9;text-align:center;border-bottom:.08em solid #b58a2c77;padding-bottom:.25em;margin-bottom:.35em}
+.rl-main .an .ab{background:none;border:0;box-shadow:none;padding:0;min-width:0;max-width:none;flex:1 1 0;min-height:0;overflow:hidden;color:#1d1202;text-align:right;justify-content:flex-start}
+.rl-main .an .ab::before,.rl-main .an .ab::after{display:none!important}
+.rl-main .an h3{color:#5b3a05!important;font-size:1.3em!important;margin:.1em 0 .3em;text-align:center}
+.rl-main .an p{color:#1d1202!important;font-size:1.05em!important;line-height:1.5;margin:.15em 0;font-weight:600}
+.rl-main .an .af{color:#5b3a05;font-size:.8em;min-height:0}
+.rl-main .ptl2 .tr{font-size:1.1em;color:#1d1202}.rl-main .ptl2 .tr b,.rl-main .ptl2 .tr i{color:#1d1202}
+.rl-main .prg{position:absolute;left:8%;right:8%;bottom:.3cqw;height:.25cqw;background:#b58a2c;transform-origin:right;animation:prg var(--d) linear forwards;border-radius:1em;opacity:.8}
+.rl-card{flex-direction:row;align-items:center;gap:1.2cqw}
+.rl-ic{font-size:6cqw;line-height:1;flex:0 0 22%;text-align:center;filter:drop-shadow(0 .3cqw .5cqw #0007)}
+.rl-bd{flex:1;min-width:0;height:100%;display:flex;flex-direction:column}
+.rl-card .pgw{flex:1;min-height:0;overflow:hidden;text-align:center;display:flex;flex-direction:column;justify-content:center}
+.rl-card .yi{margin:.15em 0}.rl-card .yi b{display:block;color:#1d1202;font-size:1.25em;font-weight:900}.rl-card .yi small{color:#4a3208;font-size:.9em;font-weight:700}
+/* סרגל תחתון */
+.rl-bot{direction:rtl;gap:0}
+.rl-fx{flex:0 0 18.5%;text-align:center;color:#f6d77a;font-weight:900;font-size:2.1cqw;text-shadow:0 .1cqw .2cqw #000}
+.rl-clk{flex:0 0 14.5%;text-align:center;color:#f6d77a;font-weight:900;font-size:2.8cqw;direction:ltr;text-shadow:0 .1cqw .2cqw #000;font-variant-numeric:tabular-nums}
+.rl-tk{flex:1;height:100%;overflow:hidden;direction:ltr;white-space:nowrap;display:flex;align-items:center}
+.rl-tk span{direction:rtl;display:inline-block;padding-left:100%;font-size:2.1cqw;font-weight:800;color:#2a1a05;animation:tk 28s linear infinite}
+.rl-ic{display:flex;align-items:center;justify-content:center;height:100%}
+.rl-ic img{max-width:100%;max-height:92%;object-fit:contain;filter:drop-shadow(0 .3cqw .4cqw #0005)}
+.rl-yz .rl-ic{flex-basis:17%}.rl-rf .rl-ic{flex-basis:24%}
+.rl-pic{flex:0 0 auto;height:38%;max-width:70%;align-self:center;object-fit:contain;margin-top:.3em;filter:drop-shadow(0 .3cqw .4cqw #0005)}
+
+.rl-cal{display:flex!important;align-items:center;justify-content:center;flex-direction:column;line-height:1;width:5cqw!important;height:5cqw!important;font-size:1em!important;text-align:center}
+.rl-cal b{font-size:1.9cqw;font-weight:900;color:#3a2606}.rl-cal small{font-size:.95cqw;font-weight:800;color:#4a3208;white-space:nowrap}
+.rl-name em{display:block;font-style:normal;font-size:1.1cqw;font-weight:800;color:#5b3a05;letter-spacing:.08em}
+.rl-name img{height:88%;max-width:7.5cqw;object-fit:contain;filter:drop-shadow(0 .15cqw .25cqw #0005)}
+.rl-name{height:100%}
+.rl-pt{display:flex;flex-direction:column;align-items:center;gap:.4cqw}
+.rl-pt b{font-size:5.4cqw!important}
+.rl-pt small{font-size:1.9cqw;font-weight:800;color:#5b3a05;letter-spacing:.06em}
+
+/* ===== תיקוני הכלה ===== */
+.rl-dd b{font-size:1.75cqw}.rl-dd small{font-size:1.5cqw;letter-spacing:.04em}
+.rl-times>div{padding:0 1.4cqw}
+.rl-times b{font-size:var(--tf,2.4cqw)!important}
+.rl-pt{gap:.2cqw;line-height:1.05;max-height:100%}
+.rl-pt b{font-size:4.5cqw!important;line-height:1.05}
+.rl-pt small{font-size:1.45cqw!important;line-height:1.1;padding-bottom:.2cqw}
+.rl-parsha{overflow:hidden}
+.rl-tk{margin:0 1.2cqw;max-width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+/* באנר פרשה: הפטרה בתוך הקלף (יחידות לפי גובה המסך כדי שלא תחרוג) */
+.rl-parsha{height:13.6cqh!important;padding:.4cqh 0 1cqh}
+.rl-pt{gap:.3cqh;justify-content:center;line-height:1}
+.rl-pt b{font-size:min(4.5cqw,7.4cqh)!important;line-height:1!important;padding-bottom:.2cqh}
+.rl-pt small{font-size:min(1.3cqw,2.1cqh)!important;line-height:1.1!important;margin-top:-.2cqh;padding:0 0 .3cqh;text-align:center}
