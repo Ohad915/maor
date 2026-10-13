@@ -165,7 +165,7 @@ async function build({ syn, cols, st }, kind, opt) {
   const pr = sortPrayers(cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
   const KD = { fri: [5], shab: [6], chag: [6], week: [0, 1, 2, 3, 4], all: [0, 1, 2, 3, 4, 5, 6], mots: [] };
   const grp = (days, z) => Object.entries(pr.filter((r) => (Array.isArray(r.dow) && r.dow.length ? days.some((d) => (KD[d] || []).some((i) => r.dow.includes(i))) : days.includes(pdayOf(r)))).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
-  const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: [l.rabbi, l.place].filter(Boolean).join(' · '), time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
+  const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: l.rabbi || '', time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
   const ann = opt.ann ? (cols.announcements || []).filter((a) => (a.mode ?? (a.on === false ? 'off' : 'block')) !== 'off' && annOn(a, hn)).slice(0, 3).map((a) => a.title + ((a.content || '').split('\n')[0] ? ' · ' + a.content.split('\n')[0].slice(0, 56) : '')) : [];
   const sel = (z) => (zo.shma === 'mga' ? ['סוף זמן ק״ש (מג״א)', fmt(z.shmaMga)] : ['סוף זמן ק״ש', fmt(z.shma)]);
   const base = { name: st.title || syn.name, lessons, ann };
@@ -183,12 +183,16 @@ async function build({ syn, cols, st }, kind, opt) {
 
 /** Ordered rows [label, time] in the sample's logic (candle lighting, mincha, netz, shacharit, shma, lessons, arvit, tzeit...). */
 function orderRows(d) {
-  const T = (re) => d.times.filter(([n]) => re.test(n)), G = (title) => (d.groups.find(([t]) => t === title) || [, []])[1];
+  const T = (re, seg = 0) => d.times.filter(([n]) => re.test(n)).map(([n, v]) => [n, v, '', seg]), G = (title) => (d.groups.find(([t]) => t === title) || [, []])[1];
   const dup = {}; d.groups.forEach(([, r]) => r.forEach(([n]) => { dup[n] = (dup[n] || 0) + 1; }));
-  const gr = (title) => G(title).map(([n, v]) => [dup[n] > 1 ? `${n} · ${title}` : n, v]);
-  const L = d.lessons.map((l) => [`${l.t}${l.who ? ' · ' + l.who : ''}`, l.time]);
-  if (d.kind === 'shabbat') return [...T(/נרות/), ...gr('ערב שבת'), ...T(/נץ/), ...gr('שבת'), ...T(/ק״ש/), ...L, ...gr('מוצאי שבת'), ...T(/צאת/), ...T(/רבינו/)].filter(([, v]) => v);
-  return [...T(/נץ/), ...gr('תפילות ימי חול'), ...T(/ק״ש/), ...L, ...T(/חצות/), ...T(/שקיעה/), ...T(/צאת/), ...T(/רבינו/)].filter(([, v]) => v);
+  const gr = (title, seg = 0) => G(title).map(([n, v]) => [dup[n] > 1 ? `${n} · ${title}` : n, v, '', seg]);
+  const sh = d.kind === 'shabbat';
+  const L = d.lessons.map((l) => [l.t, l.time, l.who || '', sh ? 1 : 0]); // lesson title (line 1) + rabbi (line 2)
+  const all = sh ? [...T(/נרות/, 0), ...gr('ערב שבת', 0), ...T(/נץ/, 1), ...gr('שבת', 1), ...T(/ק״ש/, 1), ...L, ...gr('מוצאי שבת', 2), ...T(/צאת/, 2), ...T(/רבינו/, 2)]
+    : [...T(/נץ/), ...gr('תפילות ימי חול'), ...T(/ק״ש/), ...L, ...T(/חצות/), ...T(/שקיעה/), ...T(/צאת/), ...T(/רבינו/)];
+  // full chronological order (Friday eve -> Shabbat -> motzaei Shabbat; weekday = one segment); rows without a valid HH:mm go last
+  const key = (v) => (/^\d{1,2}:\d{2}$/.test(String(v)) ? String(v).padStart(5, '0') : '99:99');
+  return all.map((r, i) => [r, i]).filter(([r]) => r[1]).sort(([a, i], [b, j]) => (a[3] - b[3]) || key(a[1]).localeCompare(key(b[1])) || i - j).map(([r]) => r);
 }
 /** thin inner line of a card (a real border: html2canvas does not paint inset shadows correctly) */
 const Inner = () => <i style={{ position: 'absolute', inset: 3, border: '2px solid #7a5410', borderRadius: 8, pointerEvents: 'none' }} />;
@@ -230,10 +234,10 @@ function Poster({ d, tpl, greet, pref }) {
         </div>) : <div style={{ textAlign: 'center', fontSize: 84, fontWeight: 900, lineHeight: 1.05, margin: '40px 0' }}>{d.kind === 'weekday' ? 'זמני היום' : d.parsha}</div>}
       <div style={{ textAlign: 'center', fontFamily: 'Heebo,Arial,sans-serif', fontSize: 32, fontWeight: 700, color: t.ac, height: 46, margin: '4px 0 8px' }}>{d.special ? d.special + ' · ' : ''}{d.date}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap }}>
-        {rows.map(([n, v], i) => (
+        {rows.map(([n, v, sub], i) => (
           <div key={i} style={{ display: 'flex', gap: 10, direction: 'rtl' }}>
             <div style={{ ...box, width: rh }}><Ico k={iconOf(n)} /></div>
-            <div style={{ ...box, flex: 1, fontSize: n.length > 22 ? fs - 8 : fs, fontWeight: 800, fontFamily: 'Heebo,Arial,sans-serif' }}>{n}</div>
+            <div style={{ ...box, flex: 1, flexDirection: 'column', fontSize: n.length > 22 ? fs - 8 : fs, fontWeight: 800, fontFamily: 'Heebo,Arial,sans-serif', lineHeight: 1.05 }}><span>{n}</span>{sub && <span style={{ fontSize: Math.round(fs * 0.68), fontWeight: 600, opacity: 0.9 }}>{sub}</span>}</div>
             <div style={{ ...box, width: 190, fontSize: fs + 4, fontWeight: 900, direction: 'ltr', fontFamily: 'Heebo,Arial,sans-serif' }}>{v}</div>
           </div>))}
       </div>
@@ -299,8 +303,10 @@ export async function renderPoster(d, greet) {
     const y = top0 + i * pitch, yc = Y(y + bh / 2);
     if (i >= rows.length) { // unused template slot: paint over it with the template's own background strip
       const k = bg.naturalWidth / TW; c.drawImage(bg, 92 * k, (y - 8) * k, 30 * k, (bh + 16) * k, X(130), Y(y - 8), X(686), Y(bh + 16)); continue; }
-    const [n, v] = rows[i];
-    c.fillStyle = '#f7e7b0'; fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc);
+    const [n, v, sub] = rows[i];
+    c.fillStyle = '#f7e7b0';
+    if (sub) { fitFont(c, n, X(400), 36, 800, SANS, 16); c.fillText(n, X(488), yc - Y(10)); c.fillStyle = '#e8d49a'; fitFont(c, sub, X(400), 26, 600, SANS, 14); c.fillText(sub, X(488), yc + Y(15)); c.fillStyle = '#f7e7b0'; }
+    else { fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc); }
     c.fillStyle = '#f9df8e'; fitFont(c, v, X(116), 44, 900, SANS, 20); c.direction = 'ltr'; c.fillText(v, X(203), yc); c.direction = 'rtl';
     const im = await iconImg(iconOf(n)), sz = Y(48); c.drawImage(im, X(755) - sz / 2, yc - sz / 2, sz, sz);
   }

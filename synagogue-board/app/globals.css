@@ -317,3 +317,8 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt b{font-size:min(calc(36cqh*var(--pf,1)),56cqh,calc(6.5cqw*var(--pf,1)))!important}
 .rl-pt small{font-size:min(calc(18cqh*var(--pf,1)),28cqh,calc(3.25cqw*var(--pf,1)))!important}
 .rl-pt{gap:3cqh!important}
+/* unified typography for the memorial & refuah cards */
+.rl-yz,.rl-rf,.rl-yz *,.rl-rf *{font-family:'Frank Ruhl Libre','David Libre',serif!important}
+.rl-yz .lb,.rl-rf .lb{font-size:1.25em!important;font-weight:900!important}
+.rl-yz .yi b,.rl-rf .yi b{font-size:1.25em!important;font-weight:900!important;line-height:1.15}
+.rl-yz .yi small,.rl-rf .yi small{font-size:.9em!important;font-weight:700!important}

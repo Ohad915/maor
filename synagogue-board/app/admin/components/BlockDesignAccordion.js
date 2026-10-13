@@ -27,7 +27,7 @@ export default function BlockDesignAccordion({ st, set, sid, royal = false }) {
                 <label>רוחב: {w === 50 ? 'Auto (50%)' : w + '%'}</label><DebIn type="range" min="10" max="100" value={w} onChange={(x) => set(`blocks.${k}.w`, x)} />
                 <label>גובה: {h === 50 ? 'Auto (50%)' : h + '%'}</label><DebIn type="range" min="10" max="100" value={h} onChange={(x) => set(`blocks.${k}.h`, x)} />
                 <button className="b g" onClick={() => { set(`blocks.${k}.w`, 50); set(`blocks.${k}.h`, 50); }}>חזור ל-Auto (50%)</button>
-                <label>גודל טקסט בקובייה: {fs === 18 ? 'Auto (18)' : fs}</label><DebIn type="range" min="12" max="30" value={fs} onChange={(x) => set(`blocks.${k}.fs`, x)} />
+                <label>גודל טקסט בקובייה: {fs === 18 ? 'Auto (18)' : fs}</label><DebIn type="range" min="12" max="50" value={fs} onChange={(x) => set(`blocks.${k}.fs`, x)} />
                 <button className="b g" onClick={() => set(`blocks.${k}.fs`, 18)}>גודל טקסט: חזור לברירת מחדל</button>
                 {!royal && col('bg', 'צבע רקע')}{!royal && col('bd', 'צבע מסגרת')}{col('tx', 'צבע טקסט')}
               </div>)}
