@@ -32,7 +32,11 @@ function royBox(st, k, l, t, w, h) {
   if (b.bg) { style['--cbg'] = b.bg; cls.push('rl-cbg'); }
   if (b.bd) { style['--cbd'] = b.bd; cls.push('rl-cbd'); }
   if (b.tx) { style['--ctx'] = b.tx; cls.push('rl-ctx'); }
-  return { style, cls: cls.join(' ') };
+  const resized = fw !== 1 || fh !== 1;
+  if (resized) cls.push('rl-sized');
+  // the parchment frames are baked into the background image: when a block is resized, hide the baked frame and let the block draw its own
+  const ghost = resized ? { position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' } : null;
+  return { style, cls: cls.join(' '), ghost };
 }
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
@@ -274,10 +278,13 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
       <div className={'rl-parsha ' + RB.pr.cls} style={RB.pr.style}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
+      {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: 0.3, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
+      {V('yz') && RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: 0.27, style: RB.yz.style })}>
         <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
+      {V('rf') && RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: 0.27, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
