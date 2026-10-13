@@ -288,7 +288,7 @@ label{font-size:13px;color:var(--mu)}
 .rl-parsha{overflow:hidden}
 .rl-tk{margin:0 1.2cqw;max-width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
 /* באנר פרשה: הפטרה בתוך הקלף (יחידות לפי גובה המסך כדי שלא תחרוג) */
-.rl-parsha{height:13.6cqh!important;padding:.4cqh 0 1cqh}
+.rl-parsha{padding:.4cqh 0 1cqh}
 .rl-pt{gap:.3cqh;justify-content:center;line-height:1}
 .rl-pt b{font-size:min(4.5cqw,7.4cqh)!important;line-height:1!important;padding-bottom:.2cqh}
 .rl-pt small{font-size:min(1.3cqw,2.1cqh)!important;line-height:1.1!important;margin-top:-.2cqh;padding:0 0 .3cqh;text-align:center}
@@ -308,3 +308,7 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt b{font-size:min(40cqh,7cqw)!important;line-height:1!important;flex:none}
 .rl-pt small{font-size:min(15cqh,2.2cqw)!important;line-height:1!important;flex:none;align-self:center!important;margin:0!important;white-space:nowrap}
 .rl-pt small{max-width:none!important;overflow:visible!important;text-overflow:clip!important}
+/* royal: admin colour overrides per block (win over theme defaults) */
+.rl .rl-cbg{background:var(--cbg)!important;border-radius:1.2cqw}
+.rl .rl-cbd{border:.25cqw solid var(--cbd)!important;border-radius:1.2cqw}
+.rl .rl-ctx,.rl .rl-ctx *{color:var(--ctx)!important}

@@ -22,6 +22,18 @@ function blockStyle(st, k, t, base) {
   if (b.tx) { o.color = b.tx; o['--dac'] = b.tx; }
   return o;
 }
+/** Royal layout: apply admin box settings (width/height % where 50 = auto, colours) on top of the fixed mockup box. */
+function royBox(st, k, l, t, w, h) {
+  const b = st.blocks?.[k] || {}, fw = (b.w ?? 50) / 50, fh = (b.h ?? 50) / 50;
+  const nw = Math.min(w * fw, 100), nh = Math.min(h * fh, 100);
+  const nl = Math.max(0, Math.min(100 - nw, l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
+  const style = { position: 'absolute', left: nl + '%', top: nt + '%', width: nw + '%', height: nh + '%', flex: 'none', alignSelf: 'auto' };
+  const cls = [];
+  if (b.bg) { style['--cbg'] = b.bg; cls.push('rl-cbg'); }
+  if (b.bd) { style['--cbd'] = b.bd; cls.push('rl-cbd'); }
+  if (b.tx) { style['--ctx'] = b.tx; cls.push('rl-ctx'); }
+  return { style, cls: cls.join(' ') };
+}
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
   const ref = useRef(null);
@@ -254,18 +266,19 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const zt = [['הנץ החמה', z.netz], ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], ['שקיעת החמה', z.shkia], ['צאת הכוכבים', z.tzeit], ...(z.dow === 6 ? [['רבינו תם', z.rt]] : [])].filter(([, t]) => t).map(([n, t]) => `${n}: ${fmt(t)}`).join('   ✦   ');
     const tkr0 = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
     const tkr = [tkr0, zt].filter(Boolean).join('   ✦   ');
+    const RB = { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
     body = <div className="rl">
-      <div className="rl-top" style={rbox(9.3, 8.5, 81.4, 11.5)}>
+      <div className={'rl-top ' + RB.hd.cls} style={RB.hd.style}>
         <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
         <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
         <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
-      <div className="rl-parsha" style={rbox(13.5, 22.2, 73, 13.6)}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
-      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main', share: 0.3, fit: true, style: rbox(50.5, 37.8, 37.6, 48.8) })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
-      {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz', share: 0.27, style: rbox(12.7, 37.8, 35.5, 21.5) })}>
+      <div className={'rl-parsha ' + RB.pr.cls} style={RB.pr.style}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
+      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: 0.3, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
+      {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: 0.27, style: RB.yz.style })}>
         <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
-      {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf', share: 0.27, style: rbox(12.7, 60.9, 35.5, 25.7) })}>
+      {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: 0.27, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
       <div className="rl-bot" style={rbox(7.6, 89.8, 84.7, 7.6)}>
