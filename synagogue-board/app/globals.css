@@ -318,3 +318,7 @@ label{font-size:13px;color:var(--mu)}
 .rl .rl-sized.rl-cbg{border:.3cqw double #b58a2c}
 .rl .rl-sized.rl-cbd{border-color:var(--cbd)!important}
 .rl-ghost{z-index:0}.rl-main,.rl-card{z-index:1}
+/* parsha v6: text size follows the admin "גודל טקסט" slider (--pf); haftara = 50% of parsha; capped so it never leaves the parchment */
+.rl-pt b{font-size:min(calc(36cqh*var(--pf,1)),56cqh,calc(6.5cqw*var(--pf,1)))!important}
+.rl-pt small{font-size:min(calc(18cqh*var(--pf,1)),28cqh,calc(3.25cqw*var(--pf,1)))!important}
+.rl-pt{gap:3cqh!important}

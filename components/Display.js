@@ -277,7 +277,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
         <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
-      <div className={'rl-parsha ' + RB.pr.cls} style={RB.pr.style}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
+      <div className={'rl-parsha ' + RB.pr.cls} style={{ ...RB.pr.style, '--pf': ((st.blocks?.pr?.fs ?? 18) / 18).toFixed(3) }}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>
       {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: 0.3, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
       {V('yz') && RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} />}
