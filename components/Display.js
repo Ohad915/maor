@@ -23,10 +23,10 @@ function blockStyle(st, k, t, base) {
   return o;
 }
 /** Royal layout: apply admin box settings (width/height % where 50 = auto, colours) on top of the fixed mockup box. */
-function royBox(st, k, l, t, w, h) {
+function royBox(st, k, l, t, w, h, anchor = 'c') {
   const b = st.blocks?.[k] || {}, fw = (b.w ?? 50) / 50, fh = (b.h ?? 50) / 50;
   const nw = Math.min(w * fw, 100), nh = Math.min(h * fh, 100);
-  const nl = Math.max(0, Math.min(100 - nw, l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
+  const nl = Math.max(0, Math.min(100 - nw, anchor === 'l' ? l : anchor === 'r' ? l + w - nw : l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
   const style = { position: 'absolute', left: nl + '%', top: nt + '%', width: nw + '%', height: nh + '%', flex: 'none', alignSelf: 'auto' };
   const cls = [];
   if (b.bg) { style['--cbg'] = b.bg; cls.push('rl-cbg'); }
@@ -270,7 +270,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const zt = [['הנץ החמה', z.netz], ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], ['שקיעת החמה', z.shkia], ['צאת הכוכבים', z.tzeit], ...(z.dow === 6 ? [['רבינו תם', z.rt]] : [])].filter(([, t]) => t).map(([n, t]) => `${n}: ${fmt(t)}`).join('   ✦   ');
     const tkr0 = tkText || bar.length ? (tkText || Object.entries(grp).map(([k, g]) => `${k}: ${[...g.t].sort().join(' , ')}`).join('   ✦   ')) : '';
     const tkr = [tkr0, zt].filter(Boolean).join('   ✦   ');
-    const RB = { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
+    const RB = { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8, 'r'), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l'), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l'), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
     body = <div className="rl">
       <div className={'rl-top ' + RB.hd.cls} style={RB.hd.style}>
         <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
