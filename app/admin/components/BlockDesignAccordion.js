@@ -13,7 +13,7 @@ export default function BlockDesignAccordion({ st, set, sid, royal: royalProp })
   const royal = royalProp ?? isRoyal(st);
   const [openAll, setOpenAll] = useState(false), [open, setOpen] = useState({});
   const blocks = st.blocks || {}, g = { font: 'david', secs: 10, ...(st.cf || {}).all }, fsAll = st.fsAll ?? 18;
-  const list = royal ? ROYAL_BLOCKS : BLOCKS;
+  const list = royal ? [...ROYAL_BLOCKS.slice(0, 5), ...(String(st.layout) === '4' ? [['qr', 'תרומות והקדשות (QR)']] : []), ROYAL_BLOCKS[5]] : BLOCKS;
   const reset = (k) => { set(`blocks.${k}`, {}); (CF_OF[k] || []).forEach((c) => set(`cf.${c}`, {})); };
   const touched = (k) => { const b = blocks[k] || {}; return b.w != null && b.w !== 50 || b.h != null && b.h !== 50 || b.fs != null || b.font || b.secs || (!royal && (b.bg || b.bd)) || b.tx || (CF_OF[k] || []).some((c) => (st.cf || {})[c]?.font || (st.cf || {})[c]?.secs); };
   return (
