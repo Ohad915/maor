@@ -23,27 +23,10 @@ function PickText({ label, value, def, opts, onSave }) {
 const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'clean', cardStyle: 'gold', tbg: 'temple', bg: '' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'clean', cardStyle: 'stone', tbg: 'stone', bg: '' }], ['זהב קלאסי', { theme: 'gold', frame: 'clean', cardStyle: 'clean', tbg: 'gold', bg: '' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'glass', tbg: 'modern', bg: '' }]];
 const TBGS = [['', 'אוטומטי לפי ערכת נושא'], ['none', 'ללא תמונת רקע'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
-/** Fonts, slide durations and paging for every component, in ONE place (no duplicates in the content tabs). */
+/** Paging only (fonts / slide times / sizes live in the single per-block accordion). */
 function CompStyles({ st, set }) {
-  const [open, setOpen] = useState(false);
-  const g = { font: 'david', secs: 10, ...(st.cf || {}).all };
-  const ov = (k) => (st.cf || {})[k] || {};
   return (
-    <Card title="גופנים, זמני שקופיות וגלילה">
-      <label>גופן ראשי ללוח (חל על כל הקוביות)</label>
-      <div className="row"><FontSel value={g.font} onChange={(v) => set('cf.all.font', v)} /></div>
-      <Range label="זמן שקופית כללי (שניות)" min={1} max={30} value={g.secs} onChange={(v) => set('cf.all.secs', v)} />
-      <button type="button" className={`accb ${open ? 'o' : ''}`} onClick={() => setOpen(!open)}><span>התאמה אישית לפי קובייה (רשות){COMPS.some(([k]) => ov(k).font || ov(k).secs) && ' ●'}</span><span>{open ? '▲' : '▼'}</span></button>
-      {open && <div className="accbody">
-        <div style={{ color: 'var(--mu)', fontSize: 13 }}>כאן אפשר לדרוס את הגופן או את זמן השקופית עבור קובייה מסוימת. ללא דריסה, הקובייה משתמשת בהגדרות הכלליות.</div>
-        {COMPS.map(([k, l]) => { const o = ov(k); return (
-          <div key={k} style={{ borderBottom: '1px solid var(--ln)', paddingBottom: 8, marginBottom: 8 }}>
-            <b>{l}{(o.font || o.secs) && ' ●'}</b>
-            <div className="row"><FontSel value={o.font || g.font} onChange={(v) => set(`cf.${k}.font`, v)} /></div>
-            <Range label={`זמן שקופית (שניות)${o.secs ? '' : ' · כללי'}`} min={1} max={30} value={o.secs || g.secs} onChange={(v) => set(`cf.${k}.secs`, v)} />
-            {(o.font || o.secs) && <button type="button" className="b g" onClick={() => { set(`cf.${k}.font`, ''); set(`cf.${k}.secs`, 0); }}>חזור להגדרה הכללית</button>}
-          </div>); })}
-      </div>}
+    <Card title="עימוד שמות וטקסט ארוך">
       <Range label="שמות בעמוד · הנצחות" min={1} max={8} value={st.ipp?.yz || 3} onChange={(v) => set('ipp.yz', v)} />
       <Range label="שמות בעמוד · רפואה שלמה" min={1} max={8} value={st.ipp?.rf || 3} onChange={(v) => set('ipp.rf', v)} />
       <Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} />

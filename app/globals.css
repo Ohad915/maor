@@ -345,3 +345,12 @@ label{font-size:13px;color:var(--mu)}
 .rl-top.m2 .rl-times>div{padding:0 .6cqw}
 .rl-top.m2 .rl-dd b{font-size:1.4cqw}.rl-top.m2 .rl-dd small{font-size:1.2cqw}
 .rl-top.m2 .rl-date{gap:.6cqw}
+/* per-block font size (admin) for the royal top bar (--hs) and bottom bar (--bs) */
+.rl-top .rl-date b{font-size:calc(1.75cqw*var(--hs,1))}.rl-top .rl-date small{font-size:calc(1.45cqw*var(--hs,1))}
+.rl-top .rl-times small{font-size:calc(min(1.7cqw,8.2cqw/var(--rn))*var(--hs,1))}
+.rl-top .rl-times b{font-size:calc(var(--tf,2.4cqw)*var(--hs,1))!important}
+.rl-top .rl-name b{font-size:calc(1.65cqw*var(--hs,1))}.rl-top .rl-name small{font-size:calc(1cqw*var(--hs,1))}.rl-top .rl-name em{font-size:calc(1.1cqw*var(--hs,1))}
+.rl-top.m2 .rl-times b{font-size:calc(min(var(--tf,2.4cqw),1.55cqw)*var(--hs,1))!important}
+.rl-top.m2 .rl-times small{font-size:calc(min(1.45cqw,6.4cqw/var(--rn))*var(--hs,1))}
+.rl-top.m2 .rl-dd b{font-size:calc(1.4cqw*var(--hs,1))}.rl-top.m2 .rl-dd small{font-size:calc(1.2cqw*var(--hs,1))}
+.rl-fx{font-size:calc(2.1cqw*var(--bs,1))}

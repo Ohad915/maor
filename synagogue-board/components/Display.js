@@ -39,7 +39,7 @@ function royBox(st, k, l, t, w, h, anchor = 'c') {
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
   const ref = useRef(null);
-  const fm = ((st.blocks?.[id]?.fs ?? 18) / 18) * mult; // per-block text size (12-26, 18 = default)
+  const fm = ((st.blocks?.[id]?.fs ?? st.fsAll ?? 18) / 18) * mult; // per-block text size (12-26, 18 = default)
   useLayoutEffect(() => {
     const e = ref.current; if (!e || !fit) return;
     const run = () => {
@@ -94,7 +94,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const h = hebOf(now, !!z.shkia && z.now >= z.shkia);
   const LM = st.layout || '1';
   const fs = (size.h > size.w ? size.w / 52 : Math.min(size.w / 72, size.h / 40)) * st.zoom;
-  const cf = (k) => { const a = st.cf || {}, o = a[k] || {}; return { size: 18, ...a.all, ...o, font: o.font || a.all?.font || 'david', secs: o.secs || a.all?.secs || 10 }; }; // global (cf.all) < per-component override
+  const CF_BLK = { pr: 'pr', ann: 'mn', hal: 'mn', mem: 'yz', rf: 'rf' }; // component -> owning block (unified admin accordion)
+  const cf = (k) => { const a = st.cf || {}, o = a[k] || {}, bo = (st.blocks || {})[CF_BLK[k]] || {}; return { size: 18, ...a.all, ...o, font: bo.font || o.font || a.all?.font || 'david', secs: bo.secs || o.secs || a.all?.secs || 10 }; }; // global (cf.all) < legacy per-component < per-block override
   const afs = (k) => ({ '--af': FONTS[cf(k).font] }); // text size comes from the block (accordion), font from the component
   const onS = (s) => !s || s === 'all' || s === screenId;
   const V = (k) => (st.vis || {})[k] !== false;
@@ -273,9 +274,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const RB = m2
       ? { mn: royBox(st, 'mn', 50.5, 22.1, 37.6, 64.6, 'r'), yz: royBox(st, 'yz', 12.7, 22.1, 35.6, 31.6, 'l'), rf: royBox(st, 'rf', 12.7, 55.2, 35.6, 31.5, 'l'), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
       : { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8, 'r'), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l'), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l'), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
-    const pf = ((st.blocks?.pr?.fs ?? 18) / 18).toFixed(3);
+    const fb = (k) => ((st.blocks?.[k]?.fs ?? st.fsAll ?? 18) / 18), pf = fb('pr').toFixed(3);
     body = <div className="rl">
-      <div className={'rl-top ' + (m2 ? 'm2 ' : '') + RB.hd.cls} style={RB.hd.style}>
+      <div className={'rl-top ' + (m2 ? 'm2 ' : '') + RB.hd.cls} style={{ ...RB.hd.style, '--hs': fb('hd').toFixed(3) }}>
         <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
         <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
         {m2 && <div className="rl-ps" style={{ '--pf': pf }}><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div></div>}
@@ -292,9 +293,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
-      <div className="rl-bot" style={rbox(7.6, 89.8, 84.7, 7.6)}>
+      <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
-        <div className="rl-tk"><div className="rl-stat" style={{ fontSize: fitCw(zText) }}>{zText}</div></div>
+        <div className="rl-tk"><div className="rl-stat" style={{ fontSize: `calc(${fitCw(zText)} * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}>{zText}</div></div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;
