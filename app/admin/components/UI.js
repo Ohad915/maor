@@ -18,7 +18,16 @@ export function DebIn({ value, onChange, delay = 400, ...p }) {
 /** Text input that saves on blur (one Firestore write, not one per keystroke). */
 export const TextIn = ({ value, onSave, area, ...p }) => {
   const C = area ? 'textarea' : 'input';
-  return <C key={value} defaultValue={value ?? ''} onBlur={(e) => e.target.value !== (value ?? '') && onSave(e.target.value)} {...p} />;
+  const t = useRef(), mine = useRef(null), cur = useRef(null);
+  const flush = (x) => { clearTimeout(t.current); if (x !== (value ?? '') && x !== mine.current) { mine.current = x; onSave(x); } };
+  // remount only on external changes (not on our own saves), so typing never loses focus
+  const ver = useRef(0), prev = useRef(value);
+  if (value !== prev.current) { if (value !== mine.current) ver.current++; prev.current = value; }
+  const key = ver.current;
+  return <C key={key} defaultValue={value ?? ''}
+    onChange={(e) => { const x = e.target.value; cur.current = x; clearTimeout(t.current); t.current = setTimeout(() => flush(x), 700); }}
+    onBlur={(e) => flush(e.target.value)}
+    onKeyDown={(e) => { if (!area && e.key === 'Enter') flush(e.target.value); }} {...p} />;
 };
 export const Switch = ({ on, onChange, label }) => (
   <div className="row"><b style={{ flex: '3 1 160px', fontWeight: 500 }}>{label}</b>
