@@ -45,8 +45,8 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
       <select value={zm.tzeit || '8.5'} onChange={(e) => set('zm.tzeit', e.target.value)}><option value="8.5">8.5 מעלות</option><option value="13.5z">13.5 דקות זמניות</option><option value="20">20 דקות מהשקיעה</option><option value="30">30 דקות מהשקיעה</option><option value="40">40 דקות מהשקיעה</option></select>
       <Switch label="הצג זמן רבינו תם (72 דקות)" on={!!zm.rt} onChange={(v) => set('zm.rt', v)} />
       <Switch label="הצג נץ החמה הנראה (טופוגרפי)" on={zm.netzVisible !== false} onChange={(v) => set('zm.netzVisible', v)} />
-      <label>זמני היום בסרגל התחתון (מקדש ומלכות)</label>
-      <div className="grid2">{[['off', 'לא להציג'], ['static', 'בסרגל הקבוע'], ['run', 'בסרגל הרץ']].map(([k, l]) => <button key={k} type="button" className={`opt ${(zm.bar || 'off') === k ? 'on' : ''}`} onClick={() => set('zm.bar', k)}>{l}</button>)}</div>
+      <label>זמני היום בסרגל התחתון (מקדש ומלכות · תצוגה קבועה)</label>
+      {[['n', 'זריחה (נץ החמה)'], ['s', 'סוף זמן ק״ש'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם (בשבת / לפי ההגדרה)']].map(([k, l]) => <Switch key={k} label={l} on={zm.bi?.[k] !== false} onChange={(v) => set(`zm.bi.${k}`, v)} />)}
       <Switch label="הצג זמני שבת/חג (ידני, לחגים)" on={st.force} onChange={(v) => set('force', v)} />
     </Card>
     <Card fold title="מסכים">

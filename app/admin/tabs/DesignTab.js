@@ -67,8 +67,6 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
     <details className="cd fold"><summary>⚙️ הגדרות מתקדמות (פריסה, מסגרת, גופנים, גדלי קוביות, צבעים)</summary>
     <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
       <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
-      <label>אופן הצגה בסרגל התחתון (מקדש ומלכות)</label><div className="grid2">{[['both', 'קבוע + טקסט רץ'], ['static', 'תצוגה קבועה בלבד'], ['ticker', 'טקסט רץ בלבד']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.barMode || 'both') === k ? 'on' : ''}`} onClick={() => set('barMode', k)}>{l}</button>)}</div>
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>קבוע: התפילות שסומנו ״הצג בסרגל התחתון״ במרכז, בלי תנועה. רץ: הודעות וזמני היום בגלילה.</div>
     </Card>
     <Card title="עיצוב המסך">
       {royal && <div style={{ color: 'var(--mu)', fontSize: 13 }}>במצב ״מקדש ומלכות״ העיצוב (קלף וזהב) קבוע. ניתן לשנות כאן גודל, מיקום וסדר בלבד.</div>}

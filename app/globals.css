@@ -328,3 +328,20 @@ label{font-size:13px;color:var(--mu)}
 .rl-run{flex:1 1 0;min-width:0;overflow:hidden;height:100%;display:flex;align-items:center;direction:ltr;white-space:nowrap}
 .rl-run span{direction:rtl;display:inline-block;padding-left:100%;font-size:2.1cqw;font-weight:800;color:#2a1a05;animation:tk 28s linear infinite}
 .rl-tk>span{display:none}
+/* ===== royal v2: bottom bar = static zmanim; model 2 = parsha in the top bar ===== */
+.rl-tk{justify-content:center;gap:0;-webkit-mask-image:none;mask-image:none;overflow:hidden}
+.rl-stat{font-weight:900;letter-spacing:.02em;color:#3a2606;text-shadow:0 .06cqw 0 #fff8,0 .1cqw .3cqw #b58a2c66;white-space:nowrap}
+.rl-top.m2 .rl-ps{flex:0 0 24%;height:100%;container-type:size;display:flex;align-items:center;justify-content:center;border-inline:.12cqw solid #b58a2c88}
+.rl-top.m2 .rl-ps .rl-pt{width:100%;height:100%;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:4cqh!important;padding:0!important}
+.rl-top.m2 .rl-ps .rl-pt b{font-size:min(calc(34cqh*var(--pf,1)),56cqh,calc(15cqw*var(--pf,1)))!important;line-height:1!important;color:#3a2606;text-shadow:0 .06cqw 0 #fff8;white-space:nowrap}
+.rl-top.m2 .rl-ps .rl-pt small{font-size:min(calc(17cqh*var(--pf,1)),28cqh,calc(7.5cqw*var(--pf,1)))!important;line-height:1!important;white-space:nowrap}
+.rl-top.m2 .rl-date{flex-basis:17%}
+.rl-top.m2 .rl-name{flex-basis:21%}
+.rl-top.m2 .rl-times b{font-size:min(var(--tf,2.4cqw),1.9cqw)!important}
+.rl-top.m2 .rl-times small{font-size:min(1.45cqw,6.4cqw/var(--rn))}
+.rl-top.m2 .rl-ps{flex-basis:21%}
+.rl-top.m2 .rl-times{min-width:0;flex:1 1 0}
+.rl-top.m2 .rl-times b{font-size:min(var(--tf,2.4cqw),1.55cqw)!important}
+.rl-top.m2 .rl-times>div{padding:0 .6cqw}
+.rl-top.m2 .rl-dd b{font-size:1.4cqw}.rl-top.m2 .rl-dd small{font-size:1.2cqw}
+.rl-top.m2 .rl-date{gap:.6cqw}
