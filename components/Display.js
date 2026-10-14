@@ -24,7 +24,7 @@ function blockStyle(st, k, t, base) {
 }
 /** Royal layout: apply admin box settings (width/height % where 50 = auto, colours) on top of the fixed mockup box. */
 function royBox(st, k, l, t, w, h, anchor = 'c') {
-  const b = st.blocks?.[k] || {}, fw = (b.w ?? 50) / 50, fh = (b.h ?? 50) / 50;
+  const b = st.blocks?.[k] || {}, lb = b['L' + String(st.layout || '1')] || {}, fw = (lb.w ?? 50) / 50, fh = (lb.h ?? 50) / 50; // size overrides are stored per layout (L1..L4) so one layout's tweaks never break another
   const nw = Math.min(w * fw, 100), nh = Math.min(h * fh, 100);
   const nl = Math.max(0, Math.min(100 - nw, anchor === 'l' ? l : anchor === 'r' ? l + w - nw : l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
   const style = { position: 'absolute', left: nl + '%', top: nt + '%', width: nw + '%', height: nh + '%', flex: 'none', alignSelf: 'auto' };

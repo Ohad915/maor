@@ -15,7 +15,7 @@ export default function BlockDesignAccordion({ st, set, sid, royal: royalProp })
   const blocks = st.blocks || {}, g = { font: 'david', secs: 10, ...(st.cf || {}).all }, fsAll = st.fsAll ?? 18;
   const list = royal ? [...ROYAL_BLOCKS.slice(0, 5), ...(String(st.layout) === '4' ? [['qr', 'תרומות והקדשות (QR)']] : []), ROYAL_BLOCKS[5]] : BLOCKS;
   const reset = (k) => { set(`blocks.${k}`, {}); (CF_OF[k] || []).forEach((c) => set(`cf.${c}`, {})); };
-  const touched = (k) => { const b = blocks[k] || {}; return b.w != null && b.w !== 50 || b.h != null && b.h !== 50 || b.fs != null || b.font || b.secs || (!royal && (b.bg || b.bd)) || b.tx || (CF_OF[k] || []).some((c) => (st.cf || {})[c]?.font || (st.cf || {})[c]?.secs); };
+  const touched = (k) => { const b0 = blocks[k] || {}, b = royal ? (b0['L' + String(st.layout || '1')] || {}) : b0; return b.w != null && b.w !== 50 || b.h != null && b.h !== 50 || b0.fs != null || b0.font || b0.secs || (!royal && (b0.bg || b0.bd)) || b0.tx || (CF_OF[k] || []).some((c) => (st.cf || {})[c]?.font || (st.cf || {})[c]?.secs); };
   return (
     <div className="cd">
       <b>עיצוב הלוח: ברירות מחדל והתאמה לפי קובייה</b>
@@ -28,7 +28,7 @@ export default function BlockDesignAccordion({ st, set, sid, royal: royalProp })
         <div style={{ color: 'var(--mu)', fontSize: 13 }}>50% = אוטומטי. כל התאמה כאן גוברת על ההגדרות הכלליות של אותה קובייה בלבד.{royal ? ' במצב מקדש ומלכות הרקע והמסגרת קבועים (קלף וזהב).' : ''}</div>
         {list.map(([k, label]) => {
           const b = blocks[k] || {}, cfo = (CF_OF[k] || []).map((c) => (st.cf || {})[c] || {}).find((o) => o.font || o.secs) || {};
-          const w = b.w ?? 50, h = b.h ?? 50, fs = b.fs ?? fsAll, font = b.font || cfo.font || g.font, secs = b.secs || cfo.secs || g.secs, o = open[k];
+          const lk = 'L' + String(st.layout || '1'), lb = royal ? (b[lk] || {}) : b, w = lb.w ?? 50, h = lb.h ?? 50, fs = b.fs ?? fsAll, font = b.font || cfo.font || g.font, secs = b.secs || cfo.secs || g.secs, o = open[k];
           const col = (f, l) => (
             <div className="row"><label style={{ flex: '1 1 110px' }}>{l}</label>
               <DebIn type="color" style={{ flex: '0 0 60px', padding: 2 }} value={b[f] || '#888888'} onChange={(x) => set(`blocks.${k}.${f}`, x)} />
@@ -39,8 +39,8 @@ export default function BlockDesignAccordion({ st, set, sid, royal: royalProp })
               {o && <div className="accbody">
                 <b style={{ fontSize: 13 }}>מידות</b>
                 {k !== 'bt' && <>
-                  <label>רוחב: {w === 50 ? 'Auto (50%)' : w + '%'}</label><DebIn type="range" min="10" max="100" value={w} onChange={(x) => set(`blocks.${k}.w`, x)} />
-                  <label>גובה: {h === 50 ? 'Auto (50%)' : h + '%'}</label><DebIn type="range" min="10" max="100" value={h} onChange={(x) => set(`blocks.${k}.h`, x)} />
+                  <label>רוחב: {w === 50 ? 'Auto (50%)' : w + '%'}</label><DebIn type="range" min="10" max="100" value={w} onChange={(x) => set(royal ? `blocks.${k}.${lk}.w` : `blocks.${k}.w`, x)} />
+                  <label>גובה: {h === 50 ? 'Auto (50%)' : h + '%'}</label><DebIn type="range" min="10" max="100" value={h} onChange={(x) => set(royal ? `blocks.${k}.${lk}.h` : `blocks.${k}.h`, x)} />
                 </>}
                 <b style={{ fontSize: 13 }}>טיפוגרפיה</b>
                 <label>גודל טקסט: {fs}</label><DebIn type="range" min="12" max="50" value={fs} onChange={(x) => set(`blocks.${k}.fs`, x)} />
