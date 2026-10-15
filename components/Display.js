@@ -196,8 +196,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const n = ptRows.length;
     const body = <div className="an fade ptb" key={'t' + idx}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>
       <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em' }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
-    if (cur.popup) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
-    else mid = body;
+    if (cur.popup && !royal) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+    else mid = body; // royal: always rendered in place on the central parchment (no floating modal)
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
   else if (cur.k === 't') emit(<div className={'an fade pts ' + cl} key={'t' + idx} style={afs('ann')}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div><div className="ab"><h3>{cur.row.name}</h3><p className="ptt">{cur.time}</p>{cur.row.note && <p className="ptn">{cur.row.note}</p>}</div>{slides.length > 1 && <div className="af">{dotStr(slides.length, idx % slides.length)}</div>}</div>);
@@ -208,7 +208,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const R = { 1: [0.637, 0.299], 2: [0.66, 0.27], 3: [0.52, 0.24], 4: [0.5, 0.5] }[LM];
   const B = (p) => ({ st, fs, ...p });
   const integ = LM === '2' && ptitle && V('pr');
-  const zr = [['הנץ החמה', fmt(z.netz)]];
+  const zr = [['נץ החמה', fmt(z.netz)]];
   if (zOpts(st).shma === 'both') zr.push(['סוף ק״ש (מג״א)', fmt(z.shmaMga)], ['סוף ק״ש (גר״א)', fmt(z.shmaGra)]); else zr.push(['סוף זמן ק״ש', fmt(z.shma)]);
   zr.push(['שקיעת החמה', fmt(z.shkia)], ['צאת הכוכבים', fmt(z.tzeit)]);
   const ci = chagInfo(now, z, st.candle), rtOn = sh || z.dow === 6 || ci.chag; // Rabbeinu Tam only on Shabbat / Yom Tov
@@ -271,10 +271,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (royal) {
     const m2 = LM === '2', m4 = LM === '4', ps = m2 || m4; // model 2: parsha + haftara live in the top bar, the freed middle goes to bigger cards
     const zbi = { n: true, s: true, k: true, t: true, r: true, ...((st.zm || {}).bi || {}) }; // which zmanim appear in the (static) bottom bar
-    const zl = [zbi.n && ['הנץ החמה', z.netz], zbi.s && ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], zbi.k && ['שקיעה', z.shkia], zbi.t && ['צאת הכוכבים', z.tzeit], zbi.r && rtOn && ['רבינו תם', z.rt]].filter((x) => x && x[1]);
+    const zl = [zbi.n && ['נץ החמה', z.netz], zbi.s && ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], zbi.k && ['שקיעה', z.shkia], zbi.t && ['צאת הכוכבים', z.tzeit], zbi.r && rtOn && ['רבינו תם', z.rt]].filter((x) => x && x[1]);
     const hdM = st.hdMode === 'marquee', btM = st.btMode === 'marquee';
     const SEP = ' ✦ ', zText = zl.map(([n, t]) => `${n}: ${fmt(t)}`).join(SEP);
-    const fitCw = (t) => Math.max(1.05, Math.min(2.3, 50 / Math.max(10, t.length * 0.5))) + 'cqw';
+    const fitCw = (t) => Math.max(0.9, Math.min(1.9, 40 / Math.max(10, t.length * 0.5))) + 'cqw';
     const RB = m4
       ? { mn: royBox(st, 'mn', 28.56, 21.9, 62.3, 66.4, 'r'), yz: royBox(st, 'yz', 9.16, 21.9, 18.7, 21.2, 'l'), rf: royBox(st, 'rf', 9.16, 44.4, 18.7, 21.2, 'l'), qr: royBox(st, 'qr', 9.16, 66.9, 18.7, 21.2, 'l'), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
       : m2

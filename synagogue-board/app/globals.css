@@ -377,3 +377,8 @@ label{font-size:13px;color:var(--mu)}
 .ptr i{flex:1 1 40%;font-style:normal;background:#fdf6e3;color:#2a1a05;border:.1em solid #d9a52e;border-radius:0 .3em .3em 0;padding:.15em .6em;font-family:'Frank Ruhl Libre',serif;font-size:2.3em;font-weight:900;line-height:1.1;direction:ltr;text-align:center}
 .ptr small{flex:1 1 100%;font-size:1em;color:#b98a2a}
 .popup .ptb .pti img{height:6em}.popup .ptr b{font-size:2.4em}.popup .ptr i{font-size:2.9em}
+
+/* royal: combined prayer table sits on the parchment; bottom bar kept clear of the footer text and the clock */
+.rl-main .ptb{height:100%;justify-content:center}.rl-main .ptl3{max-width:92%}
+.rl-tk{padding:0 3cqw!important;box-sizing:border-box;min-width:0}
+.rl-stat{padding:0 1cqw!important;gap:0}
