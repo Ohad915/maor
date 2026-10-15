@@ -359,3 +359,12 @@ label{font-size:13px;color:var(--mu)}
 .rl-qr .rl-ic{flex-basis:38%}.rl-qrb{background:#fff;padding:.5cqw;border-radius:.5cqw;box-shadow:0 .2cqw .5cqw #0005;line-height:0}.rl-qrb svg{width:calc(5.4cqw*var(--qs,1));height:calc(5.4cqw*var(--qs,1));max-width:100%}
 .rl-qr,.rl-qr *{font-family:'Frank Ruhl Libre','David Libre',serif!important}
 .rl-qr .lb{font-size:1.25em;font-weight:900}
+
+/* running (marquee) mode for the royal top / bottom bars */
+.rl-mq{overflow:hidden!important;direction:ltr!important;display:block!important;white-space:nowrap}
+.rl-mq>.in{display:inline-flex;align-items:center;direction:rtl;padding-left:100%;height:100%;animation:tk 28s linear infinite}
+.rl-stat.rl-mq{display:block!important;line-height:2.2}
+.rl-stat.rl-mq>.in{display:inline-block;height:auto}
+.rl-times.rl-mq>.in>div{flex:none;padding:0 2.2cqw;border-inline-start:.12cqw solid #b58a2c88;text-align:center}
+.rl-times.rl-mq>.in>div:first-child{border:0}
+.rl-top .rl-times.rl-mq b{font-size:1.9cqw!important}.rl-top .rl-times.rl-mq small{font-size:1.4cqw!important}

@@ -210,7 +210,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const zr = [['הנץ החמה', fmt(z.netz)]];
   if (zOpts(st).shma === 'both') zr.push(['סוף ק״ש (מג״א)', fmt(z.shmaMga)], ['סוף ק״ש (גר״א)', fmt(z.shmaGra)]); else zr.push(['סוף זמן ק״ש', fmt(z.shma)]);
   zr.push(['שקיעת החמה', fmt(z.shkia)], ['צאת הכוכבים', fmt(z.tzeit)]);
-  if (zOpts(st).rt) zr.push(['רבינו תם', fmt(z.rt)]);
+  const ci = chagInfo(now, z, st.candle), rtOn = sh || z.dow === 6 || ci.chag; // Rabbeinu Tam only on Shabbat / Yom Tov
+  if (rtOn && zOpts(st).rt) zr.push(['רבינו תם', fmt(z.rt)]);
   if (z.dow === 5 && z.shkia) zr.push(['הדלקת נרות', fmt(z.shkia.minus({ minutes: st.candle }))]);
   const crown = V('cr') && <Blk {...B({ id: 'cr', t: 'x', b: 2.3, cls: 'crown', fit: false, mult: LM === '3' ? 1.6 : 1, style: LM === '3' ? { padding: '.3em 2.6em' } : null })}>👑 {st.title || syn.name} 👑</Blk>;
   const hd = V('hd') && (
@@ -269,7 +270,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (royal) {
     const m2 = LM === '2', m4 = LM === '4', ps = m2 || m4; // model 2: parsha + haftara live in the top bar, the freed middle goes to bigger cards
     const zbi = { n: true, s: true, k: true, t: true, r: true, ...((st.zm || {}).bi || {}) }; // which zmanim appear in the (static) bottom bar
-    const zl = [zbi.n && ['הנץ החמה', z.netz], zbi.s && ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], zbi.k && ['שקיעה', z.shkia], zbi.t && ['צאת הכוכבים', z.tzeit], zbi.r && (z.dow === 6 || zOpts(st).rt) && ['רבינו תם', z.rt]].filter((x) => x && x[1]);
+    const zl = [zbi.n && ['הנץ החמה', z.netz], zbi.s && ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], zbi.k && ['שקיעה', z.shkia], zbi.t && ['צאת הכוכבים', z.tzeit], zbi.r && rtOn && ['רבינו תם', z.rt]].filter((x) => x && x[1]);
+    const hdM = st.hdMode === 'marquee', btM = st.btMode === 'marquee';
     const SEP = ' ✦ ', zText = zl.map(([n, t]) => `${n}: ${fmt(t)}`).join(SEP);
     const fitCw = (t) => Math.max(1.05, Math.min(2.3, 50 / Math.max(10, t.length * 0.5))) + 'cqw';
     const RB = m4
@@ -281,7 +283,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     body = <div className="rl">
       <div className={'rl-top ' + (ps ? 'ps ' : '') + RB.hd.cls} style={{ ...RB.hd.style, '--hs': fb('hd').toFixed(3) }}>
         <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
-        <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>}</div>
+        {(() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
+          const len = Object.entries(rg).reduce((a, [k, g]) => a + k.length + [...g.t].join(' · ').length, 0);
+          return hdM
+            ? <div className="rl-times rl-mq"><div className="in" style={{ animationDuration: Math.max(18, len * 0.5) + 's' }}>{items}</div></div>
+            : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{items}</div>; })()}
         {ps && <div className="rl-ps" style={{ '--pf': pf }}><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div></div>}
         <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
       </div>
@@ -302,7 +308,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         {(st.donTitle || st.donSub) && <div className="pgw"><div className="yi">{st.donTitle && <b>{st.donTitle}</b>}{st.donSub && <small>{st.donSub}</small>}</div></div>}</div></Blk>}
       <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
-        <div className="rl-tk"><div className="rl-stat" style={{ fontSize: `calc(${fitCw(zText)} * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}>{zText}</div></div>
+        <div className="rl-tk">{btM
+          ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}><span className="in" style={{ animationDuration: Math.max(18, zText.length * 0.45) + 's' }}>{zText}</span></div>
+          : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(zText)} * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}>{zText}</div>}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;
