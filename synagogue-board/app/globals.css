@@ -390,3 +390,13 @@ label{font-size:13px;color:var(--mu)}
 .rl-main .ptr b{font-size:clamp(1.5cqh,calc(22cqh / var(--n)),6cqh);padding:.12em .5em}
 .rl-main .ptr i{font-size:clamp(1.8cqh,calc(26cqh / var(--n)),7cqh);padding:.08em .5em}
 .rl-main .ptr small{font-size:clamp(1cqh,calc(9cqh / var(--n)),1.8cqh)}
+
+/* royal full-screen prayer times: whole screen switches to the royal scroll background, table centred on the big parchment */
+.rl-scroll{position:absolute;inset:0;z-index:8;container-type:size;background:#0a1a3a url(/images/templates/royal_scroll.jpg) center/100% 100% no-repeat}
+.rl-sc-in{position:absolute;left:33.5%;top:29.5%;width:33%;height:39%;display:flex;align-items:center;justify-content:center}
+.rl-scroll .ptb{width:100%;height:100%;overflow:hidden;gap:1cqh;justify-content:center}
+.rl-scroll .ptb .pti img{height:min(7.5cqh,6cqw)}
+.rl-scroll .ptl3{width:100%;max-width:none;gap:.9cqh}
+.rl-scroll .ptr b{font-size:clamp(1.4cqh,calc(16cqh / var(--n)),4.3cqh);padding:.1em .4em}
+.rl-scroll .ptr i{font-size:clamp(1.6cqh,calc(19cqh / var(--n)),5cqh);padding:.06em .4em}
+.rl-scroll .ptr small{font-size:clamp(.9cqh,calc(6cqh / var(--n)),1.5cqh)}

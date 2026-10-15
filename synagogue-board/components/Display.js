@@ -197,7 +197,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const body = <div className="an fade ptb" key={'t' + idx}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>
       <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
     if (cur.popup && !royal) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
-    else mid = body; // royal: always rendered in place on the central parchment (no floating modal)
+    else if (cur.popup && royal) { full = <div className="rl-scroll" key={'sc' + idx}><div className="rl-sc-in">{body}</div></div>; mid = null; } // royal "full screen": the big royal-scroll background, no modal
+    else mid = body; // block mode: in place on the central parchment
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
   else if (cur.k === 't') emit(<div className={'an fade pts ' + cl} key={'t' + idx} style={afs('ann')}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div><div className="ab"><h3>{cur.row.name}</h3><p className="ptt">{cur.time}</p>{cur.row.note && <p className="ptn">{cur.row.note}</p>}</div>{slides.length > 1 && <div className="af">{dotStr(slides.length, idx % slides.length)}</div>}</div>);
