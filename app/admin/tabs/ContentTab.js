@@ -216,7 +216,7 @@ function Prayers({ sid, cols, st, set, syn }) {
     </Card>
     <Card title="כל זמני התפילות כשקופית">
       <label>אופן תצוגה</label>
-      <ModeSel popup value={st.ptAll?.mode || 'off'} onChange={(v) => set('ptAll.mode', v)} />
+      <select value={st.ptAll?.mode === 'full' ? 'popup' : st.ptAll?.mode || 'off'} onChange={(e) => set('ptAll.mode', e.target.value)}><option value="off">כבוי – זמני התפילות בסרגל העליון בלבד</option><option value="block">בלוק בקרוסלה – כל תפילות היום יחד</option><option value="popup">חלון קופץ / מסך מלא – כל תפילות היום יחד</option></select>
       <Range label="זמן תצוגה לשקופית (בשניות)" min={1} max={30} value={st.ptAll?.secs || 10} onChange={(v) => set('ptAll.secs', v)} />
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות (גם שורות בודדות שהוגדרו לקרוסלה או למסך מלא).</div>
     </Card>

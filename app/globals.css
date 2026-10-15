@@ -368,15 +368,12 @@ label{font-size:13px;color:var(--mu)}
 .rl-times.rl-mq>.in>div{flex:none;padding:0 2.2cqw;border-inline-start:.12cqw solid #b58a2c88;text-align:center}
 .rl-times.rl-mq>.in>div:first-child{border:0}
 .rl-top .rl-times.rl-mq b{font-size:1.9cqw!important}.rl-top .rl-times.rl-mq small{font-size:1.4cqw!important}
-/* prayer-time slide: icon + name + big time */
-.pts{align-items:center;justify-content:center;text-align:center;gap:.3em}
-.pts .pti{flex:0 0 auto}.pts .pti img{height:4.4em;width:auto;filter:drop-shadow(0 .1em .25em #0006)}
-.pts .ab{text-align:center}
-.pts h3{margin:0 0 .1em!important;font-size:2.8em!important}
-.pts .ptt{font-family:var(--af,'Frank Ruhl Libre',serif);font-size:4.4em!important;font-weight:900;line-height:1.05;direction:ltr;letter-spacing:.02em}
-.pts .ptn{font-size:1.3em!important}
-.pts .af{letter-spacing:.2em;font-size:.9em}
-.fsl.pts .pti img{height:7em}.fsl.pts h3{font-size:4.6em!important}.fsl.pts .ptt{font-size:8em!important}
-.fsl.pts h3,.rl-main .pts h3{color:#6b4306!important;text-shadow:0 .03em 0 #fff8}
-.fsl.pts .ptt,.rl-main .pts .ptt{color:#2a1a05!important}.fsl.pts .ptn,.rl-main .pts .ptn{color:#6b4306!important}
-.fsl.pts .af{color:#f6d77a}.rl-main .pts .af{color:#b98a2a}
+/* combined prayer-times slide / popup: gold icon + one tag per prayer with its time */
+.ptb{align-items:center;justify-content:center;text-align:center;gap:.5em;width:100%}
+.ptb .pti{flex:0 0 auto}.ptb .pti img{height:4.6em;width:auto;filter:drop-shadow(0 .1em .25em #0006)}
+.ptl3{display:flex;flex-direction:column;gap:.5em;width:100%;max-width:34em;margin:0 auto}
+.ptr{display:flex;align-items:stretch;justify-content:center;gap:0;flex-wrap:wrap;direction:rtl}
+.ptr b{flex:1 1 55%;background:linear-gradient(180deg,#9b6a12,#5b3a05);color:#f6d77a;border:.1em solid #d9a52e;border-radius:.3em 0 0 .3em;border-inline-start:0;padding:.15em .6em;font-family:'Frank Ruhl Libre',serif;font-size:1.9em;font-weight:900;line-height:1.25;text-align:center}
+.ptr i{flex:1 1 40%;font-style:normal;background:#fdf6e3;color:#2a1a05;border:.1em solid #d9a52e;border-radius:0 .3em .3em 0;padding:.15em .6em;font-family:'Frank Ruhl Libre',serif;font-size:2.3em;font-weight:900;line-height:1.1;direction:ltr;text-align:center}
+.ptr small{flex:1 1 100%;font-size:1em;color:#b98a2a}
+.popup .ptb .pti img{height:6em}.popup .ptr b{font-size:2.4em}.popup .ptr i{font-size:2.9em}
