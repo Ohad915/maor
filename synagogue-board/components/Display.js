@@ -152,8 +152,13 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
-  rowsToday.filter((r) => ['block', 'full'].includes(r.show)).forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: r.show === 'full', dur: pdur }));
-  if (pa.mode && pa.mode !== 'off') slides.push({ k: 'tall', full: pa.mode === 'full', popup: pa.mode === 'popup', dur: pdur });
+  // prayer slides: one slide per selected prayer, rotating in order. "כל זמני התפילות כשקופית" (block/full) turns the whole selection into one carousel.
+  const selRows = rowsToday.filter((r) => ['block', 'full'].includes(r.show));
+  if (pa.mode === 'full' || pa.mode === 'block') (selRows.length ? selRows : rowsToday).forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: pa.mode === 'full', dur: pdur }));
+  else {
+    selRows.forEach((r) => slides.push({ k: 't', row: r, time: tOf(r), full: r.show === 'full', dur: pdur }));
+    if (pa.mode === 'popup') slides.push({ k: 'tall', full: false, popup: true, dur: pdur });
+  }
   const cur = slides[idx % (slides.length || 1)];
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : '');
@@ -199,7 +204,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     else emit(slide('t' + idx, afs('ann'), '🕍 זמני תפילות', body, '', cl));
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
-  else if (cur.k === 't') emit(slide(idx, afs('ann'), '🕍 זמני תפילות', <><h3>{cur.row.name}</h3><p>{cur.time}</p>{cur.row.note && <p>{cur.row.note}</p>}</>, '', cl));
+  else if (cur.k === 't') emit(<div className={'an fade pts ' + cl} key={'t' + idx} style={afs('ann')}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div><div className="ab"><h3>{cur.row.name}</h3><p className="ptt">{cur.time}</p>{cur.row.note && <p className="ptn">{cur.row.note}</p>}</div>{slides.length > 1 && <div className="af">{dotStr(slides.length, idx % slides.length)}</div>}</div>);
   else emit(slide(idx + '-' + pg.mr, afs('hal'), '📖 הלכה ומנהגים', <><h3>{cur.t}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
 
   /* ----- blocks ----- */

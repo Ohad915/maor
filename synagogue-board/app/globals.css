@@ -368,3 +368,15 @@ label{font-size:13px;color:var(--mu)}
 .rl-times.rl-mq>.in>div{flex:none;padding:0 2.2cqw;border-inline-start:.12cqw solid #b58a2c88;text-align:center}
 .rl-times.rl-mq>.in>div:first-child{border:0}
 .rl-top .rl-times.rl-mq b{font-size:1.9cqw!important}.rl-top .rl-times.rl-mq small{font-size:1.4cqw!important}
+/* prayer-time slide: icon + name + big time */
+.pts{align-items:center;justify-content:center;text-align:center;gap:.3em}
+.pts .pti{flex:0 0 auto}.pts .pti img{height:4.4em;width:auto;filter:drop-shadow(0 .1em .25em #0006)}
+.pts .ab{text-align:center}
+.pts h3{margin:0 0 .1em!important;font-size:2.8em!important}
+.pts .ptt{font-family:var(--af,'Frank Ruhl Libre',serif);font-size:4.4em!important;font-weight:900;line-height:1.05;direction:ltr;letter-spacing:.02em}
+.pts .ptn{font-size:1.3em!important}
+.pts .af{letter-spacing:.2em;font-size:.9em}
+.fsl.pts .pti img{height:7em}.fsl.pts h3{font-size:4.6em!important}.fsl.pts .ptt{font-size:8em!important}
+.fsl.pts h3,.rl-main .pts h3{color:#6b4306!important;text-shadow:0 .03em 0 #fff8}
+.fsl.pts .ptt,.rl-main .pts .ptt{color:#2a1a05!important}.fsl.pts .ptn,.rl-main .pts .ptn{color:#6b4306!important}
+.fsl.pts .af{color:#f6d77a}.rl-main .pts .af{color:#b98a2a}
