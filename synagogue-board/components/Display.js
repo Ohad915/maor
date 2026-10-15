@@ -238,11 +238,12 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
       <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div>
       <div className="dots">{rc.pages > 1 ? Array.from({ length: rc.pages }, (_, i) => (i === pg.rf % rc.pages ? '●' : '○')).join(' ') : ''}</div>
     </Blk>);
-  const qr = V('qr') && onS(st.donScreen) && (
+  const hasDon = !!(st.payUrl || st.donTitle || st.donSub);
+  const qr = V('qr') && onS(st.donScreen) && hasDon && (
     <Blk {...B({ id: 'qr', t: 's', b: 2, cls: 'pn dn', share: R[1] })}>
-      <div>{st.donTitle || 'תרומה מהירה לבית הכנסת'}</div>
-      <div className="qrw">{st.payUrl ? <div className="qr"><QRCodeSVG value={st.payUrl} size={Math.round(fs * 7 * st.qs / 100)} /></div> : <small>הגדירו קישור תשלום בלשונית גבייה</small>}</div>
-      <small>{st.donSub || 'סרקו בנייד לתרומה מאובטחת'}</small>
+      {st.donTitle && <div>{st.donTitle}</div>}
+      {st.payUrl && <div className="qrw"><div className="qr"><QRCodeSVG value={st.payUrl} size={Math.round(fs * 7 * st.qs / 100)} /></div></div>}
+      {st.donSub && <small>{st.donSub}</small>}
     </Blk>);
   const bar = Object.entries(grp).map(([k, g]) => <span className="pg" key={k}>{k}:<i>{[...g.t].sort().join(' , ')}</i>{g.n.length > 0 && <small style={{ fontSize: '.55em', fontWeight: 500, marginInlineStart: '.4em' }}>{g.n.join(' · ')}</small>}</span>);
   const pb = <Blk {...B({ id: 'pb', t: 'x', b: 3.5, cls: 'pb' })}>{bar.length ? bar.flatMap((b, i) => (i ? [<span key={'d' + i} style={{ opacity: .6 }}>♦</span>, b] : [b])) : '—'}</Blk>;
@@ -295,10 +296,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
-      {m4 && V('qr') && onS(st.donScreen) && RB.qr.ghost && <div className="rl-ghost" style={RB.qr.ghost} />}
-      {m4 && V('qr') && onS(st.donScreen) && <Blk {...B({ id: 'qr', t: 'x', b: 3, cls: 'rl-card rl-qr ' + RB.qr.cls, share: 0.2, style: RB.qr.style })}>
-        <div className="rl-ic">{st.payUrl ? <div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div> : <small>קישור תשלום</small>}</div><div className="rl-bd"><div className="lb">תרומות והקדשות</div>
-        <div className="pgw"><div className="yi"><b>{st.donTitle || 'תרומה מהירה לבית הכנסת'}</b><small>{st.donSub || 'סרקו בנייד לתרומה מאובטחת'}</small></div></div></div></Blk>}
+      {m4 && V('qr') && onS(st.donScreen) && hasDon && RB.qr.ghost && <div className="rl-ghost" style={RB.qr.ghost} />}
+      {m4 && V('qr') && onS(st.donScreen) && hasDon && <Blk {...B({ id: 'qr', t: 'x', b: 3, cls: 'rl-card rl-qr ' + RB.qr.cls, share: 0.2, style: RB.qr.style })}>
+        {st.payUrl && <div className="rl-ic"><div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div></div>}<div className="rl-bd">
+        {(st.donTitle || st.donSub) && <div className="pgw"><div className="yi">{st.donTitle && <b>{st.donTitle}</b>}{st.donSub && <small>{st.donSub}</small>}</div></div>}</div></Blk>}
       <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
         <div className="rl-tk"><div className="rl-stat" style={{ fontSize: `calc(${fitCw(zText)} * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}>{zText}</div></div>
