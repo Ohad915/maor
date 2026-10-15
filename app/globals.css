@@ -392,14 +392,14 @@ label{font-size:13px;color:var(--mu)}
 .rl-main .ptr small{font-size:clamp(1cqh,calc(9cqh / var(--n)),1.8cqh)}
 
 /* royal full-screen prayer times: the original royal-scroll background untouched; a transparent container sits exactly on its parchment (between the wooden rollers), two columns of cards */
-.rl-scroll{position:absolute;inset:0;z-index:8;container-type:size;background:#0a1a3a url(/images/templates/royal_scroll.jpg) center/100% 100% no-repeat}
-.rl-sc-card{position:absolute;left:34.6%;top:30.4%;width:30.8%;height:37.6%;box-sizing:border-box;padding:0;background:transparent;border:0;box-shadow:none}
-.ptb2{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:.8cqh;overflow:hidden}
-.ptb2 .pti img{height:min(8cqh,6.5cqw);width:auto;filter:drop-shadow(0 .2cqh .4cqh #0005)}
+.rl-scroll{position:absolute;inset:0;z-index:8;container-type:size;background:#0a1a3a url(/images/templates/royal_scroll_xl.jpg) center/100% 100% no-repeat}
+.rl-sc-card{position:absolute;left:34.6%;top:31%;width:30.8%;height:55.5%;box-sizing:border-box;padding:0;background:transparent;border:0;box-shadow:none}
+.ptb2{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:1.4cqh;overflow:hidden}
+.ptb2 .pti img{height:min(11cqh,8.5cqw);width:auto;filter:drop-shadow(0 .2cqh .4cqh #0005)}
 .ptg{flex:1;min-height:0;width:100%;display:grid;grid-template-columns:1fr;gap:0 1.2cqw;direction:rtl;align-content:start}
 .ptg.two{grid-template-columns:1fr 1fr}
-.ptcol{display:flex;flex-direction:column;justify-content:flex-start;gap:1cqh}
+.ptcol{display:flex;flex-direction:column;justify-content:flex-start;gap:1.5cqh}
 .ptc{display:flex;flex-direction:column;align-items:stretch;text-align:center;background:#fffaf0;border:.3cqh solid #d9a52e;border-radius:.8cqh;overflow:hidden;box-shadow:0 .2cqh .6cqh #0004}
-.ptc b{background:linear-gradient(180deg,#a8761a,#6b4306);color:#f8dc84;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(1.6cqh,calc(7.5cqh / var(--m)),3cqh);line-height:1.25;padding:.12em .4em}
-.ptc i{font-style:normal;color:#2a1a05;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(2cqh,calc(10.5cqh / var(--m)),4.6cqh);line-height:1.1;padding:.06em .3em;direction:ltr}
-.ptc small{color:#8a5a0c;font-size:clamp(1cqh,calc(4cqh / var(--m)),1.3cqh);padding-bottom:.3em}
+.ptc b{background:linear-gradient(180deg,#a8761a,#6b4306);color:#f8dc84;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(1.6cqh,calc(11cqh / var(--m)),3.8cqh);line-height:1.25;padding:.12em .4em}
+.ptc i{font-style:normal;color:#2a1a05;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(2cqh,calc(15.5cqh / var(--m)),5.8cqh);line-height:1.1;padding:.06em .3em;direction:ltr}
+.ptc small{color:#8a5a0c;font-size:clamp(1cqh,calc(6cqh / var(--m)),1.6cqh);padding-bottom:.3em}
