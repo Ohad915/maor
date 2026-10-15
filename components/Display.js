@@ -195,7 +195,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (cur.k === 'tall') {
     const n = ptRows.length;
     const body = <div className="an fade ptb" key={'t' + idx}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>
-      <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em' }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
+      <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
     if (cur.popup && !royal) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
     else mid = body; // royal: always rendered in place on the central parchment (no floating modal)
   }
