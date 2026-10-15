@@ -194,11 +194,22 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{r.name}</b>{r.note ? ' · ' + r.note : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
   else if (cur.k === 'tall') {
     const n = ptRows.length;
-    const body = <div className="an fade ptb" key={'t' + idx}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>
-      <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
-    if (cur.popup && !royal) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
-    else if (cur.popup && royal) { full = <div className="rl-scroll" key={'sc' + idx}><div className="rl-sc-in">{body}</div></div>; mid = null; } // royal "full screen": the big royal-scroll background, no modal
-    else mid = body; // block mode: in place on the central parchment
+    const isAm = (r) => { const m = /(\d+):(\d+)/.exec(tOf(r) || ''); return m ? +m[1] < 13 : /שחרית|מוסף/.test(r.name); };
+    const am = ptRows.filter(isAm), pm2 = ptRows.filter((r) => !isAm(r));
+    const card = (r) => <div className="ptc" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>;
+    const ico = <div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>;
+    if (cur.popup && royal) {
+      // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
+      const two = am.length && pm2.length, mx = Math.max(am.length, pm2.length, 1);
+      full = <div className="rl-scroll" key={'sc' + idx}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : n }}>{ico}
+        <div className={'ptg' + (two ? ' two' : '')}>{two ? <><div className="ptcol">{am.map(card)}</div><div className="ptcol">{pm2.map(card)}</div></> : <div className="ptcol">{ptRows.map(card)}</div>}</div></div></div></div>;
+      mid = null;
+    } else {
+      const body = <div className="an fade ptb" key={'t' + idx}>{ico}
+        <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
+      if (cur.popup) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+      else mid = body; // block mode: in place on the central parchment
+    }
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
   else if (cur.k === 't') emit(<div className={'an fade pts ' + cl} key={'t' + idx} style={afs('ann')}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div><div className="ab"><h3>{cur.row.name}</h3><p className="ptt">{cur.time}</p>{cur.row.note && <p className="ptn">{cur.row.note}</p>}</div>{slides.length > 1 && <div className="af">{dotStr(slides.length, idx % slides.length)}</div>}</div>);
