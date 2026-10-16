@@ -4,10 +4,13 @@
  * The gabbai can always override today's text in the admin ("דריסה ידנית"). Please have the synagogue's rabbi review the library.
  */
 export const DH_SOURCES = {
-  sefard: 'עדות המזרח / מרן השולחן ערוך',
-  ashkenaz: 'אשכנז / משנה ברורה',
-  kitzur: 'קיצור שולחן ערוך',
-  moadim: 'הלכות שבת ומועדים (לפי מועדי השנה)',
+  live_hy: 'הלכה יומית – שולחן ערוך (מחזור יומי של ספריא)',
+  live_ah: 'ערוך השולחן היומי (ספריא)',
+  live_rb: 'הרמב״ם היומי (ספריא)',
+  sefard: 'מאגר מובנה – עדות המזרח / מרן השולחן ערוך',
+  ashkenaz: 'מאגר מובנה – אשכנז / משנה ברורה',
+  kitzur: 'מאגר מובנה – קיצור שולחן ערוך',
+  moadim: 'מאגר מובנה – הלכות שבת ומועדים (לפי מועדי השנה)',
 };
 const G = [
   { t: 'נטילת ידיים בבוקר', c: 'בכל בוקר נוטלים ידיים מכלי, שלוש פעמים לסירוגין – ימין ושמאל – ומברכים "על נטילת ידיים". יש להימנע מלגעת בפה, בעיניים ובאוכל לפני הנטילה.', a: 'הלכות נטילת ידיים' },
@@ -57,8 +60,10 @@ const cite = (src, it) => {
   return `שולחן ערוך, ${sec} – ${it.a}`;
 };
 /** Today's halacha: { title, content, source }. dayNum: any integer that changes at midnight; holidays: names from holNames(); dow: 0-6 */
+export const isLive = (src) => String(src).startsWith('live_');
 export function pickDaily({ src = 'sefard', dayNum = 0, holidays = [], dow = 0 }) {
   let it;
+  if (isLive(src)) src = 'sefard'; // offline fallback for the live sources
   if (src === 'moadim') {
     const joined = holidays.join(' ');
     it = MO.find((x) => joined.includes(x.m));

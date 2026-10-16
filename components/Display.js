@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
-import { pickDaily } from '@/lib/dailyHalacha';
+import { isLive, pickDaily } from '@/lib/dailyHalacha';
 import { annOn, chagInfo, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
@@ -144,6 +144,19 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const auto = [...holNames(now, !!z.shkia && z.now >= z.shkia), ...reminders(h)];
   const chips = cMode === 'manual' ? manual : cMode === 'both' ? [...auto, ...manual] : auto;
 
+  // live daily halacha (Sefaria via /api/halacha): cached per day in localStorage, built-in library as offline fallback
+  const dhDay = rdOf(now, 0), [dhLive, setDhLive] = useState(null);
+  useEffect(() => {
+    const on = st.dh?.on && st.dh?.mode !== 'off' && isLive(st.dh?.src || 'live_hy') && !String(st.dh?.manual || '').trim();
+    if (!on) { setDhLive(null); return; }
+    const src = st.dh?.src || 'live_hy', key = `dh:${src}:${dhDay}`; let alive = true;
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c?.content) setDhLive(c); else setDhLive(null); } catch { setDhLive(null); }
+    fetch(`/api/halacha?src=${src}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) => {
+      if (!alive || !j?.content) return; setDhLive(j);
+      try { Object.keys(localStorage).filter((k) => k.startsWith('dh:') && k !== key).forEach((k) => localStorage.removeItem(k)); localStorage.setItem(key, JSON.stringify(j)); } catch {}
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [st.dh?.on, st.dh?.mode, st.dh?.src, st.dh?.manual, dhDay]); // eslint-disable-line
   const slides = [];
   if (st.pSlide && V('pr') && !royal) slides.push({ k: 'p', dur: cf('pr').secs });
   anns.forEach((a) => slides.push({ k: 'a', a, full: modeOf(a) === 'full', dur: cf('ann').secs }));
@@ -153,8 +166,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
-  const dh = { on: false, src: 'sefard', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
-  const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
+  const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
+  const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
   // prayer times: ONE combined slide/popup listing all of today's selected prayers (off = top bar only; legacy 'full' = popup)
@@ -163,7 +176,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const cur = slides[idx % (slides.length || 1)];
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : c.k === 'dh' ? c.d.content : '');
-  const tparts = cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), st.lpp || 6) : [''];
+  const tparts = cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), cur.k === 'dh' ? (cur.full && royal ? 14 : 9) : st.lpp || 6) : [''];
   const subPages = cur?.k === 'r' ? mrPages : tparts.length;
   const tx = tparts[pg.mr % tparts.length];
 

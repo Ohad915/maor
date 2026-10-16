@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
   donTitle: '', donSub: '', payUrl: '', tkText: '', subtitle: '', footerText: '',
   zm: { profile: 'ashkenaz', shma: 'gra', tzeit: '8.5', rt: false, netzVisible: true }, hfShow: false, hfText: '', waParsha: true, waHaftara: true,
   vis: {}, cf: {}, blocks: {}, ipp: { yz: 3, rf: 3 },
-  customs: { mode: 'auto', text: '' }, ptAll: { mode: 'off', secs: 10 }, dh: { on: false, src: 'sefard', mode: 'block', secs: 20, manual: '' }, hl: { mode: 'block', auto: true },
+  customs: { mode: 'auto', text: '' }, ptAll: { mode: 'off', secs: 10 }, dh: { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '' }, hl: { mode: 'block', auto: true },
 };
 export const BLOCKS = [['cr', 'כותרת עליונה'], ['hd', 'תאריך וזמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'],
   ['mn', 'הודעות והלכה (פאנל מרכזי)'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'קוד QR לתרומות'], ['pb', 'זמני תפילות']];
