@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
+import { pickDaily } from '@/lib/dailyHalacha';
 import { annOn, chagInfo, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
@@ -151,13 +152,17 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
   if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
+  // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
+  const dh = { on: false, src: 'sefard', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
+  const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
+  if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
   // prayer times: ONE combined slide/popup listing all of today's selected prayers (off = top bar only; legacy 'full' = popup)
   const pm = pa.mode === 'full' ? 'popup' : pa.mode, ptRows = (() => { const sel = rowsToday.filter((r) => ['block', 'full'].includes(r.show)); return sel.length ? sel : rowsToday; })();
   if ((pm === 'block' || pm === 'popup') && ptRows.length) slides.push({ k: 'tall', full: false, popup: pm === 'popup', dur: pdur });
   const cur = slides[idx % (slides.length || 1)];
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
-  const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : '');
+  const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : c.k === 'dh' ? c.d.content : '');
   const tparts = cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), st.lpp || 6) : [''];
   const subPages = cur?.k === 'r' ? mrPages : tparts.length;
   const tx = tparts[pg.mr % tparts.length];
@@ -209,6 +214,18 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
       if (cur.popup) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
       else mid = body; // block mode: in place on the central parchment
+    }
+  }
+  else if (cur.k === 'dh') {
+    const L = Math.max(60, (tx || '').length), dots = dotStr(tparts.length, pg.mr);
+    if (cur.full && royal) {
+      // royal full screen: the extended royal scroll, large readable text
+      const f = Math.min(4.6, Math.max(2.2, Math.sqrt(3000 / L))).toFixed(2);
+      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em><h3>{cur.d.title}</h3><p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots ? ' · ' + dots : ''}</small></div></div></div>;
+      mid = null;
+    } else {
+      const em = L < 110 ? 2.5 : L < 200 ? 2.15 : L < 300 ? 1.8 : 1.45;
+      emit(<div className={'an fade ' + cl} key={'dh' + idx + '-' + pg.mr} style={afs('hal')}><div className="lb">✦ הלכה יומית ✦</div><div className="ab"><h3>{cur.d.title}</h3><p style={cur.full ? undefined : { fontSize: em + 'em' }}>{tx}</p></div><div className="af">{cur.d.source}{dots ? ' · ' + dots : ''}</div></div>);
     }
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));

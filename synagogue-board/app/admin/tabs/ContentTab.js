@@ -3,7 +3,8 @@ import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
-import { gem, hebOf, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, refuahOn, resolveSpan } from '@/lib/hebrew';
+import { gem, hebOf, holNames, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, rdOf, refuahOn, resolveSpan } from '@/lib/hebrew';
+import { DH_SOURCES, pickDaily } from '@/lib/dailyHalacha';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
@@ -92,6 +93,7 @@ function Lessons({ sid, cols }) {
 function Halacha({ sid, st, set, cols }) {
   const ed = useEditor({ title: '', text: '', screen: 'all' }), { f, setF } = ed;
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
+  const dh = { on: false, src: 'sefard', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) }, todayH = pickDaily({ src: dh.src, dayNum: rdOf(new Date(), 0), holidays: holNames(new Date(), false), dow: new Date().getDay() });
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'halacha', ed.eid, f) : addItem(sid, 'halacha', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
     <Card fold title="מנהגי היום / תזכורות בתפילה (הפס העליון)">
@@ -101,6 +103,18 @@ function Halacha({ sid, st, set, cols }) {
     </Card>
     <Card fold title='שקופית "מנהגי היום" האוטומטית'>
       <div className="row">{[['off', 'כבוי'], ['block', 'בלוק בקרוסלה'], ['full', 'מסך מלא']].map(([k, l]) => <button key={k} className={`b ${am === k ? '' : 'g'}`} onClick={() => set('hl.autoMode', k)}>{l}</button>)}</div>
+    </Card>
+    <Card fold title="הלכה יומית אוטומטית">
+      <Switch label="הפעל הלכה יומית אוטומטית" on={!!dh.on} onChange={(v) => set('dh.on', v)} />
+      <label>מקור ההלכה</label>
+      <select value={dh.src} onChange={(e) => set('dh.src', e.target.value)}>{Object.entries(DH_SOURCES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <label>אופן תצוגה</label>
+      <div className="row">{[['off', 'כבוי'], ['block', 'בלוק בקרוסלה'], ['full', 'מסך מלא']].map(([k, l]) => <button key={k} className={`b ${dh.mode === k ? '' : 'g'}`} onClick={() => set('dh.mode', k)}>{l}</button>)}</div>
+      <Range label="זמן תצוגת שקופית (בשניות)" min={10} max={60} value={dh.secs} onChange={(v) => set('dh.secs', v)} />
+      <label>הלכה ייעודית להיום (רשות – אם ריק, תוצג ההלכה האוטומטית)</label>
+      <TextIn area value={dh.manual} placeholder="הקלידו כאן הלכה מותאמת אישית" onSave={(v) => set('dh.manual', v)} />
+      <div style={{ color: 'var(--mu)', fontSize: 13, whiteSpace: 'pre-line' }}><b>ההלכה האוטומטית להיום:</b> {todayH.title}{'\n'}{todayH.content}{'\n'}<i>{todayH.source}</i></div>
+      <div style={{ color: 'var(--mu)', fontSize: 12 }}>ההלכה מתחלפת אוטומטית בכל יום. מומלץ שרב בית הכנסת יעבור על מאגר ההלכות המובנה.</div>
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הלכה' : 'הלכה חדשה'}>
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />

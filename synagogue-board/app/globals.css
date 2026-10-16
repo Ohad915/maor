@@ -403,3 +403,10 @@ label{font-size:13px;color:var(--mu)}
 .ptc b{background:linear-gradient(180deg,#a8761a,#6b4306);color:#f8dc84;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(1.6cqh,calc(11cqh / var(--m)),3.8cqh);line-height:1.25;padding:.12em .4em}
 .ptc i{font-style:normal;color:#2a1a05;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:clamp(2cqh,calc(15.5cqh / var(--m)),5.8cqh);line-height:1.1;padding:.06em .3em;direction:ltr}
 .ptc small{color:#8a5a0c;font-size:clamp(1cqh,calc(6cqh / var(--m)),1.6cqh);padding-bottom:.3em}
+
+/* daily halacha on the royal scroll (full screen) */
+.dhf{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;gap:1cqh;overflow:hidden;padding-top:1cqh}
+.dhf em{font-style:normal;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:3.4cqh;color:#8a5a0c;letter-spacing:.04em}
+.dhf h3{margin:0;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:5cqh;line-height:1.15;color:#5b3a05}
+.dhf p{margin:0;font-family:'Frank Ruhl Libre',serif;font-weight:700;line-height:1.38;color:#2a1a05;white-space:pre-line}
+.dhf small{margin-top:auto;font-size:2.4cqh;color:#8a5a0c;font-weight:700}
