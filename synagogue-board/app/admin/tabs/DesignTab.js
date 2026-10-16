@@ -26,7 +26,7 @@ const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעו
 /** Paging only (fonts / slide times / sizes live in the single per-block accordion). */
 function CompStyles({ st, set }) {
   return (
-    <Card title="עימוד שמות וטקסט ארוך">
+    <Card fold title="📄 עימוד שמות וטקסט ארוך">
       <Range label="שמות בעמוד · הנצחות" min={1} max={8} value={st.ipp?.yz || 3} onChange={(v) => set('ipp.yz', v)} />
       <Range label="שמות בעמוד · רפואה שלמה" min={1} max={8} value={st.ipp?.rf || 3} onChange={(v) => set('ipp.rf', v)} />
       <Range label="שורות בעמוד (טקסט ארוך מתחלק לעמודים)" min={2} max={14} value={st.lpp || 6} onChange={(v) => set('lpp', v)} />
@@ -42,16 +42,11 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
   };
   const Btns = ({ k, opts }) => <div className="row">{opts.map(([v, l]) => <button key={String(v)} type="button" className={`opt ${st[k] === v ? 'on' : ''}`} onClick={() => set(k, v)}>{l}</button>)}</div>;
   const V = [['cr', 'כותרת עליונה'], ['hd', 'פס התאריך העליון'], ['zm', 'סרגל זמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות'], ['tk', 'סרגל עדכונים נע']];
+  const VB = V.filter(([k]) => ['cr', 'hd', 'zm', 'tk'].includes(k)), VC = V.filter(([k]) => !['cr', 'hd', 'zm', 'tk'].includes(k));
   return (<>
-    <Card title="🎨 ערכות נושא מוכנות (בחירה מהירה)">
+    <Card fold open title="🎨 ערכות נושא ודגמי מסך">
       <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
       <div className="grid2">{PRESETS.map(([l, p]) => <button key={l} type="button" className={`opt ${Object.entries(p).every(([k, v]) => st[k] === v) ? 'on' : ''}`} onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
-    </Card>
-    <details className="cd fold"><summary>⚙️ הגדרות מתקדמות (פריסה, מסגרת, גופנים, גדלי קוביות, צבעים)</summary>
-    <Card title="כותרות"><label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
-      <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
-    </Card>
-    <Card title="עיצוב המסך">
       {royal && <div style={{ color: 'var(--mu)', fontSize: 13 }}>במצב ״מקדש ומלכות״ העיצוב (קלף וזהב) קבוע. ניתן לשנות כאן גודל, מיקום וסדר בלבד.</div>}
       <label>דגם פריסת מסך</label><div className="grid2">{LAYOUTS.map(([k, l]) => <button key={k} type="button" className={`opt ${String(st.layout) === k ? 'on' : ''}`} onClick={() => set('layout', k)}>{l}</button>)}</div>
       {!royal && <><label>סגנון עיצוב הקוביות</label><div className="grid2">{[['gold', 'זהב יוקרתי'], ['stone', 'אבן ירושלמית'], ['glass', 'זכוכית מודרנית'], ['trad', 'מסורתי / תשמישי קדושה'], ['clean', 'נקי ומודרני']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.cardStyle || 'clean') === k ? 'on' : ''}`} onClick={() => set('cardStyle', k)}>{l}</button>)}</div></>}
@@ -63,11 +58,20 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
       <label>צבע מבטא</label><div className="row"><DebIn type="color" value={st.accent || "#f2c85b"} onChange={(x) => set("accent", x)} />{st.accent && <button className="b g" onClick={() => set('accent', '')}>איפוס</button>}</div>
       <label>תמונת רקע</label><input type="file" accept="image/*" onChange={(e) => up(e.target.files[0])} />{st.bg && <button className="b d" onClick={() => set('bg', '')}>הסר תמונה</button>}
     </Card>
+    <Card fold title="🔝 סרגלים וכותרות (עליון ותחתון)">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>כאן נמצאות כל הגדרות הסרגלים: טקסט, אופן תצוגה (קבוע/רץ) והצגה. את הטקסטים והזמנים עצמם מנהלים בלשונית ״תוכן המסך״.</div>
+    <label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
+      <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
+      <label>אופן תצוגת הסרגלים (מקדש ומלכות)</label>
+      <div className="row"><div><label>סרגל כותרת עליון (זמני תפילות)</label><select value={st.hdMode || 'static'} onChange={(e) => set('hdMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div><div><label>סרגל כותרת תחתון (זמני היום)</label><select value={st.btMode || 'static'} onChange={(e) => set('btMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div></div>
+      {VB.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}
+    </Card>
+    <Card fold title="👁 רכיבי תוכן גלויים"><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
     <CompStyles st={st} set={set} />
-    <Card title="רכיבים גלויים"><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{V.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
-    <Card title="רוחב עמודות הצד"><Range label="רוחב %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} /></Card>
-    <BlockDesignAccordion st={st} set={set} sid={sid} royal={royal} />
+    <Card fold title="📐 רוחב עמודות הצד"><Range label="רוחב %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} /></Card>
+    <details className="cd fold"><summary>🧩 התאמה אישית לפי קובייה (מידות, גופן, צבעים, זמן שקופית)</summary>
+      <BlockDesignAccordion st={st} set={set} sid={sid} royal={royal} />
     </details>
-    <WhatsAppImage syn={syn} cols={cols} st={st} />
+    <details className="cd fold"><summary>📱 מחולל תמונות לוואטסאפ</summary><Switch label="הצג פרשה בתמונה" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} /><Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} /><WhatsAppImage syn={syn} cols={cols} st={st} /></details>
   </>);
 }

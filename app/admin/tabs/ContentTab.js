@@ -41,7 +41,6 @@ function Parsha({ st, set, syn }) {
     <Card title="📜 פרשת שבוע והפטרה">
       <Switch label="הצג פרשה במסך" on={st.vis?.pr !== false} onChange={(v) => set('vis.pr', v)} />
       <Switch label="הצג בסרגל הרץ (Ticker)" on={st.tkParsha} onChange={(v) => set('tkParsha', v)} />
-      <Switch label="הצג פרשה בתמונת WhatsApp" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} />
       <label>זיהוי הפרשה</label>
       <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`opt ${st.pMode === k ? 'on' : ''}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
       <label>שם פרשה / אירוע (במצב ידני)</label><TextIn value={st.pTitle} onSave={(v) => set('pTitle', v)} placeholder="פרשת בראשית" />
@@ -50,7 +49,6 @@ function Parsha({ st, set, syn }) {
       <hr style={{ border: 0, borderTop: '1px solid var(--ln)', margin: '12px 0' }} />
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>ההפטרה מזוהה אוטומטית לפי הנוסח שהוגדר בהגדרות מערכת ({NUSACH[syn.nusach] || 'אשכנז'}), בלי מספרי פסוקים.</div>
       <Switch label="הצג הפטרה במסך" on={st.hfShow} onChange={(v) => set('hfShow', v)} />
-      <Switch label="הצג הפטרה בתמונת WhatsApp" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} />
       <label>עריכת הפטרה ידנית (שבתות מיוחדות, שבת חתן)</label><TextIn value={st.hfText} onSave={(v) => set('hfText', v)} placeholder="למשל: שמואל א׳" />
     </Card>);
 }
@@ -96,15 +94,15 @@ function Halacha({ sid, st, set, cols }) {
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) }, todayH = pickDaily({ src: isLive(dh.src) ? 'sefard' : dh.src, dayNum: rdOf(new Date(), 0), holidays: holNames(new Date(), false), dow: new Date().getDay() });
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'halacha', ed.eid, f) : addItem(sid, 'halacha', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
-    <Card fold title="מנהגי היום / תזכורות בתפילה (הפס העליון)">
+    <Card fold title="🤖 מנהגי היום – תזכורות בתפילה (אוטומטי / ידני)">
       <Switch label="הצגת הפס במסך" on={st.vis?.cu !== false} onChange={(v) => set('vis.cu', v)} />
       <div className="row">{[['auto', 'אוטומטי'], ['both', 'אוטומטי + ידני'], ['manual', 'ידני בלבד']].map(([k, l]) => <button key={k} className={`b ${(st.customs?.mode || 'auto') === k ? '' : 'g'}`} onClick={() => set('customs.mode', k)}>{l}</button>)}</div>
       <label>טקסט ידני (שורה לכל תזכורת)</label><TextIn area value={st.customs?.text} onSave={(v) => set('customs.text', v)} />
     </Card>
-    <Card fold title='שקופית "מנהגי היום" האוטומטית'>
+    <Card fold title='🤖 שקופית "מנהגי היום" (אוטומטית)'>
       <div className="row">{[['off', 'כבוי'], ['block', 'בלוק בקרוסלה'], ['full', 'מסך מלא']].map(([k, l]) => <button key={k} className={`b ${am === k ? '' : 'g'}`} onClick={() => set('hl.autoMode', k)}>{l}</button>)}</div>
     </Card>
-    <Card fold title="הלכה יומית אוטומטית">
+    <Card fold title="🤖 הלכה יומית (אוטומטית מספריא / מאגר)">
       <Switch label="הפעל הלכה יומית אוטומטית" on={!!dh.on} onChange={(v) => set('dh.on', v)} />
       <label>מקור ההלכה</label>
       <select value={dh.src} onChange={(e) => set('dh.src', e.target.value)}>{Object.entries(DH_SOURCES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
@@ -116,7 +114,7 @@ function Halacha({ sid, st, set, cols }) {
       <div style={{ color: 'var(--mu)', fontSize: 13, whiteSpace: 'pre-line' }}><b>{isLive(dh.src) ? 'מקור חי מספריא – ההלכה נמשכת אוטומטית מדי יום. דוגמה ממאגר הגיבוי המובנה:' : 'ההלכה האוטומטית להיום:'}</b> {todayH.title}{'\n'}{todayH.content}{'\n'}<i>{todayH.source}</i></div>
       <div style={{ color: 'var(--mu)', fontSize: 12 }}>ההלכה מתחלפת אוטומטית בכל יום. מומלץ שרב בית הכנסת יעבור על מאגר ההלכות המובנה.</div>
     </Card>
-    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הלכה' : 'הלכה חדשה'}>
+    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הלכה' : '✍️ הלכה ידנית חדשה'}>
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
       <label>תוכן (ירידות שורה נשמרות)</label><textarea value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />
       <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
@@ -134,9 +132,9 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'announcements', ed.eid, f) : addItem(sid, 'announcements', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
     {role !== 'sub_gabbai' && (feat('runningTicker')
-      ? <Card title="סרגל עדכונים נע"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /><Switch label="הצגה" on={st.vis?.tk !== false} onChange={(v) => set('vis.tk', v)} /></Card>
+      ? <Card title="📣 סרגל עדכונים נע (תוכן)"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /><Switch label="הצגה" on={st.vis?.tk !== false} onChange={(v) => set('vis.tk', v)} /></Card>
       : <Lock title="סרגל עדכונים נע" />)}
-    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הודעה' : 'הודעה חדשה'}>
+    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הודעה' : '✍️ הודעה ידנית חדשה'}>
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
       <label>תוכן (ירידות שורה נשמרות)</label><textarea value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} />
       <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
@@ -224,21 +222,17 @@ function Prayers({ sid, cols, st, set, syn }) {
   const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
   return (<>
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לסמן אם להציג אותה בסרגל הכותרת העליון ו/או במסך המלא של זמני התפילות.</p>
-    <Card title="אופן תצוגת הסרגלים (מקדש ומלכות)">
-      <div className="row"><div><label>סרגל כותרת עליון (זמני תפילות)</label><select value={st.hdMode || 'static'} onChange={(e) => set('hdMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div>
-      <div><label>סרגל כותרת תחתון (זמני היום)</label><select value={st.btMode || 'static'} onChange={(e) => set('btMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div></div>
-    </Card>
-    <Card title="כל זמני התפילות כשקופית">
-      <label>אופן תצוגה</label>
+    <Card title="⏰ אופן הצגת זמני התפילות">
+      <label>שקופית זמני תפילות</label>
       <select value={st.ptAll?.mode === 'full' ? 'popup' : st.ptAll?.mode || 'off'} onChange={(e) => set('ptAll.mode', e.target.value)}><option value="off">כבוי – זמני התפילות בסרגל העליון בלבד</option><option value="block">בלוק בקרוסלה – כל תפילות היום יחד</option><option value="popup">מסך מלא – מגילת קלף מלכותית (כל תפילות היום)</option></select>
       <Range label="זמן תצוגה לשקופית (בשניות)" min={1} max={30} value={st.ptAll?.secs || 10} onChange={(v) => set('ptAll.secs', v)} />
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות (גם שורות בודדות שהוגדרו לקרוסלה או למסך מלא).</div>
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות. סימון ☑ ״סרגל עליון״ / ☑ ״מסך מלא״ נעשה בכל תפילה למטה. אופן הסרגלים (קבוע/רץ) – בלשונית ״עיצוב ותצוגה״.</div>
     </Card>
     {pr.map((r, ri) => (
       <div key={r.id} draggable onDragStart={() => setDrag(ri)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) moveTo(drag, ri); setDrag(null); }} style={drag === ri ? { opacity: 0.5 } : undefined}>
       <Card>
         <div className="row"><span title="גרור לשינוי סדר" style={{ cursor: 'grab', flex: '0 0 auto' }}>⠿</span><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === 0} onClick={() => moveTo(ri, ri - 1)}>⬆️</button><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === pr.length - 1} onClick={() => moveTo(ri, ri + 1)}>⬇️</button><span className="tag">{ri + 1}</span><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join(' · ') : DAYS[pdayOf(r)]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
-        <div className="row"><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />הצג בסרגל הכותרת העליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />הצג במסך המלא של זמני תפילות</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
+        <div className="row"><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
           <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
         {open === r.id && (
           <div className="row">

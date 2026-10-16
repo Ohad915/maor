@@ -1,5 +1,5 @@
 // Network-first service worker: the app shell (incl. /display) stays available when the network is gone.
-const V = 'maor-v47', SHELL = ['/', '/display', '/admin', '/login'];
+const V = 'maor-v48', SHELL = ['/', '/display', '/admin', '/login'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(V).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((k) => Promise.all(k.filter((x) => x !== V).map((x) => caches.delete(x)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', (e) => {
