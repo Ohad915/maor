@@ -31,6 +31,7 @@ export default function Login() {
     try {
       if (mode === 'up') {
         if (!isPhone(phone)) return setMsg('נא להזין מספר טלפון תקין (משמש גם לשחזור סיסמה).');
+        if (pw.length < 8 || !/[A-Za-z\u05d0-\u05ea]/.test(pw) || !/\d/.test(pw)) return setMsg('הסיסמה חייבת להכיל לפחות 8 תווים, כולל אות ומספר.');
         const c = await createUserWithEmailAndPassword(auth, email, pw);
         // new gabbai: pending, no synagogue until the super admin approves
         await setDoc(doc(db, 'users', c.user.uid), { uid: c.user.uid, email, role: 'gabbai', status: 'pending', synagogueId: null, phone: phone.trim(), createdAt: serverTimestamp() });

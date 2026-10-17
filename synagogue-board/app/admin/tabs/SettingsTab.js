@@ -33,7 +33,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } 
       if (!confirm(`לשחזר גיבוי מתאריך ${String(d.at).slice(0, 10)}? ההגדרות והתכנים הקיימים יידרסו.`)) return;
       setBk('משחזר…');
       await updateDoc(ref, { settings: d.settings, ...(d.nusach ? { nusach: d.nusach } : {}), ...(d.location ? { location: d.location } : {}) });
-      for (const [col, items] of Object.entries(d.cols || {})) for (const it of items) { const { id, ...rest } = it; await setDoc(doc(db, 'synagogues', sid, col, id), rest); }
+      for (const [col, items] of Object.entries(d.cols || {})) for (const it of (['announcements', 'memorials', 'refuah', 'halacha', 'prayers', 'overrides', 'lessons'].includes(col) && Array.isArray(items) ? items : [])) { const { id, ...rest } = it; await setDoc(doc(db, 'synagogues', sid, col, id), rest); }
       setBk('השחזור הושלם ✓');
     } catch { setBk('קובץ גיבוי לא תקין'); }
   };

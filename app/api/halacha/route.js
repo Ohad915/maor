@@ -9,7 +9,11 @@ const clean = (s) => String(s)
   .replace(/[ \t]+/g, ' ').trim();
 const flat = (x) => (Array.isArray(x) ? x.flatMap(flat) : x == null ? [] : [clean(x)]);
 
+const hits = new Map(); // best-effort per-instance limit: 60 requests / 10 min per IP
+const limited = (ip) => { const n = Date.now(), a = (hits.get(ip) || []).filter((t) => n - t < 600000); a.push(n); hits.set(ip, a); if (hits.size > 5000) hits.clear(); return a.length > 60; };
+
 export async function GET(req) {
+  if (limited((req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'x')) return NextResponse.json({ error: 'rate limited' }, { status: 429 });
   const src = new URL(req.url).searchParams.get('src') || 'live_hy';
   const want = ITEMS[src];
   if (!want) return NextResponse.json({ error: 'unknown source' }, { status: 400 });
@@ -26,6 +30,6 @@ export async function GET(req) {
       title: it.title.he, content: lines.join('\n'), source: `${it.displayValue?.he || tx.heRef || it.ref} · לפי לוח ספריא`, ref: it.ref, date: cal.date,
     }, { headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=86400' } });
   } catch (e) {
-    return NextResponse.json({ error: String(e.message || e) }, { status: 502 });
+    console.error('halacha:', e?.message); return NextResponse.json({ error: 'upstream unavailable' }, { status: 502 });
   }
 }

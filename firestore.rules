@@ -20,6 +20,9 @@ service cloud.firestore {
       allow read: if signedIn() && (request.auth.uid == uid || isSuper());
       // self-registration: always pending, no synagogue yet, never a super admin
       allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'role', 'status', 'synagogueId', 'phone', 'createdAt'])
+        && request.resource.data.email is string && request.resource.data.email.size() < 200
+        && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() < 30))
         && request.resource.data.role == 'gabbai'
         && request.resource.data.status == 'pending'
         && request.resource.data.synagogueId == null;
@@ -31,7 +34,7 @@ service cloud.firestore {
       allow create, delete: if isSuper();
       // main gabbai may edit everything except the subscription plan
       allow update: if isSuper() || (isGabbai(sid) && subscriptionOk(sid)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan']));
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'suspended', 'planTier', 'maxScreens', 'features', 'subscriptionStatus', 'validUntil']));
 
       // collections shown on the TV
       match /{col}/{id} {
@@ -46,6 +49,8 @@ service cloud.firestore {
       match /screens/{screenId} {
         allow read: if isSuper() || isMember(sid);
         allow create, update: if isSuper() || (isScreen()
+          && screenId in ['main-hall', 'women', 'lobby', 'beit-midrash']
+          && request.resource.data.keys().hasOnly(['lastSeen', 'showing', 'index'])
           && request.resource.data.index is int
           && request.resource.data.index < plan(sid).maxScreens);
       }

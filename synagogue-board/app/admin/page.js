@@ -51,6 +51,14 @@ function Panel({ sid, role, superMode }) {
     mo.observe(root, { childList: true, subtree: true }); return () => mo.disconnect();
   }, [qs, tab]);
   useEffect(() => { setQs(''); }, [tab]);
+  // security: sign out after 30 minutes without activity (admin pages can change what the whole congregation sees)
+  const [idleWarn, setIdleWarn] = useState(false);
+  useEffect(() => {
+    let last = Date.now(); const bump = () => { last = Date.now(); setIdleWarn(false); };
+    const ev = ['pointerdown', 'keydown', 'touchstart', 'scroll']; ev.forEach((e) => addEventListener(e, bump, { passive: true }));
+    const t = setInterval(() => { const idle = Date.now() - last; if (idle > 30 * 60000) { signOut(auth).then(() => r.replace('/login')); } else if (idle > 28 * 60000) setIdleWarn(true); }, 15000);
+    return () => { ev.forEach((e) => removeEventListener(e, bump)); clearInterval(t); };
+  }, []); // eslint-disable-line
   if (syn === undefined) return <p style={{ padding: 20 }}>טוען…</p>;
   if (syn === null) return <p style={{ padding: 20 }}>בית הכנסת לא נמצא.</p>;
   if (syn.suspended && !superMode) {
@@ -76,6 +84,7 @@ function Panel({ sid, role, superMode }) {
         <div className="plan"><span>⭐ חבילת {{ basic: 'בסיס', pro: 'PRO', premium: 'פרימיום' }[plan.planTier]}</span>
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
+        {idleWarn && <div className="plan" style={{ background: 'var(--bad)', color: '#fff' }}>⏳ אין פעילות – תנותקו אוטומטית בעוד דקה. לחצו על המסך כדי להישאר מחוברים.</div>}
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
           {sv !== 'idle' && <span className={`svchip ${sv}`}>{sv === 'saving' ? 'שומר…' : sv === 'ok' ? 'נשמר ✓' : 'שגיאת שמירה – בדקו חיבור'}</span>}
           {hn > 0 && <button className="b g" type="button" title="בטל את השינוי האחרון" onClick={undo}>↶ בטל ({hn})</button>}
