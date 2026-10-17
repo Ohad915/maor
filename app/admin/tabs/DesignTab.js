@@ -33,7 +33,7 @@ function CompStyles({ st, set }) {
     </Card>);
 }
 
-export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
+export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
   const royal = isRoyal(st);
   const up = (file) => {
     if (!file) return; const rd = new FileReader();
@@ -41,8 +41,8 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
     rd.readAsDataURL(file);
   };
   const Btns = ({ k, opts }) => <div className="row">{opts.map(([v, l]) => <button key={String(v)} type="button" className={`opt ${st[k] === v ? 'on' : ''}`} onClick={() => set(k, v)}>{l}</button>)}</div>;
-  const V = [['cr', 'כותרת עליונה'], ['hd', 'פס התאריך העליון'], ['zm', 'סרגל זמני היום'], ['pr', 'פרשת השבוע'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות'], ['tk', 'סרגל עדכונים נע']];
-  const VB = V.filter(([k]) => ['cr', 'hd', 'zm', 'tk'].includes(k)), VC = V.filter(([k]) => !['cr', 'hd', 'zm', 'tk'].includes(k));
+  const V = [['cr', 'כותרת בית הכנסת (שם + איור)'], ['hd', 'תאריך עברי ולועזי'], ['pt', 'זמני תפילות בכותרת העליונה'], ['zm', 'זמני היום (סרגל תחתון)'], ['tk', 'סרגל עדכונים רץ (תחתון)'], ['pr', 'פרשת השבוע והפטרה'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות']];
+  const BAR = ['cr', 'hd', 'pt', 'zm', 'tk'], VB = V.filter(([k]) => BAR.includes(k)), VC = V.filter(([k]) => !BAR.includes(k));
   return (<>
     <Card fold open title="🎨 ערכות נושא ודגמי מסך">
       <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
@@ -64,7 +64,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
       <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
       <label>אופן תצוגת הסרגלים (מקדש ומלכות)</label>
       <div className="row"><div><label>סרגל כותרת עליון (זמני תפילות)</label><select value={st.hdMode || 'static'} onChange={(e) => set('hdMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div><div><label>סרגל כותרת תחתון (זמני היום)</label><select value={st.btMode || 'static'} onChange={(e) => set('btMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div></div>
-      {VB.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}
+      {VB.map(([k, l]) => <Switch key={k} label={k === 'tk' && !feat('runningTicker') ? l + ' 🔒 (חבילת PRO)' : k === 'tk' && !st.tkText ? l + ' – הזינו טקסט ב״תוכן המסך › הודעות״' : l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}
     </Card>
     <Card fold title="👁 רכיבי תוכן גלויים"><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
     <CompStyles st={st} set={set} />

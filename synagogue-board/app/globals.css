@@ -310,7 +310,7 @@ label{font-size:13px;color:var(--mu)}
 .rl-pt small{max-width:none!important;overflow:visible!important;text-overflow:clip!important}
 /* royal: admin colour overrides per block (win over theme defaults) */
 .rl .rl-ctx,.rl .rl-ctx *{color:var(--ctx)!important}
-.rl-ghost{background:#051427;pointer-events:none}
+.rl-ghost{background:#040e1c;pointer-events:none}
 .rl .rl-sized{background:linear-gradient(135deg,#f7f0dc,#ead9ae)!important;border:.3cqw double #b58a2c!important;border-radius:1.2cqw;box-shadow:0 .4cqw 1.2cqw #0008, inset 0 0 1.5cqw #b58a2c55}
 .rl-ghost{z-index:0}.rl-main,.rl-card{z-index:1}
 /* parsha v6: text size follows the admin "גודל טקסט" slider (--pf); haftara = 50% of parsha; capped so it never leaves the parchment */

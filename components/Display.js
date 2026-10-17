@@ -35,7 +35,8 @@ function royBox(st, k, l, t, w, h, anchor = 'c') {
   if (resized) cls.push('rl-sized');
   // the parchment frames are baked into the background image: when a block is resized, hide the baked frame and let the block draw its own
   const ghost = resized ? { position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' } : null;
-  return { style, cls: cls.join(' '), ghost };
+  const hide = { position: 'absolute', left: Math.max(0, l - 0.35) + '%', top: Math.max(0, t - 0.8) + '%', width: Math.min(100, w + 0.7) + '%', height: Math.min(100, h + 1.6) + '%' }; // masks the baked frame when the block is switched off
+  return { style, cls: cls.join(' '), ghost, hide };
 }
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
@@ -163,7 +164,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
   if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
-  if (am !== 'off') slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
+  if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
@@ -300,7 +301,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && lessonOn(l, dt, z.dow)).map((l) => `שיעור ${l.title}${l.rabbi ? ' · ' + l.rabbi : ''} · ${prayerTime(l, z)}`),
     ...rowsToday.filter((r) => r.ticker || (inBar(r) && !pbShown)).map((r) => `${r.name}: ${tOf(r)}`),
     ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${m.name}`)].filter(Boolean).join('   ✦   ');
-  const tk = V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker && <div className="tk"><span>{tkText}</span></div>;
+  const tkOn = !!(V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker);
+  const tk = tkOn && <div className="tk"><span>{tkText}</span></div>;
   const col = (kids, f) => kids.some(Boolean) && <div className="sd" style={{ flex: f }}>{Children.toArray(kids)}</div>;
 
   let body;
@@ -325,35 +327,41 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const fb = (k) => ((st.blocks?.[k]?.fs ?? st.fsAll ?? 18) / 18), pf = fb('pr').toFixed(3);
     body = <div className="rl">
       <div className={'rl-top ' + (ps ? 'ps ' : '') + RB.hd.cls} style={{ ...RB.hd.style, '--hs': fb('hd').toFixed(3) }}>
-        <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>
-        {(() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
+        {V('hd') && <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>}
+        {V('pt') && (() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
           const len = Object.entries(rg).reduce((a, [k, g]) => a + k.length + [...g.t].join(' · ').length, 0);
           return hdM
             ? <div className="rl-times rl-mq"><div className="in" style={{ animationDuration: Math.max(18, len * 0.5) + 's' }}>{items}</div></div>
             : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{items}</div>; })()}
-        {ps && <div className="rl-ps" style={{ '--pf': pf }}><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div></div>}
-        <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>
+        {ps && V('pr') && <div className="rl-ps" style={{ '--pf': pf }}><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div></div>}
+        {V('cr') && <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>}
       </div>
-      {!ps && <div className={'rl-parsha ' + RB.pr.cls} style={{ ...RB.pr.style, '--pf': pf }}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>}
+      {!ps && V('pr') && <div className={'rl-parsha ' + RB.pr.cls} style={{ ...RB.pr.style, '--pf': pf }}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>}
+      {!ps && !V('pr') && <div className="rl-ghost" style={RB.pr.hide} />}
       {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
-      {V('yz') && RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} />}
+      {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
         <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
-      {V('rf') && RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} />}
+      {V('rf') ? RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} /> : <div className="rl-ghost" style={RB.rf.hide} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
         <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
-      {m4 && V('qr') && onS(st.donScreen) && hasDon && RB.qr.ghost && <div className="rl-ghost" style={RB.qr.ghost} />}
+      {m4 && (V('qr') && onS(st.donScreen) && hasDon ? RB.qr.ghost && <div className="rl-ghost" style={RB.qr.ghost} /> : <div className="rl-ghost" style={RB.qr.hide} />)}
       {m4 && V('qr') && onS(st.donScreen) && hasDon && <Blk {...B({ id: 'qr', t: 'x', b: 3, cls: 'rl-card rl-qr ' + RB.qr.cls, share: 0.2, style: RB.qr.style })}>
         {st.payUrl && <div className="rl-ic"><div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div></div>}<div className="rl-bd">
         {(st.donTitle || st.donSub) && <div className="pgw"><div className="yi">{st.donTitle && <b>{st.donTitle}</b>}{st.donSub && <small>{st.donSub}</small>}</div></div>}</div></Blk>}
       <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
         <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
-        <div className="rl-tk">{btM
-          ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}><span className="in" style={{ animationDuration: Math.max(18, zText.length * 0.45) + 's' }}>{zText}</span></div>
-          : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(zText)} * ${fb('bt').toFixed(3)})`, ...(st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {}) }}>{zText}</div>}</div>
+        <div className="rl-tk">{(() => {
+          const bText = [tkOn && tkText, V('zm') && zText].filter(Boolean).join(SEP); // running ticker text first, then the day's times
+          if (!bText) return null;
+          const raw = 40 / Math.max(10, bText.length * 0.5), mq = btM || tkOn || raw < 1.3; // too long to read statically -> scroll instead of tiny text
+          const tx = st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {};
+          return mq
+            ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...tx }}><span className="in" style={{ animationDuration: Math.max(18, bText.length * 0.45) + 's' }}>{bText}</span></div>
+            : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>; })()}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;
