@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { deleteField, doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { setSetting } from '@/lib/db';
 import { useCol, useProfile, useSynagogue } from '@/lib/hooks';
 import { DEFAULT_SETTINGS } from '@/lib/types';
@@ -35,7 +36,21 @@ function Panel({ sid, role, superMode }) {
   const r = useRouter();
   const { syn, cols } = useSynagogue(sid);
   const screens = useCol(sid, 'screens');
-  const [tab, setTab] = useState('content'), [pv, setPv] = useState(false);
+  const [tab, setTab] = useState('content'), [pv, setPv] = useState(false), [sv, setSv] = useState('idle'), [qs, setQs] = useState(''), hist = useRef([]), [hn, setHn] = useState(0);
+  // find-as-you-type: hides admin cards that do not contain the text (re-applied when the tab or the DOM changes)
+  useEffect(() => {
+    const root = document.querySelector('.admin-root .w'); if (!root) return;
+    const q = qs.trim();
+    const run = () => root.querySelectorAll('.cd').forEach((c) => {
+      if (c.parentElement?.closest('.cd')) return;
+      const hit = !q || c.textContent.includes(q); c.style.display = hit ? '' : 'none';
+      if (c.tagName === 'DETAILS' && q && hit && !c.open) c.open = true;
+    });
+    run(); if (!q) return;
+    const mo = new MutationObserver(() => { mo.disconnect(); run(); mo.observe(root, { childList: true, subtree: true }); });
+    mo.observe(root, { childList: true, subtree: true }); return () => mo.disconnect();
+  }, [qs, tab]);
+  useEffect(() => { setQs(''); }, [tab]);
   if (syn === undefined) return <p style={{ padding: 20 }}>טוען…</p>;
   if (syn === null) return <p style={{ padding: 20 }}>בית הכנסת לא נמצא.</p>;
   if (syn.suspended && !superMode) {
@@ -45,7 +60,11 @@ function Panel({ sid, role, superMode }) {
   const st = { ...DEFAULT_SETTINGS, ...syn.settings };
   const plan = syn.plan || { planTier: 'basic', maxScreens: 1, features: {} };
   const feat = (k) => !!plan.features?.[k];
-  const ctx = { sid, syn, st, cols, role, feat, screens, set: (p, v) => setSetting(sid, p, v) };
+  const getp = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+  const write = async (p, v) => { setSv('saving'); try { await (v === undefined ? updateDoc(doc(db, 'synagogues', sid), { [`settings.${p}`]: deleteField() }) : setSetting(sid, p, v)); setSv('ok'); setTimeout(() => setSv((x) => (x === 'ok' ? 'idle' : x)), 2200); } catch { setSv('err'); } };
+  const setW = (p, v) => { const last = hist.current[hist.current.length - 1]; if (!(last && last.p === p && Date.now() - last.t < 4000)) { hist.current.push({ p, old: getp(st, p), t: Date.now() }); if (hist.current.length > 40) hist.current.shift(); setHn(hist.current.length); } else last.t = Date.now(); return write(p, v); };
+  const undo = () => { const h = hist.current.pop(); setHn(hist.current.length); if (h) write(h.p, h.old); };
+  const ctx = { sid, syn, st, cols, role, feat, screens, set: setW };
   const online = screens.filter((s) => s.lastSeen && Date.now() - s.lastSeen.toMillis() < 100000);
   const left = plan.validUntil ? Math.ceil((new Date(plan.validUntil) - Date.now()) / 864e5) : null;
   const sub = role === 'sub_gabbai';
@@ -58,8 +77,11 @@ function Panel({ sid, role, superMode }) {
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
+          {sv !== 'idle' && <span className={`svchip ${sv}`}>{sv === 'saving' ? 'שומר…' : sv === 'ok' ? 'נשמר ✓' : 'שגיאת שמירה – בדקו חיבור'}</span>}
+          {hn > 0 && <button className="b g" type="button" title="בטל את השינוי האחרון" onClick={undo}>↶ בטל ({hn})</button>}
           <button className="b g" type="button" title="תצוגה מקדימה של המסך" onClick={() => setPv(true)}>👁 תצוגה מקדימה</button>
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>
+        <input className="srch" type="search" placeholder="🔍 חיפוש הגדרה (למשל: רפואה, כותרת, סרגל)…" value={qs} onChange={(e) => setQs(e.target.value)} />
         <ErrorBoundary admin key={sub ? 'content' : tab}>
           {(sub || tab === 'content') && <ContentTab ctx={ctx} />}
           {!sub && tab === 'design' && <DesignTab ctx={ctx} />}

@@ -7,7 +7,7 @@ import { gem, hebOf, holNames, LDAY_NAMES, lessonDays, lessonDaysLabel, monthNam
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
-const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
+const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => { if (confirm('למחוק? הפעולה אינה ניתנת לשחזור.')) onClick(); }}>מחק</button>;
 const TkChk = ({ on, onChange }) => <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={!!on} onChange={(e) => onChange(e.target.checked)} />בסרגל הרץ</label>;
 const Edit = ({ onClick, on }) => <button className="b g" style={{ flex: '0 0 auto' }} onClick={onClick}>{on ? 'סגור עריכה' : 'ערוך'}</button>;
 const modeVal = (x) => x.mode ?? (x.on === false ? 'off' : 'block');
@@ -232,14 +232,17 @@ function Prayers({ sid, cols, st, set, syn }) {
         <div className="row"><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
           <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
         {open === r.id && (
-          <div className="row">
-            <TextIn value={r.name} onSave={(v) => updItem(sid, 'prayers', r.id, { name: v })} />
-            <select value={r.mode} onChange={(e) => updItem(sid, 'prayers', r.id, { mode: e.target.value })}><option value="fixed">קבוע</option><option value="sunset">משקיעה</option><option value="sunrise">מהנץ</option></select>
-            <TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => updItem(sid, 'prayers', r.id, { val: v })} />
-            <div style={{ flex: '1 1 100%' }}><label>סוג יום</label><select value={pdayOf(r)} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-              <label style={{ marginTop: 6 }}>או ימים ספציפיים בשבוע (אופציונלי – גובר על סוג היום)</label>
-              <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} /></div>
-            <TextIn value={r.note} placeholder="הערה (רשות)" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
+          <div className="prayed">
+            <b className="sech">① שם וזמן</b>
+            <div className="row"><div style={{ flex: '2 1 160px' }}><label>שם התפילה</label><TextIn value={r.name} onSave={(v) => updItem(sid, 'prayers', r.id, { name: v })} /></div>
+              <div style={{ flex: '1 1 120px' }}><label>חישוב הזמן</label><select value={r.mode} onChange={(e) => updItem(sid, 'prayers', r.id, { mode: e.target.value })}><option value="fixed">שעה קבועה</option><option value="sunset">יחסית לשקיעה</option><option value="sunrise">יחסית להנץ</option></select></div>
+              <div style={{ flex: '1 1 100px' }}><label>{r.mode === 'fixed' ? 'שעה (06:15)' : 'דקות (למשל -20)'}</label><TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => updItem(sid, 'prayers', r.id, { val: v })} /></div></div>
+            <b className="sech">② באילו ימים</b>
+            <label>סוג יום</label><select value={pdayOf(r)} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            <label style={{ marginTop: 6 }}>או ימים ספציפיים בשבוע (גובר על סוג היום)</label>
+            <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} />
+            <b className="sech">③ הערה</b>
+            <TextIn value={r.note} placeholder="הערה (רשות) – תוצג ליד הזמן" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
           </div>)}
       </Card></div>))}
     <button className="b" onClick={async () => { const d = await addItem(sid, 'prayers', { order: pr.length + 1, name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true }); setOpen(d.id); }}>+ הוסף תפילה</button>

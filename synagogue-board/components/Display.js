@@ -75,6 +75,18 @@ const chunk = (arr, n, p) => { const pages = Math.max(1, Math.ceil(arr.length / 
 
 export default function Display({ sid, screenId, fixedSize, preview }) {
   const live = useSynagogue(sid);
+  // TV reliability (real screen only): keep the display awake, and reload once a night (04:00-04:05 Israel time) to free memory and pick up new versions
+  useEffect(() => {
+    if (preview || typeof window === 'undefined') return;
+    let lock = null, alive = true;
+    const ask = async () => { try { if (alive && document.visibilityState === 'visible' && navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); } catch {} };
+    ask(); document.addEventListener('visibilitychange', ask);
+    const t = setInterval(() => {
+      const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+      if (p >= '04:00' && p < '04:05') { const k = 'maor-reload-' + new Date().toISOString().slice(0, 10); try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); location.reload(); } } catch {} }
+    }, 30000);
+    return () => { alive = false; clearInterval(t); document.removeEventListener('visibilitychange', ask); try { lock?.release(); } catch {} };
+  }, [preview]);
   // no connection / empty or missing document and nothing cached: calm demo board (zmanim are computed locally) instead of a network error
   const offlineNow = typeof navigator !== 'undefined' && !navigator.onLine;
   const demo = !live.syn && (live.syn === null || live.status === 'error' || offlineNow);

@@ -410,3 +410,9 @@ label{font-size:13px;color:var(--mu)}
 .dhf h3{margin:0;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:5cqh;line-height:1.15;color:#5b3a05}
 .dhf p{margin:0;font-family:'Frank Ruhl Libre',serif;font-weight:700;line-height:1.38;color:#2a1a05;white-space:pre-line}
 .dhf small{margin-top:auto;font-size:2.4cqh;color:#8a5a0c;font-weight:700}
+
+.prayed{border-top:1px dashed var(--ln);margin-top:8px;padding-top:6px}
+.sech{display:block;margin:10px 0 2px;font-size:13px;color:var(--mu)}
+.svchip{font-size:12px;padding:4px 10px;border-radius:14px;background:var(--cd);border:1px solid var(--ln);white-space:nowrap}
+.svchip.ok{color:#2e9e5b}.svchip.err{color:#d9534f}
+.srch{margin-bottom:10px}

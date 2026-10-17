@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { geocode } from '@/lib/geocode';
 import { SCREENS, SCREEN_NAMES } from '@/lib/types';
 import { Card, Switch, TextIn } from '../components/UI';
 
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
-export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
+export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } }) {
   const [msg, setMsg] = useState('');
   const zm = st.zm || {};
   const loc = syn.location || { lat: 31.77, lng: 35.21, elevation: 0 };
@@ -20,6 +20,23 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
     setMsg('המיקום נשמר: ' + g.source + '. זמני היום חושבו מחדש.');
   }
   const save = (data) => updateDoc(ref, data);
+  const [bk, setBk] = useState('');
+  const exportAll = () => {
+    const data = { app: 'maor', v: 1, at: new Date().toISOString(), name: syn.name, settings: st, nusach: syn.nusach || null, location: syn.location || null, cols };
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+    a.download = `maor-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setBk('הגיבוי ירד למחשב ✓');
+  };
+  const importAll = async (file) => {
+    if (!file) return;
+    try {
+      const d = JSON.parse(await file.text()); if (d.app !== 'maor' || !d.settings) throw new Error('bad');
+      if (!confirm(`לשחזר גיבוי מתאריך ${String(d.at).slice(0, 10)}? ההגדרות והתכנים הקיימים יידרסו.`)) return;
+      setBk('משחזר…');
+      await updateDoc(ref, { settings: d.settings, ...(d.nusach ? { nusach: d.nusach } : {}), ...(d.location ? { location: d.location } : {}) });
+      for (const [col, items] of Object.entries(d.cols || {})) for (const it of items) { const { id, ...rest } = it; await setDoc(doc(db, 'synagogues', sid, col, id), rest); }
+      setBk('השחזור הושלם ✓');
+    } catch { setBk('קובץ גיבוי לא תקין'); }
+  };
   const online = (id) => { const s = screens.find((x) => x.id === id); return s?.lastSeen && Date.now() - s.lastSeen.toMillis() < 100000; };
   return (<>
     <Card title="בית הכנסת">
@@ -48,6 +65,11 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens } }) {
       <label>זמני היום בסרגל התחתון (מקדש ומלכות · תצוגה קבועה)</label>
       {[['n', 'זריחה (נץ החמה)'], ['s', 'סוף זמן ק״ש'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם (בשבת / לפי ההגדרה)']].map(([k, l]) => <Switch key={k} label={l} on={zm.bi?.[k] !== false} onChange={(v) => set(`zm.bi.${k}`, v)} />)}
       <Switch label="הצג זמני שבת/חג (ידני, לחגים)" on={st.force} onChange={(v) => set('force', v)} />
+    </Card>
+    <Card fold title="💾 גיבוי ושחזור">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>קובץ אחד עם כל ההגדרות והתכנים (תפילות, הנצחות, הודעות, שיעורים וכו׳). מומלץ לשמור גיבוי לפני שינויים גדולים.</div>
+      <div className="row"><button className="b" onClick={exportAll}>⬇ הורד גיבוי</button><label className="b g" style={{ textAlign: 'center', cursor: 'pointer' }}>⬆ שחזר מקובץ<input type="file" accept="application/json" hidden onChange={(e) => { importAll(e.target.files[0]); e.target.value = ''; }} /></label></div>
+      {bk && <div style={{ fontSize: 13 }}>{bk}</div>}
     </Card>
     <Card fold title="מסכים">
       {SCREENS.map((id) => (

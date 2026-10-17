@@ -1,10 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { LAYOUTS } from '@/lib/types';
+import { LAYOUTS, DEFAULT_SETTINGS } from '@/lib/types';
 import { Card, DebIn, FontSel, Range, Switch, TextIn } from '../components/UI';
 import { isRoyal } from '@/lib/types';
 import BlockDesignAccordion from '../components/BlockDesignAccordion';
 import WhatsAppImage from '../components/WhatsAppImage';
+import InlinePreview from '../components/InlinePreview';
 
 /** Dropdown of ready-made texts + a custom option; empty value = the default text. */
 function PickText({ label, value, def, opts, onSave }) {
@@ -43,7 +44,11 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
   const Btns = ({ k, opts }) => <div className="row">{opts.map(([v, l]) => <button key={String(v)} type="button" className={`opt ${st[k] === v ? 'on' : ''}`} onClick={() => set(k, v)}>{l}</button>)}</div>;
   const V = [['cr', 'כותרת בית הכנסת (שם + איור)'], ['hd', 'תאריך עברי ולועזי'], ['pt', 'זמני תפילות בכותרת העליונה'], ['zm', 'זמני היום (סרגל תחתון)'], ['tk', 'סרגל עדכונים רץ (תחתון)'], ['pr', 'פרשת השבוע והפטרה'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות']];
   const BAR = ['cr', 'hd', 'pt', 'zm', 'tk'], VB = V.filter(([k]) => BAR.includes(k)), VC = V.filter(([k]) => !BAR.includes(k));
+  const shown = V.filter(([k]) => st.vis?.[k] !== false).length;
+  const RESET = ['theme', 'layout', 'frame', 'cardStyle', 'zoom', 'anim', 'accent', 'bg', 'tbg', 'side', 'vis', 'cf', 'blocks', 'ipp', 'lpp', 'fsAll', 'hdMode', 'btMode', 'subtitle', 'footerText'];
+  const [pv, setPv] = useState(false);
   return (<>
+    <details className="cd fold" open={pv} onToggle={(e) => setPv(e.currentTarget.open)}><summary>👁 תצוגה מקדימה חיה (בתוך הדף)</summary>{pv && <InlinePreview sid={sid} />}</details>
     <Card fold open title="🎨 ערכות נושא ודגמי מסך">
       <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
       <div className="grid2">{PRESETS.map(([l, p]) => <button key={l} type="button" className={`opt ${Object.entries(p).every(([k, v]) => st[k] === v) ? 'on' : ''}`} onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
@@ -66,7 +71,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
       <div className="row"><div><label>סרגל כותרת עליון (זמני תפילות)</label><select value={st.hdMode || 'static'} onChange={(e) => set('hdMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div><div><label>סרגל כותרת תחתון (זמני היום)</label><select value={st.btMode || 'static'} onChange={(e) => set('btMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div></div>
       {VB.map(([k, l]) => <Switch key={k} label={k === 'tk' && !feat('runningTicker') ? l + ' 🔒 (חבילת PRO)' : k === 'tk' && !st.tkText ? l + ' – הזינו טקסט ב״תוכן המסך › הודעות״' : l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}
     </Card>
-    <Card fold title="👁 רכיבי תוכן גלויים"><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
+    <Card fold title={`👁 רכיבי תוכן גלויים · ${shown} מתוך ${V.length} מוצגים`}><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
     <CompStyles st={st} set={set} />
     <Card fold title="📐 רוחב עמודות הצד"><Range label="רוחב %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} /></Card>
     <details className="cd fold"><summary>🧩 התאמה אישית לפי קובייה (מידות, גופן, צבעים, זמן שקופית)</summary>

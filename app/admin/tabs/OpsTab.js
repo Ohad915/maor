@@ -8,7 +8,7 @@ import { budgetReportHtml, maintenanceReportHtml } from '@/lib/reports';
 
 const ils = (n) => (+n || 0).toLocaleString('he-IL') + ' ₪';
 const ST = ['חדש', 'בטיפול', 'טופל'];
-const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={onClick}>מחק</button>;
+const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => { if (confirm('למחוק? הפעולה אינה ניתנת לשחזור.')) onClick(); }}>מחק</button>;
 
 export function MaintenanceTab({ ctx: { sid, syn } }) {
   const tickets = useCol(sid, 'tickets'), inv = useCol(sid, 'inventory');
