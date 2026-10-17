@@ -72,6 +72,6 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols } }) {
     <details className="cd fold"><summary>🧩 התאמה אישית לפי קובייה (מידות, גופן, צבעים, זמן שקופית)</summary>
       <BlockDesignAccordion st={st} set={set} sid={sid} royal={royal} />
     </details>
-    <details className="cd fold"><summary>📱 מחולל תמונות לוואטסאפ</summary><Switch label="הצג פרשה בתמונה" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} /><Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} /><WhatsAppImage syn={syn} cols={cols} st={st} /></details>
+    <WhatsAppImage syn={syn} cols={cols} st={st} set={set} />
   </>);
 }

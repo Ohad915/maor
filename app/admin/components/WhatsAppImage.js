@@ -317,7 +317,7 @@ export async function renderPoster(d, greet) {
 }
 
 /** WhatsApp image maker (lives only in the design tab): Shabbat/holiday or weekday poster, content toggles, share/download. */
-export default function WhatsAppImage({ syn, cols, st }) {
+export default function WhatsAppImage({ syn, cols, st, set }) {
   const [kind, setKind] = useState('shabbat'), [greet, setGreet] = useState('auto');
   const [opt, setOpt] = useState({ lessons: true, rt: false, netz: true, ann: true });
   const [vec, setVec] = useState(false), [d, setD] = useState(null), [png, setPng] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
@@ -345,7 +345,9 @@ export default function WhatsAppImage({ syn, cols, st }) {
     setMsg('התמונה ירדה למכשיר. צרפו אותה בקבוצת הווטסאפ שנפתחה.');
   }
   return (
-    <Card title="📲 מחולל תמונות לווטסאפ">
+    <Card fold title="📲 מחולל תמונות לווטסאפ">
+      <Switch label="הצג פרשה בתמונה" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} />
+      <Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} />
       <label>סוג התמונה</label>
       <div className="row">{[['shabbat', 'שבת ומועדים'], ['weekday', 'ימי חול']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
       {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}

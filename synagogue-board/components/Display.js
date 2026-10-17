@@ -138,8 +138,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const pa = st.ptAll || { mode: 'off', secs: 10 }, pdur = pa.secs || 10;
   const inBar = (r) => r.bar ?? (r.show ?? 'bar') === 'bar';
   const allGrp = {};
-  rowsToday.forEach((r) => { (allGrp[r.name] ||= { t: [], n: [] }).t.push(tOf(r)); if (r.note) allGrp[r.name].n.push(r.note); });
-  rowsToday.filter(inBar).forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); grp[fw(r)].t.push(tOf(r)); if (r.note) grp[fw(r)].n.push(r.note); });
+  rowsToday.forEach((r) => { { const g = (allGrp[r.name] ||= { t: [], n: [] }), tt = tOf(r); if (!g.t.includes(tt)) g.t.push(tt); } if (r.note) allGrp[r.name].n.push(r.note); });
+  rowsToday.filter(inBar).forEach((r) => { (grp[fw(r)] ||= { t: [], n: [] }); { const tt = tOf(r); if (!grp[fw(r)].t.includes(tt)) grp[fw(r)].t.push(tt); } if (r.note) grp[fw(r)].n.push(r.note); });
   const cMode = st.customs?.mode || 'auto', manual = (st.customs?.text || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const auto = [...holNames(now, !!z.shkia && z.now >= z.shkia), ...reminders(h)];
   const chips = cMode === 'manual' ? manual : cMode === 'both' ? [...auto, ...manual] : auto;
@@ -234,11 +234,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     if (cur.full && royal) {
       // royal full screen: the extended royal scroll, large readable text
       const f = Math.min(4.6, Math.max(2.2, Math.sqrt(3000 / L))).toFixed(2);
-      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em><h3>{cur.d.title}</h3><p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots ? ' · ' + dots : ''}</small></div></div></div>;
+      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em>{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots && <><br />{dots}</>}</small></div></div></div>;
       mid = null;
     } else {
       const em = L < 110 ? 2.5 : L < 200 ? 2.15 : L < 300 ? 1.8 : 1.45;
-      emit(<div className={'an fade ' + cl} key={'dh' + idx + '-' + pg.mr} style={afs('hal')}><div className="lb">✦ הלכה יומית ✦</div><div className="ab"><h3>{cur.d.title}</h3><p style={cur.full ? undefined : { fontSize: em + 'em' }}>{tx}</p></div><div className="af">{cur.d.source}{dots ? ' · ' + dots : ''}</div></div>);
+      emit(<div className={'an fade ' + cl} key={'dh' + idx + '-' + pg.mr} style={afs('hal')}><div className="lb">✦ הלכה יומית ✦</div><div className="ab">{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={cur.full ? undefined : { fontSize: em + 'em' }}>{tx}</p></div><div className="af">{cur.d.source}{dots && <><br />{dots}</>}</div></div>);
     }
   }
   else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));

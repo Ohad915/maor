@@ -28,6 +28,7 @@ export default function ContentTab({ ctx }) {
   const cur = role === 'sub_gabbai' ? 'ann' : sub; // sub-gabbai: announcements only
   return (
     <>
+      {role !== 'sub_gabbai' && <div style={{ color: 'var(--mu)', fontSize: 12, marginBottom: 6 }}>הצגה/הסתרה של רכיבים במסך – בלשונית ״עיצוב ותצוגה״ ← רכיבי תוכן גלויים.</div>}
       {role !== 'sub_gabbai' && <div className="pills">{SUBS.map(([k, l]) => <button key={k} className={`opt ${cur === k ? 'on' : ''}`} onClick={() => setSub(k)}>{l}</button>)}</div>}
       {cur === 'prsh' && <Parsha {...ctx} />}{cur === 'pr' && <Prayers {...ctx} />}{cur === 'les' && <Lessons {...ctx} />}
       {cur === 'ann' && <><Announcements {...ctx} />{role !== 'sub_gabbai' && <Halacha {...ctx} />}</>}
@@ -39,7 +40,6 @@ const NUSACH = { ashkenaz: 'אשכנז', sefard: 'ספרד', edot_hamizrach: 'ע
 function Parsha({ st, set, syn }) {
   return (
     <Card title="📜 פרשת שבוע והפטרה">
-      <Switch label="הצג פרשה במסך" on={st.vis?.pr !== false} onChange={(v) => set('vis.pr', v)} />
       <Switch label="הצג בסרגל הרץ (Ticker)" on={st.tkParsha} onChange={(v) => set('tkParsha', v)} />
       <label>זיהוי הפרשה</label>
       <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`opt ${st.pMode === k ? 'on' : ''}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
@@ -95,7 +95,6 @@ function Halacha({ sid, st, set, cols }) {
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'halacha', ed.eid, f) : addItem(sid, 'halacha', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
     <Card fold title="🤖 מנהגי היום – תזכורות בתפילה (אוטומטי / ידני)">
-      <Switch label="הצגת הפס במסך" on={st.vis?.cu !== false} onChange={(v) => set('vis.cu', v)} />
       <div className="row">{[['auto', 'אוטומטי'], ['both', 'אוטומטי + ידני'], ['manual', 'ידני בלבד']].map(([k, l]) => <button key={k} className={`b ${(st.customs?.mode || 'auto') === k ? '' : 'g'}`} onClick={() => set('customs.mode', k)}>{l}</button>)}</div>
       <label>טקסט ידני (שורה לכל תזכורת)</label><TextIn area value={st.customs?.text} onSave={(v) => set('customs.text', v)} />
     </Card>
@@ -132,7 +131,7 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
   const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'announcements', ed.eid, f) : addItem(sid, 'announcements', { ...f, mode: 'block' }); ed.reset(); };
   return (<>
     {role !== 'sub_gabbai' && (feat('runningTicker')
-      ? <Card title="📣 סרגל עדכונים נע (תוכן)"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /><Switch label="הצגה" on={st.vis?.tk !== false} onChange={(v) => set('vis.tk', v)} /></Card>
+      ? <Card title="📣 סרגל עדכונים נע (תוכן)"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /></Card>
       : <Lock title="סרגל עדכונים נע" />)}
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הודעה' : '✍️ הודעה ידנית חדשה'}>
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
@@ -162,7 +161,6 @@ function Memorials({ sid, st, set, cols, feat }) {
   return (<>
     <Card title="רכיב ההנצחה">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>כותרת הבלוק: 🕯 לעילוי נשמת. ביום הפטירה העברי השם מוצג אוטומטית.</div>
-      <Switch label="הצגת פינת ההנצחה" on={st.vis?.yz !== false} onChange={(v) => set('vis.yz', v)} />
       <Switch label="הקפצה בקרוסלה ביום הפטירה" on={st.vis?.memPop !== false} onChange={(v) => set('vis.memPop', v)} />
     </Card>
     <div ref={ed.ref}>{limited ? <Lock title="הנצחות ללא הגבלה (מעל 10)" /> : (
@@ -194,7 +192,6 @@ function Refuah({ sid, st, set, cols }) {
   };
   return (<>
     <Card title="🏥 רפואה שלמה">
-      <Switch label="הצגת הבלוק במסך" on={st.vis?.rf !== false} onChange={(v) => set('vis.rf', v)} />
       <Switch label="הקפצה בקרוסלת ההודעות" on={st.vis?.rfPop !== false} onChange={(v) => set('vis.rfPop', v)} />
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת שם' : 'שם חדש'}>
