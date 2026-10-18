@@ -48,7 +48,7 @@ function Parsha({ st, set, syn }) {
       <label>כותרת משנה</label><TextIn value={st.pSub} onSave={(v) => set('pSub', v)} placeholder="שבת חתן" />
       <Switch label="להציג גם כשקופית בקרוסלה" on={st.pSlide} onChange={(v) => set('pSlide', v)} />
       <hr style={{ border: 0, borderTop: '1px solid var(--ln)', margin: '12px 0' }} />
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>ההפטרה מזוהה אוטומטית לפי הנוסח שהוגדר בהגדרות מערכת ({NUSACH[syn.nusach] || 'אשכנז'}), בלי מספרי פסוקים.</div>
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>ההפטרה מזוהה אוטומטית לפי פרופיל המנהג שנבחר בלשונית זמני תפילות ({NUSACH[syn.nusach] || 'אשכנז'}), בלי מספרי פסוקים.</div>
       <Switch label="הצג הפטרה במסך" on={st.hfShow} onChange={(v) => set('hfShow', v)} />
       <label>עריכת הפטרה ידנית (שבתות מיוחדות, שבת חתן)</label><TextIn value={st.hfText} onSave={(v) => set('hfText', v)} placeholder="למשל: שמואל א׳" />
     </Card>);
