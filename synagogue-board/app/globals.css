@@ -416,3 +416,13 @@ label{font-size:13px;color:var(--mu)}
 .svchip{font-size:12px;padding:4px 10px;border-radius:14px;background:var(--cd);border:1px solid var(--ln);white-space:nowrap}
 .svchip.ok{color:#2e9e5b}.svchip.err{color:#d9534f}
 .srch{margin-bottom:10px}
+.ptb2 .pti{display:flex;flex-direction:column;align-items:center;gap:.4cqh}
+.ptb2 .ptti{margin:0;font-size:min(5.2cqh,3.6cqw);font-weight:900;line-height:1;color:#3a2606;text-shadow:0 .06cqw 0 #fff8,0 .1cqw .3cqw #b58a2c66;letter-spacing:.02em}
+.ptb .ptti,.popup .ptti{display:none}
+.rl-times{overflow:hidden}
+.rl-top{min-width:0}.rl-date{min-width:0}
+.rl-times b.mt{display:flex!important;flex-direction:column;align-items:center;line-height:1.05}
+.rl-times b.mt span{display:block;font-size:.84em}
+.rl-times b:not(.mt) span{display:inline}
+.rl-top:not(.ps) .rl-times b.mt span{font-size:.62em}
+.prhd .tag{flex:0 0 auto;width:auto;padding:2px 8px}

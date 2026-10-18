@@ -21,8 +21,7 @@ function PickText({ label, value, def, opts, onSave }) {
     {custom && <TextIn value={cur} onSave={onSave} placeholder={def} />}
   </>);
 }
-const PRESETS = [['מקדש ומלכות', { theme: 'gold', frame: 'clean', cardStyle: 'gold', tbg: 'temple', bg: '' }], ['אבני הכותל ועץ זית', { theme: 'classic', frame: 'clean', cardStyle: 'stone', tbg: 'stone', bg: '' }], ['זהב קלאסי', { theme: 'gold', frame: 'clean', cardStyle: 'clean', tbg: 'gold', bg: '' }], ['מודרני נקי', { theme: 'modern', frame: 'clean', cardStyle: 'glass', tbg: 'modern', bg: '' }]];
-const TBGS = [['', 'אוטומטי לפי ערכת נושא'], ['none', 'ללא תמונת רקע'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
+const TBGS = [['', 'אוטומטי'], ['none', 'ללא תמונת רקע'], ['temple', 'מקדש ומלכות'], ['stone', 'אבני הכותל'], ['gold', 'זהב קלאסי'], ['modern', 'מודרני נקי']];
 const COMPS = [['pr', 'פרשה והפטרה'], ['ann', 'הודעות ושיעורים'], ['hal', 'הלכה ומנהגים'], ['mem', 'הנצחות'], ['rf', 'רפואה שלמה']];
 /** Paging only (fonts / slide times / sizes live in the single per-block accordion). */
 function CompStyles({ st, set }) {
@@ -45,19 +44,16 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
   const V = [['cr', 'כותרת בית הכנסת (שם + איור)'], ['hd', 'תאריך עברי ולועזי'], ['pt', 'זמני תפילות בכותרת העליונה'], ['zm', 'זמני היום (סרגל תחתון)'], ['tk', 'סרגל עדכונים רץ (תחתון)'], ['pr', 'פרשת השבוע והפטרה'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות']];
   const BAR = ['cr', 'hd', 'pt', 'zm', 'tk'], VB = V.filter(([k]) => BAR.includes(k)), VC = V.filter(([k]) => !BAR.includes(k));
   const shown = V.filter(([k]) => st.vis?.[k] !== false).length;
-  const RESET = ['theme', 'layout', 'frame', 'cardStyle', 'zoom', 'anim', 'accent', 'bg', 'tbg', 'side', 'vis', 'cf', 'blocks', 'ipp', 'lpp', 'fsAll', 'hdMode', 'btMode', 'subtitle', 'footerText'];
+  const RESET = ['layout', 'frame', 'cardStyle', 'zoom', 'anim', 'accent', 'bg', 'tbg', 'side', 'sideH', 'vis', 'cf', 'blocks', 'ipp', 'lpp', 'fsAll', 'hdMode', 'btMode', 'subtitle', 'footerText'];
   const [pv, setPv] = useState(false);
   return (<>
     <details className="cd fold" open={pv} onToggle={(e) => setPv(e.currentTarget.open)}><summary>👁 תצוגה מקדימה חיה (בתוך הדף)</summary>{pv && <InlinePreview sid={sid} />}</details>
-    <Card fold open title="🎨 ערכות נושא ודגמי מסך">
-      <label>ערכת נושא מלאה (בלחיצה אחת: צבעים, מסגרת וקוביות)</label>
-      <div className="grid2">{PRESETS.map(([l, p]) => <button key={l} type="button" className={`opt ${Object.entries(p).every(([k, v]) => st[k] === v) ? 'on' : ''}`} onClick={() => Object.entries(p).forEach(([k, v]) => set(k, v))}>{l}</button>)}</div>
+    <Card fold open title="🎨 דגם וסגנון המסך">
       {royal && <div style={{ color: 'var(--mu)', fontSize: 13 }}>במצב ״מקדש ומלכות״ העיצוב (קלף וזהב) קבוע. ניתן לשנות כאן גודל, מיקום וסדר בלבד.</div>}
       <label>דגם פריסת מסך</label><div className="grid2">{LAYOUTS.map(([k, l]) => <button key={k} type="button" className={`opt ${String(st.layout) === k ? 'on' : ''}`} onClick={() => set('layout', k)}>{l}</button>)}</div>
       {!royal && <><label>סגנון עיצוב הקוביות</label><div className="grid2">{[['gold', 'זהב יוקרתי'], ['stone', 'אבן ירושלמית'], ['glass', 'זכוכית מודרנית'], ['trad', 'מסורתי / תשמישי קדושה'], ['clean', 'נקי ומודרני']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.cardStyle || 'clean') === k ? 'on' : ''}`} onClick={() => set('cardStyle', k)}>{l}</button>)}</div></>}
       {!royal && <><label>סגנון מסגרת ועיטורים</label><div className="grid2">{[['royal', 'זהב מלכותי'], ['stone', 'אבני הכותל'], ['temple', 'היכל ובית המקדש'], ['ornament', 'ערבסק / תחרה'], ['clean', 'נקי / ללא מסגרת']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.frame || 'royal') === k ? 'on' : ''}`} onClick={() => set('frame', k)}>{l}</button>)}</div></>}
-      <label>תמונת רקע של ערכת נושא</label><div className="grid2">{TBGS.map(([k, l]) => <button key={k} type="button" className={`opt ${(st.tbg || '') === k ? 'on' : ''}`} onClick={() => { set('tbg', k); if (k) set('bg', ''); }}>{l}</button>)}</div>
-      <label>ערכת נושא</label><Btns k="theme" opts={[['gold', 'זהב מלכותי'], ['classic', 'שיש קלאסי'], ['modern', 'מודרני כהה']]} />
+      <label>סגנון עיצוב ורקע המסך</label><div className="grid2">{TBGS.map(([k, l]) => <button key={k} type="button" className={`opt ${(st.tbg || '') === k ? 'on' : ''}`} onClick={() => { set('tbg', k); if (k) set('bg', ''); }}>{l}</button>)}</div>
       <label>זום כללי למסך</label><Btns k="zoom" opts={[[1, 'רגיל'], [1.25, 'גדול'], [1.5, 'ענק']]} />
       <label>אפקט מעבר</label><Btns k="anim" opts={[['fade', 'דהייה'], ['slide', 'החלקה'], ['none', 'ללא']]} />
       <label>צבע מבטא</label><div className="row"><DebIn type="color" value={st.accent || "#f2c85b"} onChange={(x) => set("accent", x)} />{st.accent && <button className="b g" onClick={() => set('accent', '')}>איפוס</button>}</div>
@@ -65,7 +61,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
     </Card>
     <Card fold title="🔝 סרגלים וכותרות (עליון ותחתון)">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>כאן נמצאות כל הגדרות הסרגלים: טקסט, אופן תצוגה (קבוע/רץ) והצגה. את הטקסטים והזמנים עצמם מנהלים בלשונית ״תוכן המסך״.</div>
-    <label>כותרת עליונה (ריק = שם בית הכנסת)</label><TextIn value={st.title} onSave={(v) => set('title', v)} /><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
+    <div style={{ color: 'var(--mu)', fontSize: 13 }}>שם בית הכנסת נערך במקום אחד: ״הגדרות מערכת״ › בית הכנסת.</div><PickText label="כותרת משנה במסך מקדש ומלכות" value={st.subtitle} def="תורה · תפילה · חסד" opts={['תורה · תפילה · חסד', 'תורה · עבודה · גמילות חסדים', 'קהילה · תורה · תפילה', 'מקום של תורה ותפילה']} onSave={(v) => set('subtitle', v)} />
       <PickText label="טקסט קבוע בסרגל התחתון" value={st.footerText} def="עם ישראל חי" opts={['עם ישראל חי', 'שבת שלום', 'שנה טובה ומתוקה', 'חזק וברוך']} onSave={(v) => set('footerText', v)} />
       <label>אופן תצוגת הסרגלים (מקדש ומלכות)</label>
       <div className="row"><div><label>סרגל כותרת עליון (זמני תפילות)</label><select value={st.hdMode || 'static'} onChange={(e) => set('hdMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div><div><label>סרגל כותרת תחתון (זמני היום)</label><select value={st.btMode || 'static'} onChange={(e) => set('btMode', e.target.value)}><option value="static">קבוע (סטטי)</option><option value="marquee">רץ (Marquee)</option></select></div></div>
@@ -73,7 +69,12 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
     </Card>
     <Card fold title={`👁 רכיבי תוכן גלויים · ${shown} מתוך ${V.length} מוצגים`}><div style={{ color: 'var(--mu)', fontSize: 13 }}>הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
     <CompStyles st={st} set={set} />
-    <Card fold title="📐 רוחב עמודות הצד"><Range label="רוחב %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} /></Card>
+    <Card fold title="📐 גודל עמודות הצד">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>משפיע חי על המסך. הרוחב משנה את עמודת ההנצחות/רפואה שלמה והפאנל המרכזי מתאים את עצמו. למידות של קובייה בודדת – ״התאמה אישית לפי קובייה״.</div>
+      <Range label="רוחב עמודות הצד %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} />
+      <Range label="גובה קוביות הצד % (מקדש ומלכות)" min={60} max={115} value={st.sideH || 100} onChange={(v) => set('sideH', v)} />
+      <button className="b g" onClick={() => { set('side', 32); set('sideH', 100); }}>איפוס מידות</button>
+    </Card>
     <details className="cd fold"><summary>🧩 התאמה אישית לפי קובייה (מידות, גופן, צבעים, זמן שקופית)</summary>
       <BlockDesignAccordion st={st} set={set} sid={sid} royal={royal} />
     </details>

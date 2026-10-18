@@ -5,6 +5,7 @@ import { SCREEN_NAMES } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
 import { gem, hebOf, holNames, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, rdOf, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
+import ZmanimCard from '../components/ZmanimCard';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => { if (confirm('למחוק? הפעולה אינה ניתנת לשחזור.')) onClick(); }}>מחק</button>;
@@ -219,6 +220,7 @@ function Prayers({ sid, cols, st, set, syn }) {
   const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
   return (<>
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לסמן אם להציג אותה בסרגל הכותרת העליון ו/או במסך המלא של זמני התפילות.</p>
+    <ZmanimCard sid={sid} syn={syn} st={st} set={set} />
     <Card title="⏰ אופן הצגת זמני התפילות">
       <label>שקופית זמני תפילות</label>
       <select value={st.ptAll?.mode === 'full' ? 'popup' : st.ptAll?.mode || 'off'} onChange={(e) => set('ptAll.mode', e.target.value)}><option value="off">כבוי – זמני התפילות בסרגל העליון בלבד</option><option value="block">בלוק בקרוסלה – כל תפילות היום יחד</option><option value="popup">מסך מלא – מגילת קלף מלכותית (כל תפילות היום)</option></select>
@@ -228,10 +230,18 @@ function Prayers({ sid, cols, st, set, syn }) {
     {pr.map((r, ri) => (
       <div key={r.id} draggable onDragStart={() => setDrag(ri)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) moveTo(drag, ri); setDrag(null); }} style={drag === ri ? { opacity: 0.5 } : undefined}>
       <Card>
-        <div className="row"><span title="גרור לשינוי סדר" style={{ cursor: 'grab', flex: '0 0 auto' }}>⠿</span><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === 0} onClick={() => moveTo(ri, ri - 1)}>⬆️</button><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === pr.length - 1} onClick={() => moveTo(ri, ri + 1)}>⬇️</button><span className="tag">{ri + 1}</span><b style={{ flex: '2 1 120px' }}>{r.name}</b><span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join(' · ') : DAYS[pdayOf(r)]}</span><span style={{ direction: 'ltr' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>{r.note && <small style={{ color: 'var(--mu)' }}>{r.note}</small>}</div>
-        <div className="row"><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
-          <Edit on={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} /><Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
-        {open === r.id && (
+        <div className="row prhd" onClick={() => setOpen(open === r.id ? null : r.id)} style={{ cursor: 'pointer' }}>
+          <span title="גרור לשינוי סדר" style={{ cursor: 'grab', flex: '0 0 auto' }} onClick={(e) => e.stopPropagation()}>⠿</span><span className="tag">{ri + 1}</span>
+          <b style={{ flex: '2 1 110px' }}>{r.name}</b>
+          <span style={{ direction: 'ltr', flex: '0 0 auto' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>
+          <span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join('·') : DAYS[pdayOf(r)]}</span>
+          {(r.bar ?? (r.show ?? 'bar') === 'bar') && <span className="tag ok" title="מוצג בסרגל העליון">סרגל</span>}{['block', 'full'].includes(r.show) && <span className="tag ok" title="מוצג במסך המלא">מסך מלא</span>}
+          <span style={{ flex: '0 0 auto', color: 'var(--mu)' }}>{open === r.id ? '▲' : '▼'}</span>
+        </div>
+        {open === r.id && <>
+        <div className="row" style={{ marginTop: 8 }}><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === 0} onClick={() => moveTo(ri, ri - 1)}>⬆️</button><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === pr.length - 1} onClick={() => moveTo(ri, ri + 1)}>⬇️</button>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
+          <Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
           <div className="prayed">
             <b className="sech">① שם וזמן</b>
             <div className="row"><div style={{ flex: '2 1 160px' }}><label>שם התפילה</label><TextIn value={r.name} onSave={(v) => updItem(sid, 'prayers', r.id, { name: v })} /></div>
@@ -243,7 +253,7 @@ function Prayers({ sid, cols, st, set, syn }) {
             <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} />
             <b className="sech">③ הערה</b>
             <TextIn value={r.note} placeholder="הערה (רשות) – תוצג ליד הזמן" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
-          </div>)}
+          </div></>}
       </Card></div>))}
     <button className="b" onClick={async () => { const d = await addItem(sid, 'prayers', { order: pr.length + 1, name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true }); setOpen(d.id); }}>+ הוסף תפילה</button>
     <h3 style={{ margin: '14px 0 6px' }}>דריסת זמן נקודתית</h3>

@@ -24,14 +24,14 @@ function blockStyle(st, k, t, base) {
   return o;
 }
 /** Royal layout: apply admin box settings (width/height % where 50 = auto, colours) on top of the fixed mockup box. */
-function royBox(st, k, l, t, w, h, anchor = 'c') {
-  const b = st.blocks?.[k] || {}, lb = b['L' + String(st.layout || '1')] || {}, fw = (lb.w ?? 50) / 50, fh = (lb.h ?? 50) / 50; // size overrides are stored per layout (L1..L4) so one layout's tweaks never break another
+function royBox(st, k, l, t, w, h, anchor = 'c', mul = null, force = false) {
+  const b = st.blocks?.[k] || {}, lb = b['L' + String(st.layout || '1')] || {}, fw = ((lb.w ?? 50) / 50) * (mul?.w || 1), fh = ((lb.h ?? 50) / 50) * (mul?.h || 1); // size overrides are stored per layout (L1..L4) so one layout's tweaks never break another
   const nw = Math.min(w * fw, 100), nh = Math.min(h * fh, 100);
   const nl = Math.max(0, Math.min(100 - nw, anchor === 'l' ? l : anchor === 'r' ? l + w - nw : l + (w - nw) / 2)), nt = Math.max(0, Math.min(100 - nh, t + (h - nh) / 2));
   const style = { position: 'absolute', left: nl + '%', top: nt + '%', width: nw + '%', height: nh + '%', flex: 'none', alignSelf: 'auto' };
   const cls = [];
   if (b.tx) { style['--ctx'] = b.tx; cls.push('rl-ctx'); }
-  const resized = fw !== 1 || fh !== 1;
+  const resized = force || Math.abs(fw - 1) > 1e-6 || Math.abs(fh - 1) > 1e-6;
   if (resized) cls.push('rl-sized');
   // the parchment frames are baked into the background image: when a block is resized, hide the baked frame and let the block draw its own
   const ghost = resized ? { position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' } : null;
@@ -228,7 +228,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const isAm = (r) => { const m = /(\d+):(\d+)/.exec(tOf(r) || ''); return m ? +m[1] < 13 : /שחרית|מוסף/.test(r.name); };
     const am = ptRows.filter(isAm), pm2 = ptRows.filter((r) => !isAm(r));
     const card = (r) => <div className="ptc" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>;
-    const ico = <div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div>;
+    const ico = <div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /><h2 className="ptti">זמני תפילות</h2></div>;
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
       const two = am.length && pm2.length, mx = Math.max(am.length, pm2.length, 1);
@@ -269,7 +269,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   const ci = chagInfo(now, z, st.candle), rtOn = sh || z.dow === 6 || ci.chag; // Rabbeinu Tam only on Shabbat / Yom Tov
   if (rtOn && zOpts(st).rt) zr.push(['רבינו תם', fmt(z.rt)]);
   if (z.dow === 5 && z.shkia) zr.push(['הדלקת נרות', fmt(z.shkia.minus({ minutes: st.candle }))]);
-  const crown = V('cr') && <Blk {...B({ id: 'cr', t: 'x', b: 2.3, cls: 'crown', fit: false, mult: LM === '3' ? 1.6 : 1, style: LM === '3' ? { padding: '.3em 2.6em' } : null })}>👑 {st.title || syn.name} 👑</Blk>;
+  const crown = V('cr') && <Blk {...B({ id: 'cr', t: 'x', b: 2.3, cls: 'crown', fit: false, mult: LM === '3' ? 1.6 : 1, style: LM === '3' ? { padding: '.3em 2.6em' } : null })}>👑 {syn.name} 👑</Blk>;
   const hd = V('hd') && (
     <Blk {...B({ id: 'hd', t: 'x', b: 6, cls: 'hd' })}>
       <div className="dt">{integ && <em className="ptl">{ptitle}</em>}<b>{gem(h.d)} ב{monthName(h.raw)}</b><small>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}{integ && st.pSub ? ' · ' + st.pSub : ''}</small></div>
@@ -331,26 +331,32 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
     const hdM = st.hdMode === 'marquee', btM = st.btMode === 'marquee';
     const SEP = ' ✦ ', zText = zl.map(([n, t]) => `${n}: ${fmt(t)}`).join(SEP);
     const fitCw = (t) => Math.max(0.9, Math.min(1.9, 40 / Math.max(10, t.length * 0.5))) + 'cqw';
+    // side-column width/height sliders: the column grows/shrinks and the main panel takes (or gives back) the difference
+    const sdF = Math.max(0.5, Math.min(1.6, (st.side ?? 32) / 32)), sdH = Math.max(0.5, Math.min(1.2, (st.sideH || 100) / 100));
+    const sa = (cw, mw) => { const d = Math.max(-cw * 0.5, Math.min(cw * (sdF - 1), mw - 24)); return { d: Math.abs(d) < 0.01 ? 0 : d, m: { w: 1 + d / cw, h: sdH } }; };
+    const gh = (l, t, w, h) => ({ position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' }), mnNom = m4 ? [28.56, 21.9, 62.3, 66.4] : m2 ? [50.5, 22.1, 37.6, 64.6] : [50.5, 37.8, 37.6, 48.8];
     const RB = m4
-      ? { mn: royBox(st, 'mn', 28.56, 21.9, 62.3, 66.4, 'r'), yz: royBox(st, 'yz', 9.16, 21.9, 18.7, 21.2, 'l'), rf: royBox(st, 'rf', 9.16, 44.4, 18.7, 21.2, 'l'), qr: royBox(st, 'qr', 9.16, 66.9, 18.7, 21.2, 'l'), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
+      ? { mn: royBox(st, 'mn', 28.56 + sa(18.7, 62.3).d, 21.9, 62.3 - sa(18.7, 62.3).d, 66.4, 'r', null, sa(18.7, 62.3).d !== 0), yz: royBox(st, 'yz', 9.16, 21.9, 18.7, 21.2, 'l', sa(18.7, 62.3).m), rf: royBox(st, 'rf', 9.16, 44.4, 18.7, 21.2, 'l', sa(18.7, 62.3).m), qr: royBox(st, 'qr', 9.16, 66.9, 18.7, 21.2, 'l', sa(18.7, 62.3).m), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
       : m2
-      ? { mn: royBox(st, 'mn', 50.5, 22.1, 37.6, 64.6, 'r'), yz: royBox(st, 'yz', 12.7, 22.1, 35.6, 31.6, 'l'), rf: royBox(st, 'rf', 12.7, 55.2, 35.6, 31.5, 'l'), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
-      : { mn: royBox(st, 'mn', 50.5, 37.8, 37.6, 48.8, 'r'), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l'), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l'), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
+      ? { mn: royBox(st, 'mn', 50.5 + sa(35.6, 37.6).d, 22.1, 37.6 - sa(35.6, 37.6).d, 64.6, 'r', null, sa(35.6, 37.6).d !== 0), yz: royBox(st, 'yz', 12.7, 22.1, 35.6, 31.6, 'l', sa(35.6, 37.6).m), rf: royBox(st, 'rf', 12.7, 55.2, 35.6, 31.5, 'l', sa(35.6, 37.6).m), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
+      : { mn: royBox(st, 'mn', 50.5 + sa(35.5, 37.6).d, 37.8, 37.6 - sa(35.5, 37.6).d, 48.8, 'r', null, sa(35.5, 37.6).d !== 0), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l', sa(35.5, 37.6).m), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l', sa(35.5, 37.6).m), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
     const fb = (k) => ((st.blocks?.[k]?.fs ?? st.fsAll ?? 18) / 18), pf = fb('pr').toFixed(3);
     body = <div className="rl">
       <div className={'rl-top ' + (ps ? 'ps ' : '') + RB.hd.cls} style={{ ...RB.hd.style, '--hs': fb('hd').toFixed(3) }}>
         {V('hd') && <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>}
-        {V('pt') && (() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b>{[...g.t].sort().join(' · ')}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
+        {V('pt') && (() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b className={g.t.length > 1 ? 'mt' : undefined}>{[...g.t].sort().map((t, i) => <span key={i}>{t}</span>)}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
           const len = Object.entries(rg).reduce((a, [k, g]) => a + k.length + [...g.t].join(' · ').length, 0);
-          return hdM
+          const hdAuto = hdM || bn > (ps ? 6 : 8); // too many/long times -> scroll instead of overlapping
+          return hdAuto
             ? <div className="rl-times rl-mq"><div className="in" style={{ animationDuration: Math.max(18, len * 0.5) + 's' }}>{items}</div></div>
-            : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * Math.max(5, ...Object.values(rg).map((g) => [...g.t].sort().join(' · ').length)))).toFixed(2) + 'cqw' }}>{items}</div>; })()}
+            : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * 5)).toFixed(2) + 'cqw' }}>{items}</div>; })()}
         {ps && V('pr') && <div className="rl-ps" style={{ '--pf': pf }}><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div></div>}
-        {V('cr') && <div className="rl-name"><div><em>בית הכנסת</em><b>{(st.title || syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>}
+        {V('cr') && <div className="rl-name"><div><em>בית הכנסת</em><b>{(syn.name || '').replace(/^בית הכנסת\s*/, '')}</b><small>{st.subtitle || 'תורה · תפילה · חסד'}</small></div><img src="/images/icons/synagogue_illustration.png" alt="" /></div>}
       </div>
       {!ps && V('pr') && <div className={'rl-parsha ' + RB.pr.cls} style={{ ...RB.pr.style, '--pf': pf }}><i>❧</i><div className="rl-pt"><b>{ptitle || syn.name}</b>{hText && <small>❦ הפטרה: {hText} ❦</small>}</div><i style={{ transform: 'scaleX(-1)' }}>❧</i></div>}
       {!ps && !V('pr') && <div className="rl-ghost" style={RB.pr.hide} />}
       {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
+      {RB.mn.ghost && Math.abs(sa(m4 ? 18.7 : m2 ? 35.6 : 35.5, m4 ? 62.3 : 37.6).d) > 0 && <div className="rl-ghost" style={gh(mnNom[0], mnNom[1], mnNom[2], mnNom[3])} />}
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
       {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
@@ -380,9 +386,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
   }
   const frame = st.vis?.frm === false ? 'clean' : st.frame || 'royal';
   const style = { fontSize: fs, ...(royal ? { backgroundImage: `url(/images/templates/${LM === '2' ? 'royal_bg_m2' : LM === '4' ? 'royal_bg_m4' : 'royal_bg'}.png)`, backgroundSize: '100% 100%' } : tbgOn ? { backgroundImage: `url(${tbgSrc})` } : {}), '--u': fs + 'px', ...(st.accent ? { '--dac': st.accent, '--dac2': st.accent } : {}),
-    ...(st.bg ? { background: `linear-gradient(${st.theme === 'classic' ? '#fffc,#fffc' : '#000a,#000c'}),url(${st.bg}) center/cover` } : {}) };
+    ...(st.bg ? { background: `linear-gradient(${'#000a,#000c'}),url(${st.bg}) center/cover` } : {}) };
   return (
-    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t={st.theme} data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
+    <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t="gold" data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
       {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.5 }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}</span>}

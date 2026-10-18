@@ -51,21 +51,6 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } 
           <div><label>גובה (מ׳)</label><input type="number" defaultValue={loc.elevation || 0} onBlur={(e) => save({ 'location.elevation': +e.target.value })} /></div></div></details>
     </Card>
     <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
-    <Card fold title="זמני היום">
-      <label>הדלקת נרות (דקות לפני שקיעה)</label><input type="number" defaultValue={st.candle} onBlur={(e) => set('candle', +e.target.value)} />
-      <label>נוסח / מנהג</label><select value={syn.nusach || 'ashkenaz'} onChange={(e) => save({ nusach: e.target.value })}><option value="ashkenaz">אשכנז</option><option value="sefard">ספרד</option><option value="edot_hamizrach">עדות המזרח</option></select>
-      <label>פרופיל מוכן (קובע ברירות מחדל, אפשר לכוונן)</label>
-      <div className="row">{[['ashkenaz', 'אשכנז / גר״א', { shma: 'gra', tzeit: '40', rt: false }], ['hasidic', 'מג״א / חסידי', { shma: 'mga', tzeit: '40', rt: true }], ['sefard', 'ספרד ועדות המזרח', { shma: 'gra', tzeit: '13.5z', rt: false }]].map(([k, l, p]) => <button key={k} className={`b ${zm.profile === k ? '' : 'g'}`} onClick={() => set('zm', { ...zm, profile: k, ...p })}>{l}</button>)}</div>
-      <label>סוף זמן קריאת שמע</label>
-      <div className="row">{[['gra', 'גר״א'], ['mga', 'מג״א'], ['both', 'שתי השיטות']].map(([k, l]) => <button key={k} className={`b ${(zm.shma || st.shma || 'gra') === k ? '' : 'g'}`} onClick={() => set('zm.shma', k)}>{l}</button>)}</div>
-      <label>צאת הכוכבים / יציאת שבת</label>
-      <select value={zm.tzeit || '8.5'} onChange={(e) => set('zm.tzeit', e.target.value)}><option value="8.5">8.5 מעלות</option><option value="13.5z">13.5 דקות זמניות</option><option value="20">20 דקות מהשקיעה</option><option value="30">30 דקות מהשקיעה</option><option value="40">40 דקות מהשקיעה</option></select>
-      <Switch label="הצג זמן רבינו תם (72 דקות)" on={!!zm.rt} onChange={(v) => set('zm.rt', v)} />
-      <Switch label="הצג נץ החמה הנראה (טופוגרפי)" on={zm.netzVisible !== false} onChange={(v) => set('zm.netzVisible', v)} />
-      <label>זמני היום בסרגל התחתון (מקדש ומלכות · תצוגה קבועה)</label>
-      {[['n', 'זריחה (נץ החמה)'], ['s', 'סוף זמן ק״ש'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם (בשבת / לפי ההגדרה)']].map(([k, l]) => <Switch key={k} label={l} on={zm.bi?.[k] !== false} onChange={(v) => set(`zm.bi.${k}`, v)} />)}
-      <Switch label="הצג זמני שבת/חג (ידני, לחגים)" on={st.force} onChange={(v) => set('force', v)} />
-    </Card>
     <Card fold title="💾 גיבוי ושחזור">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>קובץ אחד עם כל ההגדרות והתכנים (תפילות, הנצחות, הודעות, שיעורים וכו׳). מומלץ לשמור גיבוי לפני שינויים גדולים.</div>
       <div className="row"><button className="b" onClick={exportAll}>⬇ הורד גיבוי</button><label className="b g" style={{ textAlign: 'center', cursor: 'pointer' }}>⬆ שחזר מקובץ<input type="file" accept="application/json" hidden onChange={(e) => { importAll(e.target.files[0]); e.target.value = ''; }} /></label></div>

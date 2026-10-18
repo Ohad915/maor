@@ -168,7 +168,7 @@ async function build({ syn, cols, st }, kind, opt) {
   const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: l.rabbi || '', time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
   const ann = opt.ann ? (cols.announcements || []).filter((a) => (a.mode ?? (a.on === false ? 'off' : 'block')) !== 'off' && annOn(a, hn)).slice(0, 3).map((a) => a.title + ((a.content || '').split('\n')[0] ? ' · ' + a.content.split('\n')[0].slice(0, 56) : '')) : [];
   const sel = (z) => (zo.shma === 'mga' ? ['סוף זמן ק״ש (מג״א)', fmt(z.shmaMga)] : ['סוף זמן ק״ש', fmt(z.shma)]);
-  const base = { name: st.title || syn.name, lessons, ann };
+  const base = { name: syn.name, lessons, ann };
   if (kind === 'shabbat') {
     const pi = parshaInfo(sat, 6, false), hs = hebOf(sat, false);
     const haf = st.waHaftara === false ? '' : st.hfText || (await haftaraHe(rdOf(sat), syn.nusach));
