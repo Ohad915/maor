@@ -41,11 +41,17 @@ function Panel({ sid, role, superMode }) {
   useEffect(() => {
     const root = document.querySelector('.admin-root .w'); if (!root) return;
     const q = qs.trim();
-    const run = () => root.querySelectorAll('.cd').forEach((c) => {
+    // word-stem match: "שיעור תורה" also finds "שיעורי תורה"; every word must appear
+    const toks = q.split(/\s+/).filter(Boolean).map((t) => (t.length > 3 ? t.slice(0, -1) : t));
+    const match = (txt) => toks.every((t) => txt.includes(t));
+    let hits = 0;
+    const run = () => { hits = 0; root.querySelectorAll('.cd').forEach((c) => {
       if (c.parentElement?.closest('.cd')) return;
-      const hit = !q || c.textContent.includes(q); c.style.display = hit ? '' : 'none';
+      const hit = !q || match(c.textContent); c.style.display = hit ? '' : 'none'; if (hit) hits++;
       if (c.tagName === 'DETAILS' && q && hit && !c.open) c.open = true;
     });
+    // nothing in this view: jump to the content sub-tab whose name matches
+    if (q && !hits) { const pill = [...root.querySelectorAll('.pills button')].find((b) => match(b.textContent) && !b.classList.contains('on')); if (pill) pill.click(); } };
     run(); if (!q) return;
     const mo = new MutationObserver(() => { mo.disconnect(); run(); mo.observe(root, { childList: true, subtree: true }); });
     mo.observe(root, { childList: true, subtree: true }); return () => mo.disconnect();

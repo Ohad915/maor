@@ -346,7 +346,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview }) {
         {V('hd') && <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>}
         {V('pt') && (() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b className={g.t.length > 1 ? 'mt' : undefined}>{[...g.t].sort().map((t, i) => <span key={i}>{t}</span>)}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
           const len = Object.entries(rg).reduce((a, [k, g]) => a + k.length + [...g.t].join(' · ').length, 0);
-          const hdAuto = hdM || bn > (ps ? 6 : 8); // too many/long times -> scroll instead of overlapping
+          const hdAuto = hdM || bn > (ps ? 6 : 8) || Object.values(rg).some((g) => g.t.length > 2); // too many/long times -> scroll instead of overlapping
           return hdAuto
             ? <div className="rl-times rl-mq"><div className="in" style={{ animationDuration: Math.max(18, len * 0.5) + 's' }}>{items}</div></div>
             : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * 5)).toFixed(2) + 'cqw' }}>{items}</div>; })()}

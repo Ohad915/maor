@@ -421,8 +421,31 @@ label{font-size:13px;color:var(--mu)}
 .ptb .ptti,.popup .ptti{display:none}
 .rl-times{overflow:hidden}
 .rl-top{min-width:0}.rl-date{min-width:0}
-.rl-times b.mt{display:flex!important;flex-direction:column;align-items:center;line-height:1.05}
-.rl-times b.mt span{display:block;font-size:.84em}
 .rl-times b:not(.mt) span{display:inline}
-.rl-top:not(.ps) .rl-times b.mt span{font-size:.62em}
 .prhd .tag{flex:0 0 auto;width:auto;padding:2px 8px}
+
+/* several times for one prayer: side by side on one line (never stacked / overlapping) */
+.rl-times b.mt{display:flex!important;flex-direction:row;justify-content:center;align-items:baseline;gap:.35em;line-height:1.1;white-space:nowrap}
+.rl-times b.mt span{display:inline;font-size:.74em}
+.rl-times b.mt span+span::before{content:'·';margin-inline-end:.35em;opacity:.6}
+.rl-times>div{display:flex;flex-direction:column;justify-content:center}
+/* bottom bar: centred vertically, never clipped, kept clear of the clock / name caps */
+.rl-bot .rl-stat{align-items:center;line-height:1.3;padding-block:0!important}
+.rl-stat.rl-mq{line-height:normal!important;display:flex!important;align-items:center;direction:ltr!important}
+.rl-stat.rl-mq>.in{display:inline-block;line-height:1.35;padding-left:100%;height:auto;white-space:nowrap}
+.rl-bot{overflow:hidden}
+/* royal full-screen prayer times: fit icon + title + cards inside the scroll with a safe bottom margin */
+.rl-sc-card{height:56%;padding-bottom:1cqh;overflow:hidden}
+.ptb2{gap:.8cqh}
+.ptb2 .pti img{height:min(8cqh,6.5cqw)}
+.ptb2 .ptti{font-size:min(4.2cqh,3cqw)}
+.ptb2 .ptg{gap:0 1.2cqw}
+.ptb2 .ptcol{gap:.9cqh}
+.ptb2 .ptc b{font-size:clamp(1.5cqh,calc(8.6cqh / var(--m)),3.2cqh)}
+.ptb2 .ptc i{font-size:clamp(1.8cqh,calc(12.4cqh / var(--m)),5cqh)}
+/* prayer-times block inside the main panel: always fits (icon never clipped, rows shrink with their count) */
+.rl-main .ptb{justify-content:safe center;gap:.8cqh}
+.rl-main .ptb .pti img{height:min(7.5cqh,7cqw)}
+.rl-main .ptl3{gap:.7cqh}
+.rl-main .ptr b{font-size:clamp(1.4cqh,calc(16cqh / var(--n)),5.2cqh)}
+.rl-main .ptr i{font-size:clamp(1.6cqh,calc(19cqh / var(--n)),6cqh)}
