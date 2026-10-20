@@ -7,6 +7,7 @@ import { auth, db } from '@/lib/firebase';
 import { geocode } from '@/lib/geocode';
 import { SCREENS, SCREEN_NAMES } from '@/lib/types';
 import { Card, Switch, TextIn } from '../components/UI';
+import ScreenLink from '../components/ScreenLink';
 
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
 function JoinCard({ sid }) {
@@ -93,10 +94,11 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } 
       {bk && <div style={{ fontSize: 13 }}>{bk}</div>}
     </Card>
     <Card fold title="מסכים">
+      <div style={{ marginBottom: 8 }}><ScreenLink sid={sid} /></div>
       {SCREENS.map((id) => (
         <div className="row" key={id} style={{ fontSize: 13 }}>
           <span style={{ flex: '0 0 14px' }}>{screens.some((s) => s.id === id) ? (online(id) ? '🟢' : '🔴') : '⚪'}</span><b style={{ flex: '1 1 80px' }}>{SCREEN_NAMES[id]}</b>
-          <span style={{ flex: '3 1 200px', color: 'var(--mu)', direction: 'ltr' }}>/display?s={sid}&amp;screen={id}</span>
+          <span style={{ flex: '3 1 200px', color: 'var(--mu)', direction: 'ltr' }}>/display?s={sid}&amp;screen={id}</span><ScreenLink sid={sid} screen={id} label="👁️ פתח" />
         </div>))}
       <div style={{ fontSize: 12, color: 'var(--mu)' }}>פתחו את הכתובת בדפדפן הטלוויזיה (Fully Kiosk). המסך מתחבר בעצמו.</div>
     </Card>

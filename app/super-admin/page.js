@@ -6,6 +6,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useProfile } from '@/lib/hooks';
 import { showId } from '@/lib/validate';
+import ScreenLink from '../admin/components/ScreenLink';
 import { ALL_SUBCOLS, DEFAULT_SETTINGS, PLAN_PRESETS, defaultPlan } from '@/lib/types';
 
 /** Only for role === 'super_admin'. Approve gabbaim, attach synagogues, manage plans. */
@@ -80,7 +81,7 @@ export default function SuperAdmin() {
               <button className="b" style={{ flex: '0 0 auto' }} onClick={() => r.push(`/admin?s=${s.id}`)}>כניסה כגבאי</button>
               <button className="b g" style={{ flex: '0 0 auto' }} onClick={() => freeze(s)}>{s.suspended ? 'הפשר' : 'הקפא'}</button>
               <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => removeSyn(s)}>מחק</button></div>
-            <div style={{ fontSize: 12, color: 'var(--mu)' }}>כתובת מסך: /display?s={s.id}&amp;screen=main-hall</div>
+            <div className="row" style={{ fontSize: 12, color: 'var(--mu)', alignItems: 'center' }}><span>כתובת מסך: /display?s={s.id}&amp;screen=main-hall</span><ScreenLink sid={s.id} /></div>
             <div className="row">
               <div><label>חבילה</label><select value={p.planTier} onChange={(e) => setTier(s, e.target.value)}><option value="basic">basic</option><option value="pro">pro</option><option value="premium">premium</option></select></div>
               <div><label>מסכים מורשים</label><input type="number" min="1" value={p.maxScreens} onChange={(e) => setPlan(s, { maxScreens: +e.target.value })} /></div>
