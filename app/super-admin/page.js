@@ -5,6 +5,7 @@ import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } fr
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useProfile } from '@/lib/hooks';
+import { showId } from '@/lib/validate';
 import { ALL_SUBCOLS, DEFAULT_SETTINGS, PLAN_PRESETS, defaultPlan } from '@/lib/types';
 
 /** Only for role === 'super_admin'. Approve gabbaim, attach synagogues, manage plans. */
@@ -37,6 +38,15 @@ export default function SuperAdmin() {
     // detach its gabbaim: back to pending until reassigned
     await Promise.all(users.filter((u) => u.synagogueId === s.id && u.role !== 'super_admin').map((u) => setUser(u, { synagogueId: null, status: 'pending' })));
   }
+  async function resetPw(u) {
+    if (!confirm(`לאפס את הסיסמה של ${showId(u.email)}? תיווצר סיסמה זמנית חדשה.`)) return;
+    try {
+      const res = await fetch('/api/admin/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) }, body: JSON.stringify({ uid: u.id || u.uid }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) return alert(j.error || 'האיפוס נכשל.');
+      prompt('הסיסמה הזמנית (העתיקו ומסרו למשתמש בטלפון; מומלץ שיחליף אותה בהגדרות מערכת):', j.password);
+    } catch { alert('אין חיבור לשרת.'); }
+  }
   const sorted = [...users].sort((a, b) => (a.status === 'pending' ? -1 : 1) - (b.status === 'pending' ? -1 : 1));
 
   return (
@@ -46,7 +56,7 @@ export default function SuperAdmin() {
       <h3>משתמשים ובקשות הרשמה</h3>
       {sorted.map((u) => (
         <div className="cd row" key={u.id}>
-          <div style={{ flex: '2 1 200px' }}><b>{u.email}</b><div style={{ fontSize: 12, color: 'var(--mu)' }}>{u.role}</div></div>
+          <div style={{ flex: '2 1 200px' }}><b style={{ direction: 'ltr', display: 'inline-block' }}>{showId(u.email)}</b><div style={{ fontSize: 12, color: 'var(--mu)' }}>{u.role}</div></div>
           <span className={`tag ${u.status === 'approved' ? 'ok' : u.status === 'pending' ? '' : 'bad'}`}>{u.status}</span>
           {u.role !== 'super_admin' && <>
             <select value={u.synagogueId || ''} onChange={(e) => setUser(u, { synagogueId: e.target.value || null })}>
@@ -56,6 +66,7 @@ export default function SuperAdmin() {
             <button className="b" style={{ flex: '0 0 auto' }} disabled={!u.synagogueId} onClick={() => setUser(u, { status: 'approved' })}>אשר</button>
             <button className="b g" style={{ flex: '0 0 auto' }} onClick={() => setUser(u, { status: 'suspended' })}>הקפא</button>
             <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => setUser(u, { status: 'rejected' })}>דחה</button>
+            <button className="b g" style={{ flex: '0 0 auto' }} title="יוצר סיסמה זמנית שתמסרו למשתמש בטלפון" onClick={() => resetPw(u)}>🔑 אפס סיסמה</button>
           </>}
         </div>))}
 

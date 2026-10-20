@@ -1,12 +1,27 @@
 'use client';
 import { useState } from 'react';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import { geocode } from '@/lib/geocode';
 import { SCREENS, SCREEN_NAMES } from '@/lib/types';
 import { Card, Switch, TextIn } from '../components/UI';
 
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
+function PwCard() {
+  const [o, setO] = useState(''), [n, setN] = useState(''), [m, setM] = useState('');
+  async function go() {
+    setM('');
+    if (n.length < 8 || !/[A-Za-z\u05d0-\u05ea]/.test(n) || !/\d/.test(n)) return setM('הסיסמה החדשה: 8 תווים לפחות, כולל אות ומספר.');
+    try { const u = auth.currentUser; await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, o)); await updatePassword(u, n); setO(''); setN(''); setM('הסיסמה עודכנה ✓'); }
+    catch (e) { setM(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' ? 'הסיסמה הנוכחית שגויה.' : 'העדכון נכשל: ' + (e.code || e.message)); }
+  }
+  return (<Card fold title="🔒 שינוי סיסמה">
+    <label>סיסמה נוכחית (או הזמנית שקיבלתם)</label><input type="password" autoComplete="current-password" value={o} onChange={(e) => setO(e.target.value)} />
+    <label>סיסמה חדשה</label><input type="password" autoComplete="new-password" value={n} onChange={(e) => setN(e.target.value)} />
+    <button className="b" style={{ marginTop: 8 }} onClick={go} disabled={!o || !n}>עדכן סיסמה</button>{m && <p style={{ color: m.includes('✓') ? 'var(--ok,#2e9e5b)' : 'var(--bad)' }}>{m}</p>}
+  </Card>);
+}
 export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } }) {
   const [msg, setMsg] = useState('');
   const zm = st.zm || {};
@@ -51,6 +66,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } 
           <div><label>גובה (מ׳)</label><input type="number" defaultValue={loc.elevation || 0} onBlur={(e) => save({ 'location.elevation': +e.target.value })} /></div></div></details>
     </Card>
     <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
+    <PwCard />
     <Card fold title="💾 גיבוי ושחזור">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>קובץ אחד עם כל ההגדרות והתכנים (תפילות, הנצחות, הודעות, שיעורים וכו׳). מומלץ לשמור גיבוי לפני שינויים גדולים.</div>
       <div className="row"><button className="b" onClick={exportAll}>⬇ הורד גיבוי</button><label className="b g" style={{ textAlign: 'center', cursor: 'pointer' }}>⬆ שחזר מקובץ<input type="file" accept="application/json" hidden onChange={(e) => { importAll(e.target.files[0]); e.target.value = ''; }} /></label></div>
