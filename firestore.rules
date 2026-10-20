@@ -29,6 +29,14 @@ service cloud.firestore {
       allow update, delete: if isSuper();
     }
 
+    // join codes: a main gabbai creates/rotates the code of his synagogue; the server (Admin SDK) is the only one that redeems it
+    match /joinCodes/{code} {
+      allow read: if isSuper() || (hasUser() && isGabbai(resource.data.sid));
+      allow create: if isGabbai(request.resource.data.sid) && request.resource.data.keys().hasOnly(['sid', 'createdAt']) && code.matches('[A-Z0-9]{6,20}');
+      allow delete: if isSuper() || isGabbai(resource.data.sid);
+      allow update: if false;
+    }
+
     match /synagogues/{sid} {
       allow read: if isSuper() || isMember(sid) || isScreen();
       allow create, delete: if isSuper();

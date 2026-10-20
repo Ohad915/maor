@@ -10,7 +10,7 @@ const WAIT = 'חשבונך ממתין לאישור מנהל המערכת. נשל
 
 export default function Login() {
   const r = useRouter();
-  const [mode, setMode] = useState('in'), [email, setEmail] = useState(''), [pw, setPw] = useState(''), [msg, setMsg] = useState(''), [phone, setPhone] = useState(''), [busy, setBusy] = useState(false), [ok, setOk] = useState(''), [hp, setHp] = useState(''), [wait, setWait] = useState(0);
+  const [mode, setMode] = useState('in'), [email, setEmail] = useState(''), [pw, setPw] = useState(''), [msg, setMsg] = useState(''), [phone, setPhone] = useState(''), [busy, setBusy] = useState(false), [ok, setOk] = useState(''), [hp, setHp] = useState(''), [wait, setWait] = useState(0), [sy, setSy] = useState('new'), [syName, setSyName] = useState(''), [syCity, setSyCity] = useState(''), [code, setCode] = useState('');
 
   const go = (m) => { setMode(m); setMsg(''); setOk(''); };
   async function forgot(e) {
@@ -30,12 +30,22 @@ export default function Login() {
     try {
       if (mode === 'up') {
         if (!isILMobile(phone)) return setMsg('נא להזין מספר נייד ישראלי תקין (לדוגמה 050-1234567).');
+        if (sy === 'new' && syName.trim().length < 2) return setMsg('נא להזין את שם בית הכנסת.');
+        if (sy === 'join' && code.replace(/[^A-Za-z0-9]/g, '').length < 6) return setMsg('נא להזין את קוד ההצטרפות שקיבלתם מהגבאי.');
         if (pw.length < 8 || !/[A-Za-z\u05d0-\u05ea]/.test(pw) || !/\d/.test(pw)) return setMsg('הסיסמה חייבת להכיל לפחות 8 תווים, כולל אות ומספר.');
         const em = phoneEmail(phone);
         const c = await createUserWithEmailAndPassword(auth, em, pw);
         // new gabbai: pending, no synagogue until the super admin approves (phone = the login id; no SMS / OTP involved)
         await setDoc(doc(db, 'users', c.user.uid), { uid: c.user.uid, email: em, role: 'gabbai', status: 'pending', synagogueId: null, phone: ilMobile(phone), createdAt: serverTimestamp() });
-        await signOut(auth); setMode('in'); return setMsg(WAIT);
+        // automatic linking: the server creates the synagogue / redeems the join code and writes users/{uid}.synagogueId
+        let note = WAIT;
+        try {
+          const res = await fetch('/api/auth/onboard', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await c.user.getIdToken()) }, body: JSON.stringify(sy === 'join' ? { mode: 'join', code } : { mode: 'create', name: syName, city: syCity }) });
+          const j = await res.json().catch(() => ({}));
+          if (res.ok && j.ok) note = j.status === 'approved' ? 'החשבון נוצר ושויך ל' + (j.name ? 'בית הכנסת ' + j.name : 'בית הכנסת') + ' ✓ אפשר להתחבר.' : 'החשבון ובית הכנסת נוצרו ✓ ' + WAIT;
+          else note = (j.error ? j.error + ' ' : '') + WAIT;
+        } catch { /* offline: the super admin can still link the account manually */ }
+        await signOut(auth); setMode('in'); return setMsg(note);
       }
       const lem = loginEmail(email); if (!lem) return setMsg('נא להזין מספר נייד תקין (050-1234567) או כתובת אימייל.');
       const c = await signInWithEmailAndPassword(auth, lem, pw);
@@ -66,6 +76,10 @@ export default function Login() {
           ? <input type="text" inputMode="tel" autoComplete="username" placeholder="050-1234567" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ direction: 'ltr', textAlign: 'right' }} />
           : <input type="tel" inputMode="tel" autoComplete="username" placeholder="050-1234567" value={phone} onChange={(e) => setPhone(e.target.value)} required style={{ direction: 'ltr', textAlign: 'right' }} />}
         <label>סיסמה</label><input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={pw} onChange={(e) => setPw(e.target.value)} required minLength={6} />
+        {mode === 'up' && <>
+          <div className="row" style={{ marginTop: 8 }}><button type="button" className={`b ${sy === 'new' ? '' : 'g'}`} onClick={() => setSy('new')}>בית כנסת חדש</button><button type="button" className={`b ${sy === 'join' ? '' : 'g'}`} onClick={() => setSy('join')}>הצטרפות עם קוד</button></div>
+          {sy === 'new' ? <><label>שם בית הכנסת</label><input value={syName} onChange={(e) => setSyName(e.target.value)} maxLength={80} /><label>עיר (לא חובה)</label><input value={syCity} onChange={(e) => setSyCity(e.target.value)} maxLength={60} /></>
+            : <><label>קוד הצטרפות (מהגבאי הראשי)</label><input value={code} onChange={(e) => setCode(e.target.value)} maxLength={20} style={{ direction: 'ltr', textAlign: 'right', letterSpacing: 2 }} /><div style={{ fontSize: 12, color: 'var(--mu)' }}>ההצטרפות בקוד נותנת הרשאת גבאי משנה (הודעות בלבד), באופן מיידי.</div></>}</>}
         {mode === 'up' && <div style={{ fontSize: 12, color: 'var(--mu)' }}>ההתחברות בטלפון וסיסמה בלבד – ללא קוד אימות. הסיסמה: 8 תווים לפחות, כולל אות ומספר.</div>}
         <button className="b" style={{ width: '100%', marginTop: 10 }}>{mode === 'in' ? 'כניסה' : 'הרשמה'}</button>
         {msg && <p style={{ color: 'var(--bad)' }}>{msg}</p>}

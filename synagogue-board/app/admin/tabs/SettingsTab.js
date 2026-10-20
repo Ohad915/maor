@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { updateDoc, doc, setDoc } from 'firebase/firestore';
+import { updateDoc, doc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { useEffect } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { geocode } from '@/lib/geocode';
@@ -8,6 +9,24 @@ import { SCREENS, SCREEN_NAMES } from '@/lib/types';
 import { Card, Switch, TextIn } from '../components/UI';
 
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
+function JoinCard({ sid }) {
+  const [code, setCode] = useState(null), [m, setM] = useState('');
+  const load = () => getDocs(query(collection(db, 'joinCodes'), where('sid', '==', sid))).then((q) => setCode(q.docs[0]?.id || '')).catch(() => setCode(''));
+  useEffect(() => { load(); }, [sid]);
+  async function gen() {
+    try {
+      const old = await getDocs(query(collection(db, 'joinCodes'), where('sid', '==', sid))); await Promise.all(old.docs.map((d) => deleteDoc(d.ref)));
+      const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', b = crypto.getRandomValues(new Uint8Array(8)), c = [...b].map((x) => A[x % A.length]).join('');
+      await setDoc(doc(db, 'joinCodes', c), { sid, createdAt: Date.now() }); setCode(c); setM('');
+    } catch { setM('היצירה נכשלה (רק גבאי ראשי יכול ליצור קוד).'); }
+  }
+  async function off() { const old = await getDocs(query(collection(db, 'joinCodes'), where('sid', '==', sid))); await Promise.all(old.docs.map((d) => deleteDoc(d.ref))); setCode(''); }
+  return (<Card fold title="🔗 קוד הצטרפות לגבאי משנה">
+    <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>גבאי משנה נרשם בעצמו עם הקוד ומשויך אוטומטית לבית הכנסת (הרשאת הודעות בלבד) – בלי אישור ידני. אפשר להחליף או לבטל את הקוד בכל רגע.</p>
+    {code ? <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 4, direction: 'ltr', margin: '8px 0' }}>{code}</div> : <p>{code === null ? 'טוען…' : 'אין קוד פעיל.'}</p>}
+    <div className="row"><button className="b" onClick={gen}>{code ? '🔄 קוד חדש (מבטל את הקודם)' : 'צור קוד'}</button>{code && <button className="b g" onClick={off}>בטל קוד</button>}{code && <button className="b g" onClick={() => navigator.clipboard?.writeText(code)}>העתק</button>}</div>{m && <p style={{ color: 'var(--bad)' }}>{m}</p>}
+  </Card>);
+}
 function PwCard() {
   const [o, setO] = useState(''), [n, setN] = useState(''), [m, setM] = useState('');
   async function go() {
@@ -66,6 +85,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols } 
           <div><label>גובה (מ׳)</label><input type="number" defaultValue={loc.elevation || 0} onBlur={(e) => save({ 'location.elevation': +e.target.value })} /></div></div></details>
     </Card>
     <Card title="קבוצת וואטסאפ"><label>קישור לקבוצת הווטסאפ של בית הכנסת</label><TextIn value={st.waLink} style={{ direction: 'ltr' }} placeholder="https://chat.whatsapp.com/..." onSave={(v) => set('waLink', v)} /></Card>
+    <JoinCard sid={sid} />
     <PwCard />
     <Card fold title="💾 גיבוי ושחזור">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>קובץ אחד עם כל ההגדרות והתכנים (תפילות, הנצחות, הודעות, שיעורים וכו׳). מומלץ לשמור גיבוי לפני שינויים גדולים.</div>
