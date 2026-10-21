@@ -8,7 +8,7 @@ import { Component } from 'react';
 export default class ErrorBoundary extends Component {
   state = { err: null };
   static getDerivedStateFromError(err) { return { err }; }
-  componentDidCatch(e) { if (this.props.admin) { try { console.error(e); } catch {} } else this.t = setTimeout(() => this.setState({ err: null }), 5000); }
+  componentDidCatch(e) { try { console.error('[maor] render crash:', e?.message, e?.stack); } catch {} if (this.props.admin) { /* logged above */ } else this.t = setTimeout(() => this.setState({ err: null }), 5000); }
   componentWillUnmount() { clearTimeout(this.t); }
   render() {
     if (!this.state.err) return this.props.children;
