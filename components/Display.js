@@ -98,10 +98,11 @@ export default function Display({ sid, screenId, fixedSize, preview, authErr }) 
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(t); }, []);
   if (!syn) return <div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div>;
   if (syn.suspended) return <div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div>;
-  return <Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={authErr || live.error || ''} authErr={authErr} />;
+  return <Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={offlineNow ? '' : (authErr || live.error || '')} authErr={offlineNow ? '' : authErr} />;
 }
 
 function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr }) {
+  const quiet = (syn?.id !== 'demo' && (status === 'cached' || status === 'fallback')) || (typeof navigator !== 'undefined' && !navigator.onLine); // real data on screen: just a discreet dot, never an error text
   const st = { ...DEFAULT_SETTINGS, ...syn.settings };
   const z = getZmanim(now, syn.location || { lat: 31.77, lng: 35.21 }, zOpts(st));
   const sh = isShabbat(z, st.candle, st.force);
@@ -391,6 +392,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t="gold" data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
       {body}{full}{popup}
-      {status !== 'live' && <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.6, direction: 'rtl', maxWidth: '70%' }}>● {status === 'cached' ? 'אופליין · נתונים שמורים וזמנים מחושבים מקומית' : status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}{(() => { const c = diag || ''; if (!c || preview) return null; const why = /operation-not-allowed|admin-restricted/.test(c) ? 'התחברות אנונימית כבויה ב-Firebase Authentication' : /^auth\//.test(c) || authErr ? 'כשל בהתחברות אנונימית' : /permission-denied/.test(c) ? 'אין הרשאת קריאה – בדקו Firestore Rules והתחברות אנונימית' : /not-found/.test(c) ? 'בית הכנסת לא נמצא – בדקו את ?s= בכתובת' : /unavailable|network/.test(c) ? 'אין חיבור לשרת' : ''; return <> · {why ? why + ' · ' : ''}<span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{c}</span></>; })()}</span>}
+      {status !== 'live' && (quiet
+        ? <span title="אין חיבור לאינטרנט – מוצגים הנתונים האחרונים שנשמרו" style={{ position: 'absolute', bottom: 6, left: 8, width: 7, height: 7, borderRadius: '50%', background: '#d9534f', opacity: 0.75 }} />
+        : <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.6, direction: 'rtl', maxWidth: '70%' }}>● {status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}{(() => { const c = diag || ''; if (!c || preview) return null; const why = /operation-not-allowed|admin-restricted/.test(c) ? 'התחברות אנונימית כבויה ב-Firebase Authentication' : /^auth\//.test(c) || authErr ? 'כשל בהתחברות אנונימית' : /permission-denied/.test(c) ? 'אין הרשאת קריאה – בדקו Firestore Rules והתחברות אנונימית' : /not-found/.test(c) ? 'בית הכנסת לא נמצא – בדקו את ?s= בכתובת' : /unavailable|network/.test(c) ? 'אין חיבור לשרת' : ''; return <> · {why ? why + ' · ' : ''}<span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{c}</span></>; })()}</span>)}
     </div>);
 }

@@ -16,7 +16,7 @@ export default function DisplayPage() {
     let done = false;
     const anon = () => signInAnonymously(auth).then(() => setAuthErr('')).catch((e) => { console.error('[maor] signInAnonymously failed:', e.code || '', e.message || e); setAuthErr(e.code || 'auth-error'); });
     const un = onAuthStateChanged(auth, (u) => { if (u) { done = true; setReady(true); } else anon(); });
-    const t = setTimeout(() => { if (!done) setReady(true); }, 5000); // continue anyway after 5s
+    const t = setTimeout(() => { if (!done) setReady(true); }, navigator.onLine ? 5000 : 1500); // continue anyway after 5s
     const retry = setInterval(() => { if (!auth.currentUser) anon(); }, 10000);
     return () => { un(); clearTimeout(t); clearInterval(retry); };
   }, []);
