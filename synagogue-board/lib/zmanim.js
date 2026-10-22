@@ -8,7 +8,7 @@ export const fmt = (dt) => (dt ? dt.setZone(TZ).toFormat('HH:mm') : '—');
 export const zOpts = (st) => { const z = st.zm || {}; return { shma: z.shma || st.shma || 'gra', tzeit: z.tzeit || '8.5', rt: !!z.rt, visible: z.netzVisible !== false, method: z.method || 'std', off: z.off || {} }; };
 
 /** Every daily time the display can show. key = id used in settings.zm.bi (visibility) and settings.zm.off (manual minute offset). */
-export const ZDEF = [['a', 'עלות השחר'], ['n', 'נץ החמה'], ['s', 'סוף זמן ק״ש'], ['tf', 'סוף זמן תפילה'], ['c', 'חצות היום'], ['mg', 'מנחה גדולה'], ['mk', 'מנחה קטנה'], ['pl', 'פלג המנחה'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם']];
+export const ZDEF = [['a', 'עלות השחר'], ['n', 'נץ החמה'], ['s', 'סוף זמן ק״ש'], ['tf', 'סוף זמן תפילה'], ['c', 'חצות היום'], ['mg', 'מנחה גדולה'], ['mk', 'מנחה קטנה'], ['pl', 'פלג המנחה'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['se', 'צאת השבת'], ['r', 'רבינו תם']];
 const ZON = { n: true, s: true, k: true, t: true, r: true }; // shown unless switched off; the new ones are opt-in
 export const zOn = (zm, k) => (zm?.bi?.[k] ?? !!ZON[k]);
 /** The ordered rows [label, DateTime, key] that the settings ask to show (bottom bar + zmanim slide share this). rtOn: Shabbat / Yom Tov. */
@@ -19,6 +19,7 @@ export function zmanimRows(z, st, rtOn) {
     if (k === 's') { if (both) R.push(['סוף ק״ש (מג״א)', z.shmaMga, k], ['סוף ק״ש (גר״א)', z.shmaGra, k]); else R.push([l, z.shma, k]); }
     else if (k === 'tf') { if (both) R.push(['סוף תפילה (מג״א)', z.tfilaMga, k], ['סוף תפילה (גר״א)', z.tfilaGra, k]); else R.push([l, o.shma === 'mga' ? z.tfilaMga : z.tfilaGra, k]); }
     else if (k === 'r') { if (rtOn && o.rt) R.push([l, z.rt, k]); }
+    else if (k === 'se') { if (rtOn && z.shabEnd) R.push([l, z.shabEnd, k]); }
     else R.push([l, { a: z.alot, n: z.netz, c: z.chatzot, mg: z.minchaGedola, mk: z.minchaKetana, pl: z.plag, k: z.shkia, t: z.tzeit }[k], k]);
   }
   return R.filter((x) => x[1]);
@@ -41,6 +42,7 @@ export function getZmanim(date, loc, o = {}) {
   // method 'oc' (Or HaChaim): alot / Magen Avraham hours counted in 72 *zmaniyot* minutes; 'std': 72 fixed minutes
   const oc = o.method === 'oc', off = o.off || {}, adj = (d, k) => (d && Number(off[k]) ? d.plus({ minutes: Number(off[k]) }) : d); // manual +/- minutes (never on sunrise/sunset: prayer times are derived from them)
   const gra = adj(cal.getSofZmanShmaGRA(), 's'), mga = adj(oc ? cal.getSofZmanShmaMGA72MinutesZmanis() : cal.getSofZmanShmaMGA(), 's');
+  if (o.method === 'maor') return maorZmanim(cal, dt, loc, off, o, tz);
   return {
     now: dt, dow: dt.weekday % 7, // 0=Sunday
     netz: o.visible === false ? cal.getSeaLevelSunrise() : cal.getSunrise(), // visible (elevation) sunrise by default
@@ -64,7 +66,7 @@ export function prayerTime(rule, z) {
 export function isShabbat(z, candle, force) {
   if (force && (z.dow === 5 || z.dow === 6)) return true; // manual Shabbat mode only on Fri/Sat; Sun-Thu always follow the real weekday
   if (!z.shkia || !z.tzeit) return false;
-  return (z.dow === 5 && z.now >= z.shkia.minus({ minutes: candle })) || (z.dow === 6 && z.now < z.tzeit);
+  return (z.dow === 5 && z.now >= z.shkia.minus({ minutes: candle })) || (z.dow === 6 && z.now < (z.shabEnd || z.tzeit));
 }
 export const dayType = (sh, dow) => (sh ? 'shab' : dow === 5 ? 'fri' : dow === 6 ? 'mots' : 'week');
 
@@ -111,4 +113,27 @@ function filterPrayers(prayers, ctx, fw) {
     if (chag && k === 'shab' && rows.some((x) => !hasDow(x) && pdayOf(x) === 'chag' && fw(x) === fw(r))) return false;
     return true;
   });
+}
+
+
+/**
+ * "Luach HaMaor" (Or HaChaim) – empirical model fitted to the printed 5787 calendar (Jerusalem, Oct-Nov 2026; every printed minute within ~1.5 min).
+ * Base: sunrise from a ~65 m horizon, sunset from a ~680 m horizon (scaled by the synagogue's elevation); everything else derives from those two moments.
+ * The constants are empirical (not a published halachic formula) - fine-tune with the manual offsets if a printed day differs.
+ */
+function maorZmanim(cal0, dt, loc, off, o, tz) {
+  const elev = +loc?.elevation || 750, mk = (e) => { const c = new ComplexZmanimCalendar(new GeoLocation('synagogue', cal0.getGeoLocation().getLatitude(), cal0.getGeoLocation().getLongitude(), e, TZ)); c.setDate(dt.startOf('day')); return c; };
+  const n = mk((elev * 65) / 750).getSunrise(), s = mk((elev * 680) / 750).getSunset();
+  const adj = (d, k) => (d && Number(off[k]) ? d.plus({ minutes: Number(off[k]) }) : d);
+  if (!n || !s) return { now: dt, dow: dt.weekday % 7, netz: n, shkia: s };
+  const M = (d, m) => d.plus({ milliseconds: m * 60000 }), L = (s.toMillis() - n.toMillis()) / 60000, mid = M(n, L / 2), hr = L / 12;
+  const shmaGra = M(n, L / 4 - 3.3), shmaMga = M(n, -72 + (3 * (L + 144)) / 12), tfGra = M(n, L / 3 - 2.9), tfMga = M(n, -72 + (4 * (L + 144)) / 12);
+  return {
+    now: dt, dow: dt.weekday % 7, netz: n, shkia: s,
+    alot: adj(M(n, -1.296 * hr), 'a'),
+    shma: o.shma === 'mga' ? adj(shmaMga, 's') : adj(shmaGra, 's'), shmaGra: adj(shmaGra, 's'), shmaMga: adj(shmaMga, 's'),
+    tfilaGra: adj(tfGra, 'tf'), tfilaMga: adj(tfMga, 'tf'),
+    chatzot: adj(M(mid, -0.6), 'c'), minchaGedola: adj(M(mid, 29.3), 'mg'), minchaKetana: adj(M(n, (9.5 * L) / 12 + 0.7), 'mk'), plag: adj(M(s, 13.3 - (1.25 * L) / 12), 'pl'),
+    tzeit: adj(M(s, 13.49), 't'), shabEnd: adj(M(s, 31), 'se'), rt: adj(M(s, (1.0291 * (L + 144)) / 12), 'r'),
+  };
 }

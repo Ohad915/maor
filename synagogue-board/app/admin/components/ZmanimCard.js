@@ -10,9 +10,9 @@ const PROF = [
   ['ashkenaz', 'אשכנז / גר״א', 'ashkenaz', { method: 'std', shma: 'gra', tzeit: '40', rt: false }],
   ['hasidic', 'מג״א / חסידי', 'ashkenaz', { method: 'std', shma: 'mga', tzeit: '40', rt: true }],
   ['sefard', 'ספרד ועדות המזרח', 'sefard', { method: 'std', shma: 'gra', tzeit: '13.5z', rt: false }],
-  ['maor', 'שיטת לוח המאור (אור החיים)', 'sefard', { method: 'std', shma: 'both', tzeit: '13.5m', rt: true, netzVisible: true, bi: ALLON }],
+  ['maor', 'שיטת לוח המאור (אור החיים)', 'sefard', { method: 'maor', shma: 'both', tzeit: '13.5m', rt: true, netzVisible: true, bi: ALLON, candle: 20 }],
 ];
-const OFF = [['a', 'עלות השחר'], ['s', 'סוף זמן ק״ש'], ['tf', 'סוף זמן תפילה'], ['c', 'חצות'], ['mg', 'מנחה גדולה'], ['mk', 'מנחה קטנה'], ['pl', 'פלג המנחה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם']];
+const OFF = [['a', 'עלות השחר'], ['s', 'סוף זמן ק״ש'], ['tf', 'סוף זמן תפילה'], ['c', 'חצות'], ['mg', 'מנחה גדולה'], ['mk', 'מנחה קטנה'], ['pl', 'פלג המנחה'], ['t', 'צאת הכוכבים'], ['se', 'צאת השבת'], ['r', 'רבינו תם']];
 
 /** Daily zmanim settings, split into accordions. Lives in the prayer-times tab, next to the prayers themselves. */
 export default function ZmanimCard({ sid, syn, st, set }) {
@@ -20,12 +20,12 @@ export default function ZmanimCard({ sid, syn, st, set }) {
   const save = (data) => updateDoc(doc(db, 'synagogues', sid), data);
   const cur = zm.profile || (syn.nusach === 'ashkenaz' ? 'ashkenaz' : syn.nusach ? 'sefard' : '');
   let live = null; try { live = getZmanim(new Date(), syn.location || { lat: 31.77, lng: 35.21 }, o); } catch {}
-  const liveOf = (k) => (live ? { a: live.alot, n: live.netz, s: live.shma, tf: o.shma === 'mga' ? live.tfilaMga : live.tfilaGra, c: live.chatzot, mg: live.minchaGedola, mk: live.minchaKetana, pl: live.plag, k: live.shkia, t: live.tzeit, r: live.rt }[k] : null);
+  const liveOf = (k) => (live ? { a: live.alot, n: live.netz, s: live.shma, tf: o.shma === 'mga' ? live.tfilaMga : live.tfilaGra, c: live.chatzot, mg: live.minchaGedola, mk: live.minchaKetana, pl: live.plag, k: live.shkia, t: live.tzeit, se: live.shabEnd, r: live.rt }[k] : null);
   return (<>
     <Card fold title="🕰️ שיטת חישוב וזמני היום (פרופיל מנהג)">
       <label>פרופיל – קובע את נוסח התפילה וההפטרה ואת שיטת חישוב הזמנים</label>
-      <div className="row">{PROF.map(([k, l, nu, p]) => <button key={k} className={`b ${cur === k ? '' : 'g'}`} onClick={() => { set('zm', { ...zm, profile: k, ...p }); const n = k === 'sefard' && syn.nusach === 'edot_hamizrach' ? 'edot_hamizrach' : nu; if (n !== syn.nusach) save({ nusach: n }); }}>{l}</button>)}</div>
-      {cur === 'maor' && <div style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.5 }}>שיטת לוח המאור (אור החיים), בלחיצה אחת: עלות השחר ושעות מג״א ב-72 דקות רגילות, נץ החמה הנראה (לפי גובה המקום), סוף קריאת שמע ותפילה לפי מג״א וגר״א, שקיעה, צאת הכוכבים 13.5 דקות אחרי השקיעה, ורבינו תם 72 דקות. כל הזמנים מחושבים לפי המיקום המדויק של בית הכנסת, ישירות במכשיר (עובדים גם בלי אינטרנט). הפרמטרים נקבעו לפי המפרט שהוזן; מומלץ להשוות פעם אחת ללוח האתר ולכוונן ב״היסטים ידניים״ אם יש הפרש.</div>}
+      <div className="row">{PROF.map(([k, l, nu, p]) => <button key={k} className={`b ${cur === k ? '' : 'g'}`} onClick={() => { const { candle, ...zp } = p; set('zm', { ...zm, profile: k, ...zp }); if (candle) set('candle', candle); const n = k === 'sefard' && syn.nusach === 'edot_hamizrach' ? 'edot_hamizrach' : nu; if (n !== syn.nusach) save({ nusach: n }); }}>{l}</button>)}</div>
+      {cur === 'maor' && <div style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.5 }}>שיטת לוח המאור (אור החיים) מכוילת על הלוח המודפס של ירושלים (תשפ״ז): נץ ושקיעה לפי אופק ההר, ומהם נגזרים עלות השחר, קריאת שמע ותפילה (גר״א ומג״א), חצות, מנחה גדולה וקטנה, פלג, צאת הכוכבים (13.5 דק׳), צאת השבת, רבינו תם והדלקת נרות 20 דק׳. הכיול אמפירי והסטייה מול הלוח כדקה. אפשר לכוונן ב״היסטים ידניים״.</div>}
       <label>הדלקת נרות (דקות לפני שקיעה)</label><input type="number" defaultValue={st.candle} onBlur={(e) => set('candle', +e.target.value)} />
     </Card>
     <Card fold title="📺 אילו זמנים מוצגים במסך התצוגה">
