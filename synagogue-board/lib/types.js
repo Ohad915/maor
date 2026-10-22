@@ -20,7 +20,7 @@ export const defaultPlan = (tier = 'basic') => ({ planTier: tier, ...PLAN_PRESET
 export const DEFAULT_SETTINGS = {
   theme: 'gold', layout: '1', frame: 'royal', cardStyle: 'clean', zoom: 1, anim: 'fade', accent: '', title: '', bg: '', tbg: '',
   pMode: 'auto', pTitle: '', pSub: '', pSlide: false,
-  shma: 'gra', candle: 30, force: false, side: 32, sideH: 100, qs: 100,
+  shma: 'gra', candle: 30, force: false, side: 32, sideH: 100, scrollZ: 130, qs: 100,
   donTitle: '', donSub: '', payUrl: '', tkText: '', subtitle: '', footerText: '',
   zm: { profile: 'ashkenaz', shma: 'gra', tzeit: '8.5', rt: false, netzVisible: true }, hfShow: false, hfText: '', waParsha: true, waHaftara: true,
   vis: {}, cf: {}, blocks: {}, ipp: { yz: 3, rf: 3 },

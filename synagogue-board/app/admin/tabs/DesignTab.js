@@ -44,7 +44,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
   const V = [['cr', 'כותרת בית הכנסת (שם + איור)'], ['hd', 'תאריך עברי ולועזי'], ['pt', 'זמני תפילות בכותרת העליונה'], ['zm', 'זמני היום (סרגל תחתון)'], ['tk', 'סרגל עדכונים רץ (תחתון)'], ['pr', 'פרשת השבוע והפטרה'], ['cu', 'מנהגי היום / תזכורות'], ['yz', 'לעילוי נשמת'], ['rf', 'רפואה שלמה'], ['qr', 'פינת QR לתרומות']];
   const BAR = ['cr', 'hd', 'pt', 'zm', 'tk'], VB = V.filter(([k]) => BAR.includes(k)), VC = V.filter(([k]) => !BAR.includes(k));
   const shown = V.filter(([k]) => st.vis?.[k] !== false).length;
-  const RESET = ['layout', 'frame', 'cardStyle', 'zoom', 'anim', 'accent', 'bg', 'tbg', 'side', 'sideH', 'vis', 'cf', 'blocks', 'ipp', 'lpp', 'fsAll', 'hdMode', 'btMode', 'subtitle', 'footerText'];
+  const RESET = ['layout', 'frame', 'cardStyle', 'zoom', 'anim', 'accent', 'bg', 'tbg', 'side', 'sideH', 'scrollZ', 'vis', 'cf', 'blocks', 'ipp', 'lpp', 'fsAll', 'hdMode', 'btMode', 'subtitle', 'footerText'];
   const [pv, setPv] = useState(false);
   return (<>
     <details className="cd fold" open={pv} onToggle={(e) => setPv(e.currentTarget.open)}><summary>👁 תצוגה מקדימה חיה (בתוך הדף)</summary>{pv && <InlinePreview sid={sid} />}</details>
@@ -74,7 +74,8 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>משפיע חי על המסך. הרוחב משנה את עמודת ההנצחות/רפואה שלמה והפאנל המרכזי מתאים את עצמו. למידות של קובייה בודדת – ״התאמה אישית לפי קובייה״.</div>
       <Range label="רוחב עמודות הצד %" min={20} max={50} value={st.side} onChange={(v) => set('side', v)} />
       <Range label="גובה קוביות הצד % (מקדש ומלכות)" min={60} max={115} value={st.sideH || 100} onChange={(v) => set('sideH', v)} />
-      <button className="b g" onClick={() => { set('side', 32); set('sideH', 100); }}>איפוס מידות</button>
+      <Range label="גודל הקלף במסך מלא % (זמני תפילות / הלכה יומית)" min={100} max={170} value={st.scrollZ || 130} onChange={(v) => set('scrollZ', v)} />
+      <button className="b g" onClick={() => { set('side', 32); set('sideH', 100); set('scrollZ', 130); }}>איפוס מידות</button>
     </Card>
     <details className="cd fold"><summary>🧩 התאמה אישית לפי קובייה (מידות, גופן, צבעים, זמן שקופית)</summary>
       <BlockDesignAccordion st={st} set={set} sid={sid} royal={royal} />

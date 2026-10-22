@@ -233,7 +233,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
       const two = am.length && pm2.length, mx = Math.max(am.length, pm2.length, 1);
-      full = <div className="rl-scroll" key={'sc' + idx}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : n }}>{ico}
+      full = <div className="rl-scroll" key={'sc' + idx} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : n }}>{ico}
         <div className={'ptg' + (two ? ' two' : '')}>{two ? <><div className="ptcol">{am.map(card)}</div><div className="ptcol">{pm2.map(card)}</div></> : <div className="ptcol">{ptRows.map(card)}</div>}</div></div></div></div>;
       mid = null;
     } else {
@@ -248,7 +248,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (cur.full && royal) {
       // royal full screen: the extended royal scroll, large readable text
       const f = Math.min(4.6, Math.max(2.2, Math.sqrt(3000 / L))).toFixed(2);
-      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em>{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots && <><br />{dots}</>}</small></div></div></div>;
+      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em>{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots && <><br />{dots}</>}</small></div></div></div>;
       mid = null;
     } else {
       const em = L < 110 ? 2.5 : L < 200 ? 2.15 : L < 300 ? 1.8 : 1.45;

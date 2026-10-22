@@ -451,3 +451,6 @@ label{font-size:13px;color:var(--mu)}
 .rl-main .ptr i{font-size:clamp(1.6cqh,calc(19cqh / var(--n)),6cqh)}
 
 .rl-stat.two{white-space:normal!important;line-height:1.1;text-align:center;display:flex;align-items:center;justify-content:center}
+
+/* full-screen scroll: enlarged so the parchment + text fill most of the screen (admin: scroll size slider) */
+.rl-scroll{transform:scale(var(--sz,1.3));transform-origin:50% 56%}
