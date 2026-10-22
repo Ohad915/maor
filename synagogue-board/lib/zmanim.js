@@ -5,7 +5,24 @@ export const TZ = 'Asia/Jerusalem';
 export const fmt = (dt) => (dt ? dt.setZone(TZ).toFormat('HH:mm') : '—');
 
 /** Halachic-custom options from the settings: shma method, tzeit definition, Rabbeinu Tam, visible sunrise. */
-export const zOpts = (st) => { const z = st.zm || {}; return { shma: z.shma || st.shma || 'gra', tzeit: z.tzeit || '8.5', rt: !!z.rt, visible: z.netzVisible !== false }; };
+export const zOpts = (st) => { const z = st.zm || {}; return { shma: z.shma || st.shma || 'gra', tzeit: z.tzeit || '8.5', rt: !!z.rt, visible: z.netzVisible !== false, method: z.method || 'std', off: z.off || {} }; };
+
+/** Every daily time the display can show. key = id used in settings.zm.bi (visibility) and settings.zm.off (manual minute offset). */
+export const ZDEF = [['a', 'עלות השחר'], ['n', 'נץ החמה'], ['s', 'סוף זמן ק״ש'], ['tf', 'סוף זמן תפילה'], ['c', 'חצות היום'], ['mg', 'מנחה גדולה'], ['mk', 'מנחה קטנה'], ['pl', 'פלג המנחה'], ['k', 'שקיעה'], ['t', 'צאת הכוכבים'], ['r', 'רבינו תם']];
+const ZON = { n: true, s: true, k: true, t: true, r: true }; // shown unless switched off; the new ones are opt-in
+export const zOn = (zm, k) => (zm?.bi?.[k] ?? !!ZON[k]);
+/** The ordered rows [label, DateTime, key] that the settings ask to show (bottom bar + zmanim slide share this). rtOn: Shabbat / Yom Tov. */
+export function zmanimRows(z, st, rtOn) {
+  const zm = st.zm || {}, o = zOpts(st), both = o.shma === 'both', R = [];
+  for (const [k, l] of ZDEF) {
+    if (!zOn(zm, k)) continue;
+    if (k === 's') { if (both) R.push(['סוף ק״ש (מג״א)', z.shmaMga, k], ['סוף ק״ש (גר״א)', z.shmaGra, k]); else R.push([l, z.shma, k]); }
+    else if (k === 'tf') { if (both) R.push(['סוף תפילה (מג״א)', z.tfilaMga, k], ['סוף תפילה (גר״א)', z.tfilaGra, k]); else R.push([l, o.shma === 'mga' ? z.tfilaMga : z.tfilaGra, k]); }
+    else if (k === 'r') { if (rtOn && o.rt) R.push([l, z.rt, k]); }
+    else R.push([l, { a: z.alot, n: z.netz, c: z.chatzot, mg: z.minchaGedola, mk: z.minchaKetana, pl: z.plag, k: z.shkia, t: z.tzeit }[k], k]);
+  }
+  return R.filter((x) => x[1]);
+}
 
 /**
  * Daily times from the saved coordinates (kosher-zmanim). Pure local computation: no network needed.
@@ -20,12 +37,17 @@ export function getZmanim(date, loc, o = {}) {
   const shkia = cal.getSeaLevelSunset();
   const tz = { '8.5': () => cal.getTzaisGeonim8Point5Degrees(), '13.5z': () => shkia && shkia.plus({ milliseconds: (cal.getShaahZmanisGra() * 13.5) / 60 }),
     '20': () => shkia && shkia.plus({ minutes: 20 }), '30': () => shkia && shkia.plus({ minutes: 30 }), '40': () => shkia && shkia.plus({ minutes: 40 }) }[o.tzeit || '8.5'] || (() => cal.getTzaisGeonim8Point5Degrees());
-  const gra = cal.getSofZmanShmaGRA(), mga = cal.getSofZmanShmaMGA();
+  // method 'oc' (Or HaChaim): alot / Magen Avraham hours counted in 72 *zmaniyot* minutes; 'std': 72 fixed minutes
+  const oc = o.method === 'oc', off = o.off || {}, adj = (d, k) => (d && Number(off[k]) ? d.plus({ minutes: Number(off[k]) }) : d); // manual +/- minutes (never on sunrise/sunset: prayer times are derived from them)
+  const gra = adj(cal.getSofZmanShmaGRA(), 's'), mga = adj(oc ? cal.getSofZmanShmaMGA72MinutesZmanis() : cal.getSofZmanShmaMGA(), 's');
   return {
     now: dt, dow: dt.weekday % 7, // 0=Sunday
     netz: o.visible === false ? cal.getSeaLevelSunrise() : cal.getSunrise(), // visible (elevation) sunrise by default
     shkia, shma: o.shma === 'mga' ? mga : gra, shmaGra: gra, shmaMga: mga,
-    tzeit: tz(), rt: cal.getTzais72(), chatzot: cal.getChatzos(),
+    tzeit: adj(tz(), 't'), rt: adj(cal.getTzais72(), 'r'), chatzot: adj(cal.getChatzos(), 'c'),
+    alot: adj(oc ? cal.getAlos72Zmanis() : cal.getAlos72(), 'a'),
+    tfilaGra: adj(cal.getSofZmanTfilaGRA(), 'tf'), tfilaMga: adj(oc ? cal.getSofZmanTfilaMGA72MinutesZmanis() : cal.getSofZmanTfilaMGA(), 'tf'),
+    minchaGedola: adj(cal.getMinchaGedola(), 'mg'), minchaKetana: adj(cal.getMinchaKetana(), 'mk'), plag: adj(cal.getPlagHamincha(), 'pl'),
   };
 }
 

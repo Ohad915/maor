@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
-import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts } from '@/lib/zmanim';
+import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts, zmanimRows } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { isLive, pickDaily } from '@/lib/dailyHalacha';
 import { annOn, chagInfo, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
@@ -264,16 +264,14 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const R = { 1: [0.637, 0.299], 2: [0.66, 0.27], 3: [0.52, 0.24], 4: [0.5, 0.5] }[LM];
   const B = (p) => ({ st, fs, ...p });
   const integ = LM === '2' && ptitle && V('pr');
-  const zr = [['נץ החמה', fmt(z.netz)]];
-  if (zOpts(st).shma === 'both') zr.push(['סוף ק״ש (מג״א)', fmt(z.shmaMga)], ['סוף ק״ש (גר״א)', fmt(z.shmaGra)]); else zr.push(['סוף זמן ק״ש', fmt(z.shma)]);
-  zr.push(['שקיעת החמה', fmt(z.shkia)], ['צאת הכוכבים', fmt(z.tzeit)]);
   const ci = chagInfo(now, z, st.candle), rtOn = sh || z.dow === 6 || ci.chag; // Rabbeinu Tam only on Shabbat / Yom Tov
-  if (rtOn && zOpts(st).rt) zr.push(['רבינו תם', fmt(z.rt)]);
+  const zrows = zmanimRows(z, st, rtOn), zr = zrows.map(([n, dt]) => [n, fmt(dt)]); // the times chosen in the admin (daily-zmanim settings)
   if (z.dow === 5 && z.shkia) zr.push(['הדלקת נרות', fmt(z.shkia.minus({ minutes: st.candle }))]);
   const crown = V('cr') && <Blk {...B({ id: 'cr', t: 'x', b: 2.3, cls: 'crown', fit: false, mult: LM === '3' ? 1.6 : 1, style: LM === '3' ? { padding: '.3em 2.6em' } : null })}>👑 {syn.name} 👑</Blk>;
   const hd = V('hd') && (
     <Blk {...B({ id: 'hd', t: 'x', b: 6, cls: 'hd' })}>
       <div className="dt">{integ && <em className="ptl">{ptitle}</em>}<b>{gem(h.d)} ב{monthName(h.raw)}</b><small>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}{integ && st.pSub ? ' · ' + st.pSub : ''}</small></div>
+      {V('zm') && zOpts(st).method === 'oc' && <div style={{ textAlign: 'center', fontSize: '.55em', opacity: 0.8, marginBottom: '.3em' }}>זמני היום לפי לוח ישיבת אור החיים</div>}
       {V('zm') && <div className="zs">{zr.map(([n, t]) => <div key={n}><small>{n}</small><b>{t}</b></div>)}</div>}
     </Blk>);
   const pr = LM !== '2' && ptitle && V('pr') && (
@@ -327,11 +325,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const rg = Object.keys(grp).length ? grp : allGrp, bn = Object.keys(rg).length, rbox = (l, t, w, hh) => ({ position: 'absolute', left: l + '%', top: t + '%', width: w + '%', height: hh + '%' });
   if (royal) {
     const m2 = LM === '2', m4 = LM === '4', ps = m2 || m4; // model 2: parsha + haftara live in the top bar, the freed middle goes to bigger cards
-    const zbi = { n: true, s: true, k: true, t: true, r: true, ...((st.zm || {}).bi || {}) }; // which zmanim appear in the (static) bottom bar
-    const zl = [zbi.n && ['נץ החמה', z.netz], zbi.s && ['סוף זמן ק״ש', st.shma === 'both' || zOpts(st).shma === 'both' ? z.shmaGra : z.shma], zbi.k && ['שקיעה', z.shkia], zbi.t && ['צאת הכוכבים', z.tzeit], zbi.r && rtOn && ['רבינו תם', z.rt]].filter((x) => x && x[1]);
-    const hdM = st.hdMode === 'marquee', btM = st.btMode === 'marquee';
+    const zl = zrows; // same list as the zmanim slide (admin: daily zmanim > what the screen shows)
+    const hdMode = st.hdMode === 'marquee' ? 'marquee' : st.hdMode === 'fixed' ? 'fixed' : 'auto', btMode = st.btMode === 'marquee' ? 'marquee' : st.btMode === 'fixed' ? 'fixed' : 'auto'; // auto = fixed, but scrolls when too long to read
+    const hdM = hdMode === 'marquee', btM = btMode === 'marquee';
     const SEP = ' ✦ ', zText = zl.map(([n, t]) => `${n}: ${fmt(t)}`).join(SEP);
-    const fitCw = (t) => Math.max(0.9, Math.min(1.9, 40 / Math.max(10, t.length * 0.5))) + 'cqw';
+    const fitCw = (t) => Math.max(btMode === 'fixed' ? 0.7 : 0.9, Math.min(1.9, 40 / Math.max(10, t.length * 0.5))) + 'cqw';
     // side-column width/height sliders: the column grows/shrinks and the main panel takes (or gives back) the difference
     const sdF = Math.max(0.5, Math.min(1.6, (st.side ?? 32) / 32)), sdH = Math.max(0.5, Math.min(1.2, (st.sideH || 100) / 100));
     const sa = (cw, mw) => { const d = Math.max(-cw * 0.5, Math.min(cw * (sdF - 1), mw - 24)); return { d: Math.abs(d) < 0.01 ? 0 : d, m: { w: 1 + d / cw, h: sdH } }; };
@@ -347,7 +345,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
         {V('hd') && <div className="rl-date"><span className="rl-cal"><b>{gem(h.d)}</b><small>{monthName(h.raw)}</small></span><div className="rl-dd"><b>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}</b><small>{now.toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</small></div></div>}
         {V('pt') && (() => { const items = bn ? Object.entries(rg).map(([k, g]) => <div key={k}><small>{k}</small><b className={g.t.length > 1 ? 'mt' : undefined}>{[...g.t].sort().map((t, i) => <span key={i}>{t}</span>)}</b></div>) : <div><small>זמני תפילות</small><b>—</b></div>;
           const len = Object.entries(rg).reduce((a, [k, g]) => a + k.length + [...g.t].join(' · ').length, 0);
-          const hdAuto = hdM || bn > (ps ? 6 : 8) || Object.values(rg).some((g) => g.t.length > 2); // too many/long times -> scroll instead of overlapping
+          const hdAuto = hdM || (hdMode === 'auto' && (bn > (ps ? 6 : 8) || Object.values(rg).some((g) => g.t.length > 2))); // too many/long times -> scroll instead of overlapping
           return hdAuto
             ? <div className="rl-times rl-mq"><div className="in" style={{ animationDuration: Math.max(18, len * 0.5) + 's' }}>{items}</div></div>
             : <div className="rl-times" style={{ '--rn': Math.max(bn, 1), '--tf': Math.min(2.6, (46 / Math.max(bn, 1) - 2.4) / (0.5 * 5)).toFixed(2) + 'cqw' }}>{items}</div>; })()}
@@ -376,7 +374,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
         <div className="rl-tk">{(() => {
           const bText = [tkOn && tkText, V('zm') && zText].filter(Boolean).join(SEP); // running ticker text first, then the day's times
           if (!bText) return null;
-          const raw = 40 / Math.max(10, bText.length * 0.5), mq = btM || tkOn || raw < 1.3; // too long to read statically -> scroll instead of tiny text
+          const raw = 40 / Math.max(10, bText.length * 0.5), mq = btM || tkOn || (btMode === 'auto' && raw < 1.3); // too long to read statically -> scroll instead of tiny text
           const tx = st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {};
           return mq
             ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...tx }}><span className="in" style={{ animationDuration: Math.max(18, bText.length * 0.45) + 's' }}>{bText}</span></div>
