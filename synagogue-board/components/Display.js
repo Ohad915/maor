@@ -378,7 +378,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
           const tx = st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {};
           return mq
             ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...tx }}><span className="in" style={{ animationDuration: Math.max(18, bText.length * 0.45) + 's' }}>{bText}</span></div>
-            : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>; })()}</div>
+            : btMode === 'fixed' && raw < 1.3 // fixed + too long for one line: wrap onto two centred lines instead of clipping
+              ? <div className="rl-stat two" style={{ fontSize: `calc(${fitCw(bText.slice(0, Math.ceil(bText.length / 2) + 6))} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>
+              : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>; })()}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;

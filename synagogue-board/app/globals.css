@@ -449,3 +449,5 @@ label{font-size:13px;color:var(--mu)}
 .rl-main .ptl3{gap:.7cqh}
 .rl-main .ptr b{font-size:clamp(1.4cqh,calc(16cqh / var(--n)),5.2cqh)}
 .rl-main .ptr i{font-size:clamp(1.6cqh,calc(19cqh / var(--n)),6cqh)}
+
+.rl-stat.two{white-space:normal!important;line-height:1.1;text-align:center;display:flex;align-items:center;justify-content:center}
