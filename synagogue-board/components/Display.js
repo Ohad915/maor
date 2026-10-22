@@ -271,7 +271,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const hd = V('hd') && (
     <Blk {...B({ id: 'hd', t: 'x', b: 6, cls: 'hd' })}>
       <div className="dt">{integ && <em className="ptl">{ptitle}</em>}<b>{gem(h.d)} ב{monthName(h.raw)}</b><small>{now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long' })}{integ && st.pSub ? ' · ' + st.pSub : ''}</small></div>
-      {V('zm') && zOpts(st).method === 'oc' && <div style={{ textAlign: 'center', fontSize: '.55em', opacity: 0.8, marginBottom: '.3em' }}>זמני היום לפי לוח ישיבת אור החיים</div>}
+      {V('zm') && (st.zm?.profile === 'maor' || zOpts(st).method === 'oc') && <div style={{ textAlign: 'center', fontSize: '.55em', opacity: 0.8, marginBottom: '.3em' }}>זמני היום לפי לוח המאור – ישיבת אור החיים</div>}
       {V('zm') && <div className="zs">{zr.map(([n, t]) => <div key={n}><small>{n}</small><b>{t}</b></div>)}</div>}
     </Blk>);
   const pr = LM !== '2' && ptitle && V('pr') && (

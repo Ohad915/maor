@@ -26,7 +26,7 @@ export function zmanimRows(z, st, rtOn) {
 
 /**
  * Daily times from the saved coordinates (kosher-zmanim). Pure local computation: no network needed.
- * tzeit: '8.5' (8.5 degrees), '13.5z' (13.5 zmaniyot minutes), '20' | '30' | '40' (minutes after sunset).
+ * tzeit: '8.5' (8.5 degrees), '13.5z' (13.5 zmaniyot minutes), '13.5m' (13.5 regular minutes), '20' | '30' | '40' (minutes after sunset).
  */
 export function getZmanim(date, loc, o = {}) {
   if (typeof o === 'string') o = { shma: o };
@@ -37,7 +37,7 @@ export function getZmanim(date, loc, o = {}) {
   cal.setDate(dt.startOf('day'));
   const shkia = cal.getSeaLevelSunset();
   const tz = { '8.5': () => cal.getTzaisGeonim8Point5Degrees(), '13.5z': () => shkia && shkia.plus({ milliseconds: (cal.getShaahZmanisGra() * 13.5) / 60 }),
-    '20': () => shkia && shkia.plus({ minutes: 20 }), '30': () => shkia && shkia.plus({ minutes: 30 }), '40': () => shkia && shkia.plus({ minutes: 40 }) }[o.tzeit || '8.5'] || (() => cal.getTzaisGeonim8Point5Degrees());
+    '13.5m': () => shkia && shkia.plus({ minutes: 13.5 }), '20': () => shkia && shkia.plus({ minutes: 20 }), '30': () => shkia && shkia.plus({ minutes: 30 }), '40': () => shkia && shkia.plus({ minutes: 40 }) }[o.tzeit || '8.5'] || (() => cal.getTzaisGeonim8Point5Degrees());
   // method 'oc' (Or HaChaim): alot / Magen Avraham hours counted in 72 *zmaniyot* minutes; 'std': 72 fixed minutes
   const oc = o.method === 'oc', off = o.off || {}, adj = (d, k) => (d && Number(off[k]) ? d.plus({ minutes: Number(off[k]) }) : d); // manual +/- minutes (never on sunrise/sunset: prayer times are derived from them)
   const gra = adj(cal.getSofZmanShmaGRA(), 's'), mga = adj(oc ? cal.getSofZmanShmaMGA72MinutesZmanis() : cal.getSofZmanShmaMGA(), 's');

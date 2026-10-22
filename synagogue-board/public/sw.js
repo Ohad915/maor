@@ -2,7 +2,7 @@
 //  - /_next/static, /images, /icons, fonts: cache-first (immutable, fast, works offline)
 //  - pages & everything else same-origin: network-first with a 3s timeout, then the cached copy (so a "connected but no internet" Wi-Fi never hangs the screen)
 //  - Firebase / API traffic is never intercepted (Firestore has its own IndexedDB offline cache)
-const V = 'maor-v63', SHELL = ['/', '/display', '/admin', '/login'], FONTS = 'maor-fonts';
+const V = 'maor-v64', SHELL = ['/', '/display', '/admin', '/login'], FONTS = 'maor-fonts';
 self.addEventListener('install', (e) => e.waitUntil(caches.open(V).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((k) => Promise.all(k.filter((x) => x !== V && x !== FONTS).map((x) => caches.delete(x)))).then(() => self.clients.claim())));
 const withTimeout = (p, ms) => new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('timeout')), ms); p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); }); });
