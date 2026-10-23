@@ -98,9 +98,9 @@ function Lessons({ sid, cols, st, set }) {
     </Card>
     {(cols.lessons || []).map((l) => (
       <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{[lessonWho(l), l.place].filter(Boolean).join(' · ')}</div>
-        <span className={`tag ${lessonType(l) === 'psalms' ? 'ok' : ''}`}>{LESSON_TYPES[lessonType(l)].ico} {LESSON_TYPES[lessonType(l)].name}</span><span className="tag">{lessonDaysLabel(l)}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa && <span className="tag ok">WhatsApp</span>}</div></div>
+        <span className={`tag ${lessonType(l) === 'psalms' ? 'ok' : ''}`}>{LESSON_TYPES[lessonType(l)].ico} {LESSON_TYPES[lessonType(l)].name}</span><span className="tag">{lessonDaysLabel(l)}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa !== false && <span className="tag ok">WhatsApp</span>}</div></div>
         <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => updItem(sid, 'lessons', l.id, { mode: v })} /><TkChk on={l.ticker} onChange={(v) => updItem(sid, 'lessons', l.id, { ticker: v })} /><ScreenSel value={l.screen} onChange={(v) => updItem(sid, 'lessons', l.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ type: lessonType(l), titlePrefix: l.titlePrefix || '', title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: l.tmode || 'fixed', val: l.val || '', showWa: !!l.showWa, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
+          <Edit onClick={() => ed.load({ type: lessonType(l), titlePrefix: l.titlePrefix || '', title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: l.tmode || 'fixed', val: l.val || '', showWa: l.showWa !== false, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
   </>);
 }
 

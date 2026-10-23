@@ -175,7 +175,7 @@ export async function build({ syn, cols, st }, kind, opt) {
   const hasDow = (r) => Array.isArray(r.dow) && r.dow.length > 0;
   // which prayer rows belong to which part of the week (same rules as the screen: explicit weekday list wins, otherwise the day-type)
   const pick = (idx, kinds) => pr.filter((r) => (hasDow(r) ? idx.some((i) => r.dow.includes(i)) : kinds.includes(pdayOf(r))));
-  const les = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off') : [];
+  const les = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa !== false && (l.mode ?? 'block') !== 'off') : [];
   const items = [], add = (n, v, seg, o = {}) => { if (v && v !== '—') items.push({ n, v: hm(v), seg, ...o }); };
   /** prayers with the same name in the same part of the picture become ONE row with all the times (sorted, unique) */
   const addPrayers = (rows, z, seg, suf = '') => {
@@ -350,8 +350,8 @@ export async function renderPoster(d, greet) {
     const cost = (r) => (r[4]?.hdr ? HF : 1), total = (a) => a.reduce((t, r) => t + cost(r), 0);
     d.cut = 0;
     while (RH / total(rows) < MINP) { // too many for a readable size: drop lessons first, then prayers - never the zmanim
-      let i = -1; for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.l) i = j;
-      for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.p) i = j;
+      const nl = rows.filter((r) => r[4]?.l).length, np = rows.filter((r) => r[4]?.p).length, kk = nl > np ? 'l' : 'p'; // trim whichever group is bigger, so lessons and prayers both stay represented
+      let i = -1; for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.[kk]) i = j;
       if (i < 0) break; rows.splice(i, 1); d.cut++;
       rows = rows.filter((r, j) => !r[4]?.hdr || (rows[j + 1] && !rows[j + 1][4]?.hdr));
     }
@@ -400,7 +400,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
     try {
       const data = await build({ syn, cols, st }, kind, opt);
       setD(data); setVec(false);
-      try { setPng(await renderPoster(data, greet)); if (data.cut) setMsg(`לא נכנסו כל השורות בגודל קריא – הושמטו ${data.cut} (קודם שיעורים). אפשר לכבות שיעורים או רבינו תם.`); setBusy(false); return; }
+      try { setPng(await renderPoster(data, greet)); if (data.cut) setMsg(`לא נכנסו כל השורות בגודל קריא – הושמטו ${data.cut} (מהקבוצה הגדולה יותר). אפשר לכבות שיעורים או רבינו תם.`); setBusy(false); return; }
       catch (e) { setMsg('תבנית הרקע לא נטענה, נוצר עיצוב וקטורי חלופי.'); setVec(true); }
       await new Promise((r) => setTimeout(r, 200));
       if (document.fonts?.ready) await document.fonts.ready;
@@ -423,7 +423,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
       <Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} />
       <label>סוג התמונה</label>
       <div className="row">{[['shabbat', 'שבת ומועדים (כולל ערב שבת)'], ['weekday', 'ימי חול (א׳–ה׳)']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
-      <div style={{ fontSize: 12, color: 'var(--mu)', margin: '4px 0' }}>{kind === 'shabbat' ? 'תמונת שבת: הדלקת נרות, מנחה וקבלת שבת של יום שישי, שבת ומוצאי שבת – הכל ממוין לפי שעה, עם כותרת לכל חלק.' : 'תמונת חול: ימים א׳–ה׳ בלבד (תפילות בוקר של שישי מצורפות). שישי בערב נמצא בתמונת השבת. אם מפיקים בשישי/שבת – הזמנים של יום ראשון הקרוב.'}</div>
+      <div style={{ fontSize: 12, color: 'var(--mu)', margin: '4px 0' }}>{kind === 'shabbat' ? 'תמונת שבת: הדלקת נרות, מנחה וקבלת שבת של יום שישי, שבת ומוצאי שבת – הכל ממוין לפי שעה, עם כותרת לכל חלק. כל שיעורי התורה והתהילים של השבת נכללים.' : 'תמונת חול: כל השיעורים של ימי החול, וימים א׳–ה׳ בלבד (תפילות בוקר של שישי מצורפות). שישי בערב נמצא בתמונת השבת. אם מפיקים בשישי/שבת – הזמנים של יום ראשון הקרוב.'}</div>
       {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}
       <Switch label="הצג שיעורי תורה" on={opt.lessons} onChange={tg('lessons')} />
       <Switch label="הצג זמן רבינו תם" on={opt.rt} onChange={tg('rt')} />
