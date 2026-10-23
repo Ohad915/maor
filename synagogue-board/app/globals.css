@@ -482,3 +482,5 @@ label{font-size:13px;color:var(--mu)}
 .rl-stat .bpd u.on{opacity:.9}
 .lss .lsg>div{min-width:0}.lss .ptr{min-width:0;width:100%;box-sizing:border-box}.lss .ptr b,.lss .ptr i{min-width:0;box-sizing:border-box}
 .lss .ptr b{border:.1em solid #d9a52e;border-inline-start:.1em solid #d9a52e;border-radius:0 .3em .3em 0}.lss .ptr i{border-radius:.3em 0 0 .3em}.lss .ptr.ls-psalms b{border-color:#c9809a}
+.ptb2 .ptg.cards{grid-template-columns:1fr 1fr;gap:1.2cqh 1.4cqw;align-content:start;flex:1}
+.fsdots{text-align:center;font-size:2.2cqh;color:#6b4306;letter-spacing:.3em;line-height:1}

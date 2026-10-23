@@ -197,7 +197,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : c.k === 'dh' ? c.d.content : '');
   const tparts = cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), cur.k === 'dh' ? (cur.full && royal ? 14 : 9) : st.lpp || 6) : [''];
-  const subPages = cur?.k === 'r' ? mrPages : tparts.length;
+  const FS_CAP = 10; // full-screen lists on the royal scroll: 2 per row x 5 rows per page; the rest continues on the next page
+  const fsN = cur?.popup && royal ? (cur.k === 'tall' ? ptRows.length : cur.k === 'ls' ? cur.rows.length : 0) : 0;
+  const subPages = cur?.k === 'r' ? mrPages : fsN ? Math.max(1, Math.ceil(fsN / FS_CAP)) : tparts.length;
   const tx = tparts[pg.mr % tparts.length];
 
   /* ----- carousel (frozen on Shabbat) ----- */
@@ -238,9 +240,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     const ico = <div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /><h2 className="ptti">זמני תפילות</h2></div>;
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
-      const two = am.length && pm2.length, mx = Math.max(am.length, pm2.length, 1);
-      full = <div className="rl-scroll" key={'sc' + idx} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : n }}>{ico}
-        <div className={'ptg' + (two ? ' two' : '')}>{two ? <><div className="ptcol">{am.map(card)}</div><div className="ptcol">{pm2.map(card)}</div></> : <div className="ptcol">{ptRows.map(card)}</div>}</div></div></div></div>;
+      const fp = pg.mr % subPages, per = Math.ceil(ptRows.length / subPages / 2) * 2, items = ptRows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2);
+      full = <div className="rl-scroll" key={'sc' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}>{ico}
+        <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
       const body = <div className="an fade ptb" key={'t' + idx}>{ico}
@@ -269,10 +271,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     const hdr = (t) => <h4 className={'lsh ' + t}>{LESSON_TYPES[t].ico} {LESSON_TYPES[t].name}</h4>;
     const ttl = week ? 'שיעורי תורה ותהילים – השבוע' : 'שיעורי תורה ותהילים – היום';
     if (cur.popup && royal) {
-      const mx = Math.max(...G.map(([, a]) => a.length), 1) + 1, two = G.length > 1;
-      const card = ({ l, time }) => <div className={'ptc ls-' + lessonType(l)} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i>{sub(l) && <small>{sub(l)}</small>}</div>;
-      full = <div className="rl-scroll" key={'ls' + idx} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : nAll + 1 }}><h2 className="lsti">{ttl}</h2>
-        <div className={'ptg' + (two ? ' two' : '')}>{G.map(([t, a]) => <div className="ptcol" key={t}>{hdr(t)}{a.map(card)}</div>)}</div></div></div></div>;
+      const fp = pg.mr % subPages, per = Math.ceil(cur.rows.length / subPages / 2) * 2, items = cur.rows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2) + 1;
+      const card = ({ l, time }) => <div className={'ptc ls-' + lessonType(l)} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i><small>{LESSON_TYPES[lessonType(l)].ico} {[lessonWho(l), l.place, week ? lessonDaysLabel(l) : ''].filter(Boolean).join(' · ')}</small></div>;
+      full = <div className="rl-scroll" key={'ls' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}><h2 className="lsti">{ttl}</h2>
+        <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
       const mxr = Math.max(...G.map(([, a]) => a.length), 1), lf = Math.min(1, 6 / (mxr + 1.5)) * (cur.popup ? 1 : Math.max(0.38, Math.min(0.72, 1.7 / (mxr + 0.4))));
