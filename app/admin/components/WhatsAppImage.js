@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { fmt, getZmanim, prayerTime, zOpts } from '@/lib/zmanim';
 import { pdayOf, sortPrayers } from '@/lib/zmanim';
-import { annOn, lessonDays, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
+import { lessonDays, lessonLabel, lessonWho, gem, hebOf, monthName, parshaInfo, rdOf } from '@/lib/hebrew';
 import { haftaraHe } from '@/lib/haftara';
 import { Card, Switch } from './UI';
 
@@ -157,42 +157,76 @@ function Ico({ k }) {
 const iconOf = (n) => /נרות/.test(n) ? 'candle' : /מנחה|שיעור|גמרא|דף|תהילים|פרק|לימוד/.test(n) ? 'book' : /ערבית|מעריב|שקיעה/.test(n) ? 'moon' : /צאת|רבינו/.test(n) ? 'star' : /נץ|שחרית|זריחה|ק״ש|שמע|חצות/.test(n) ? 'sun' : 'shul';
 
 /* ---------- data ---------- */
-async function build({ syn, cols, st }, kind, opt) {
+const tmin = (v) => { const m = /(\d{1,2}):(\d{2})/.exec(String(v || '')); return m ? +m[1] * 60 + +m[2] : null; };
+const hm = (v) => String(v || '').replace(/(^|\D)(\d):(\d{2})/g, '$10$2:$3');
+const SEGN = ['ערב שבת', 'שבת', 'מוצ״ש'];
+/** Friday split: morning (stays in the weekday picture) vs. afternoon/evening (belongs to the Shabbat picture). By prayer name first, then by the time versus Friday's halachic noon. */
+function fridayPart(name, time, zf, candle = 20) {
+  if (/שחרית|ותיקין|הנץ|נץ/.test(name)) return 'am';
+  if (/מנחה|קבלת|ערבית|מעריב|לכה דודי|נרות/.test(name)) return 'pm';
+  // anything else (lessons, custom rows): afternoon = from 1h after halachic noon, but not earlier than 4h before candle lighting
+  const t = tmin(time), c = zf.chatzot ? tmin(fmt(zf.chatzot)) + 60 : 780, cl = zf.shkia ? tmin(fmt(zf.shkia.minus({ minutes: candle }))) - 240 : 0;
+  return t == null || t >= Math.max(c, cl) ? 'pm' : 'am';
+}
+export async function build({ syn, cols, st }, kind, opt) {
   const loc = syn.location || { lat: 31.77, lng: 35.21, elevation: 0 }, zo = { ...zOpts(st), rt: opt.rt, visible: opt.netz };
-  const now = new Date(), z0 = getZmanim(now, loc, zo), hn = hebOf(now, false);
-  let ahead = (6 - z0.dow + 7) % 7; if (z0.dow === 6 && z0.tzeit && z0.now >= z0.tzeit) ahead = 7;
-  const sat = new Date(+now + ahead * 864e5), fri = new Date(+sat - 864e5), zs = getZmanim(sat, loc, zo), zf = getZmanim(fri, loc, zo);
+  const now = new Date(), z00 = getZmanim(now, loc, zo), shab = kind === 'shabbat';
   const pr = sortPrayers(cols.prayers || []).filter((r) => (r.show ?? 'bar') !== 'off');
-  const KD = { fri: [5], shab: [6], chag: [6], week: [0, 1, 2, 3, 4], all: [0, 1, 2, 3, 4, 5, 6], mots: [] };
-  const grp = (days, z) => Object.entries(pr.filter((r) => (Array.isArray(r.dow) && r.dow.length ? days.some((d) => (KD[d] || []).some((i) => r.dow.includes(i))) : days.includes(pdayOf(r)))).reduce((a, r) => { (a[r.name] ||= []).push(prayerTime(r, z)); return a; }, {})).map(([n, t]) => [n, t.sort().join(' , ')]);
-  const lessons = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off' && (kind === 'shabbat' ? lessonDays(l).includes(6) : lessonDays(l).some((x) => x <= 4))).map((l) => ({ t: l.title, who: l.rabbi || '', time: prayerTime(l, kind === 'shabbat' ? zs : z0) })) : [];
-  const ann = opt.ann ? (cols.announcements || []).filter((a) => (a.mode ?? (a.on === false ? 'off' : 'block')) !== 'off' && annOn(a, hn)).slice(0, 3).map((a) => a.title + ((a.content || '').split('\n')[0] ? ' · ' + a.content.split('\n')[0].slice(0, 56) : '')) : [];
+  const hasDow = (r) => Array.isArray(r.dow) && r.dow.length > 0;
+  // which prayer rows belong to which part of the week (same rules as the screen: explicit weekday list wins, otherwise the day-type)
+  const pick = (idx, kinds) => pr.filter((r) => (hasDow(r) ? idx.some((i) => r.dow.includes(i)) : kinds.includes(pdayOf(r))));
+  const les = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa && (l.mode ?? 'block') !== 'off') : [];
+  const items = [], add = (n, v, seg, o = {}) => { if (v && v !== '—') items.push({ n, v: hm(v), seg, ...o }); };
+  /** prayers with the same name in the same part of the picture become ONE row with all the times (sorted, unique) */
+  const addPrayers = (rows, z, seg, suf = '') => {
+    const m = new Map(); rows.forEach((r) => { const k = r.name + suf, t = prayerTime(r, z); if (!m.has(k)) m.set(k, { n: r.name, suf, t: [] }); const g = m.get(k); if (t && t !== '—' && !g.t.includes(hm(t))) g.t.push(hm(t)); });
+    m.forEach((g) => add(g.n, g.t.sort((a, b) => (tmin(a) ?? 1e4) - (tmin(b) ?? 1e4)).join(' , '), seg, { p: true, suf: g.suf }));
+  };
   const sel = (z) => (zo.shma === 'mga' ? ['סוף זמן ק״ש (מג״א)', fmt(z.shmaMga)] : ['סוף זמן ק״ש', fmt(z.shma)]);
-  const base = { name: syn.name, lessons, ann };
-  if (kind === 'shabbat') {
-    const pi = parshaInfo(sat, 6, false), hs = hebOf(sat, false);
+  const lWho = (l) => lessonWho(l);
+  if (shab) {
+    let ahead = (6 - z00.dow + 7) % 7; if (z00.dow === 6 && z00.tzeit && z00.now >= (z00.shabEnd || z00.tzeit)) ahead = 7;
+    const sat = new Date(+now + ahead * 864e5), fri = new Date(+sat - 864e5), zs = getZmanim(sat, loc, zo), zf = getZmanim(fri, loc, zo);
+    const pi = parshaInfo(sat, 6, false), hs = hebOf(sat, false), candleT = zf.shkia && fmt(zf.shkia.minus({ minutes: st.candle }));
+    // --- Friday: only the afternoon/evening goes in the Shabbat picture (candle lighting, mincha, kabbalat Shabbat, arvit)
+    add('הדלקת נרות', candleT, 0, { z: true });
+    addPrayers(pick([5], ['fri']).filter((r) => fridayPart(r.name, prayerTime(r, zf), zf, st.candle) === 'pm'), zf, 0);
+    les.filter((l) => lessonDays(l).includes(5) && !lessonDays(l).some((x) => x <= 4)).forEach((l) => { const t = prayerTime(l, zf); if (fridayPart(l.title, t, zf, st.candle) === 'pm') add(lessonLabel(l), t, 0, { l: true, sub: lWho(l) }); });
+    // --- Shabbat day
+    if (opt.netz) add('הנץ החמה', fmt(zs.netz), 1, { z: true });
+    { const [n, v] = sel(zs); add(n, v, 1, { z: true }); }
+    addPrayers(pick([6], ['shab', 'chag', 'all']), zs, 1);
+    const endM = tmin(fmt(zs.shabEnd || zs.tzeit));
+    les.filter((l) => lessonDays(l).includes(6)).forEach((l) => { const t = prayerTime(l, zs); add(lessonLabel(l), t, tmin(t) != null && endM != null && tmin(t) >= endM ? 2 : 1, { l: true, sub: lWho(l) }); });
+    // --- Motzaei Shabbat
+    addPrayers(pr.filter((r) => !hasDow(r) && pdayOf(r) === 'mots'), zs, 2);
+    add('צאת השבת', fmt(zs.shabEnd || zs.tzeit), 2, { z: true });
+    if (opt.rt) add('רבינו תם', fmt(zs.rt), 2, { z: true });
     const haf = st.waHaftara === false ? '' : st.hfText || (await haftaraHe(rdOf(sat), syn.nusach));
-    return { ...base, kind, parsha: st.waParsha === false ? '' : pi.title, special: pi.sp.join(' · '), chag: !pi.title.startsWith('פרשת'), haftara: haf, date: `${gem(hs.d)} ב${monthName(hs.raw)} ה׳${gem(hs.y % 1000)}`,
-      times: [['הדלקת נרות', zf.shkia && fmt(zf.shkia.minus({ minutes: st.candle }))], opt.netz && ['הנץ החמה', fmt(zs.netz)], sel(zs), ['שקיעה', fmt(zs.shkia)], ['צאת השבת', fmt(zs.tzeit)], opt.rt && ['רבינו תם', fmt(zs.rt)]].filter(Boolean),
-      groups: [['ערב שבת', grp(['fri'], zf)], ['שבת', grp(['shab', 'chag', 'all'], zs)], ['מוצאי שבת', grp(['mots'], zs)]].filter(([, r]) => r.length) };
+    return { name: syn.name, kind, items, parsha: st.waParsha === false ? '' : pi.title, special: pi.sp.join(' · '), chag: !pi.title.startsWith('פרשת'), haftara: haf, date: `${gem(hs.d)} ב${monthName(hs.raw)} ה׳${gem(hs.y % 1000)}` };
   }
-  return { ...base, kind, parsha: '', date: `${gem(hn.d)} ב${monthName(hn.raw)} ה׳${gem(hn.y % 1000)}`,
-    times: [opt.netz && ['הנץ החמה', fmt(z0.netz)], sel(z0), ['חצות היום', fmt(z0.chatzot)], ['שקיעה', fmt(z0.shkia)], ['צאת הכוכבים', fmt(z0.tzeit)], opt.rt && ['רבינו תם', fmt(z0.rt)]].filter(Boolean),
-    groups: [['תפילות ימי חול', grp(['week', 'all'], z0)]].filter(([, r]) => r.length) };
+  // weekday picture = a regular Sun–Thu day (generated on Fri/Sat -> the coming Sunday); Friday MORNING prayers join it, Friday evening is in the Shabbat picture
+  const wk = z00.dow === 5 || z00.dow === 6 ? new Date(+now + (7 - z00.dow) * 864e5) : now, z0 = getZmanim(wk, loc, zo), hn = hebOf(wk, false);
+  const zf = getZmanim(new Date(+wk + (5 - z0.dow) * 864e5), loc, zo), week = pick([0, 1, 2, 3, 4], ['week', 'all']), wid = new Set(week.map((r) => r.id));
+  if (opt.netz) add('הנץ החמה', fmt(z0.netz), 0, { z: true });
+  { const [n, v] = sel(z0); add(n, v, 0, { z: true }); }
+  addPrayers(week, z0, 0);
+  addPrayers(pick([5], ['fri']).filter((r) => !wid.has(r.id) && fridayPart(r.name, prayerTime(r, zf), zf, st.candle) === 'am'), zf, 0, ' · שישי');
+  les.filter((l) => lessonDays(l).some((x) => x <= 4)).forEach((l) => add(lessonLabel(l), prayerTime(l, z0), 0, { l: true, sub: lWho(l) }));
+  les.filter((l) => lessonDays(l).includes(5) && !lessonDays(l).some((x) => x <= 4)).forEach((l) => { const t = prayerTime(l, zf); if (fridayPart(l.title, t, zf, st.candle) === 'am') add(lessonLabel(l) + ' · שישי', t, 0, { l: true, sub: lWho(l) }); });
+  add('חצות היום', fmt(z0.chatzot), 0, { z: true }); add('שקיעה', fmt(z0.shkia), 0, { z: true }); add('צאת הכוכבים', fmt(z0.tzeit), 0, { z: true });
+  if (opt.rt) add('רבינו תם', fmt(z0.rt), 0, { z: true });
+  return { name: syn.name, kind, items, parsha: '', date: `${gem(hn.d)} ב${monthName(hn.raw)} ה׳${gem(hn.y % 1000)}` };
 }
 
-/** Ordered rows [label, time] in the sample's logic (candle lighting, mincha, netz, shacharit, shma, lessons, arvit, tzeit...). */
-function orderRows(d) {
-  const T = (re, seg = 0) => d.times.filter(([n]) => re.test(n)).map(([n, v]) => [n, v, '', seg]), G = (title) => (d.groups.find(([t]) => t === title) || [, []])[1];
-  const dup = {}; d.groups.forEach(([, r]) => r.forEach(([n]) => { dup[n] = (dup[n] || 0) + 1; }));
-  const gr = (title, seg = 0) => G(title).map(([n, v]) => [dup[n] > 1 ? `${n} · ${title}` : n, v, '', seg]);
-  const sh = d.kind === 'shabbat';
-  const L = d.lessons.map((l) => [l.t, l.time, l.who || '', sh ? 1 : 0]); // lesson title (line 1) + rabbi (line 2)
-  const all = sh ? [...T(/נרות/, 0), ...gr('ערב שבת', 0), ...T(/נץ/, 1), ...gr('שבת', 1), ...T(/ק״ש/, 1), ...L, ...gr('מוצאי שבת', 2), ...T(/צאת/, 2), ...T(/רבינו/, 2)]
-    : [...T(/נץ/), ...gr('תפילות ימי חול'), ...T(/ק״ש/), ...L, ...T(/חצות/), ...T(/שקיעה/), ...T(/צאת/), ...T(/רבינו/)];
-  // full chronological order (Friday eve -> Shabbat -> motzaei Shabbat; weekday = one segment); rows without a valid HH:mm go last
-  const key = (v) => (/^\d{1,2}:\d{2}$/.test(String(v)) ? String(v).padStart(5, '0') : '99:99');
-  return all.map((r, i) => [r, i]).filter(([r]) => r[1]).sort(([a, i], [b, j]) => (a[3] - b[3]) || key(a[1]).localeCompare(key(b[1])) || i - j).map(([r]) => r);
+/** Ordered rows [label, time, sub, seg, item]: ONE chronological merge of zmanim + prayers + lessons + psalms. Shabbat = Friday evening -> Shabbat -> Motzaei Shabbat (each part sorted by time); with `hdr` a divider row opens each part. */
+export function orderRows(d, hdr) {
+  const sh = d.kind === 'shabbat', segs = {};
+  d.items.forEach((i) => { if (i.p) (segs[i.n] ||= new Set()).add(i.seg); });
+  const lab = (i) => (sh && i.p && segs[i.n].size > 1 ? `${i.n} · ${SEGN[i.seg]}` : i.n) + (i.suf || '');
+  const rows = d.items.map((i, k) => [i, k]).filter(([i]) => i.v).sort(([a, i], [b, j]) => (a.seg - b.seg) || ((tmin(a.v) ?? 1e4) - (tmin(b.v) ?? 1e4)) || i - j).map(([i]) => [lab(i), i.v, i.sub || '', i.seg, i]);
+  if (!hdr || !sh) return rows;
+  const out = []; let last = -1; rows.forEach((r) => { if (r[3] !== last) { out.push([SEGN[r[3]], '', '', r[3], { hdr: true }]); last = r[3]; } out.push(r); }); return out;
 }
 /** thin inner line of a card (a real border: html2canvas does not paint inset shadows correctly) */
 const Inner = () => <i style={{ position: 'absolute', inset: 3, border: '2px solid #7a5410', borderRadius: 8, pointerEvents: 'none' }} />;
@@ -295,20 +329,59 @@ export async function renderPoster(d, greet) {
   // Hebrew date under the scroll
   c.fillStyle = '#f2c85b'; fitFont(c, d.date, X(250), 34, 700, SANS, 16); c.fillText(d.date, cx, Y(835));
   // rows: time (left box) | label (middle) | icon (right box)
-  const all = orderRows(d), KEY = /נרות|נץ|ק״ש|צאת|חצות|שקיעה|רבינו/, MAXR = 8;
-  let free = MAXR - all.filter(([n]) => KEY.test(n)).length;
-  const rows = all.length <= MAXR ? all : all.filter(([n]) => KEY.test(n) || free-- > 0);
-  const top0 = 872, pitch = 69.9, bh = 62;
-  for (let i = 0; i < MAXR; i++) {
-    const y = top0 + i * pitch, yc = Y(y + bh / 2);
-    if (i >= rows.length) { // unused template slot: paint over it with the template's own background strip
-      const k = bg.naturalWidth / TW; c.drawImage(bg, 92 * k, (y - 8) * k, 30 * k, (bh + 16) * k, X(130), Y(y - 8), X(686), Y(bh + 16)); continue; }
-    const [n, v, sub] = rows[i];
-    c.fillStyle = '#f7e7b0';
-    if (sub) { fitFont(c, n, X(400), 36, 800, SANS, 16); c.fillText(n, X(488), yc - Y(10)); c.fillStyle = '#e8d49a'; fitFont(c, sub, X(400), 26, 600, SANS, 14); c.fillText(sub, X(488), yc + Y(15)); c.fillStyle = '#f7e7b0'; }
-    else { fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc); }
-    c.fillStyle = '#f9df8e'; fitFont(c, v, X(116), 44, 900, SANS, 20); c.direction = 'ltr'; c.fillText(v, X(203), yc); c.direction = 'rtl';
-    const im = await iconImg(iconOf(n)), sz = Y(48); c.drawImage(im, X(755) - sz / 2, yc - sz / 2, sz, sz);
+  const dyn = shab || orderRows(d).length > 8; // weekday with <= 8 rows keeps the baked slots; everything else is laid out dynamically
+  if (!dyn) {
+    const rows = orderRows(d), top0 = 872, pitch = 69.9, bh = 62, MAXR = 8;
+    for (let i = 0; i < MAXR; i++) {
+      const y = top0 + i * pitch, yc = Y(y + bh / 2);
+      if (i >= rows.length) { // unused template slot: paint over it with the template's own background strip
+        const k = bg.naturalWidth / TW; c.drawImage(bg, 92 * k, (y - 8) * k, 30 * k, (bh + 16) * k, X(130), Y(y - 8), X(686), Y(bh + 16)); continue; }
+      const [n, v, sub] = rows[i];
+      c.fillStyle = '#f7e7b0';
+      if (sub) { fitFont(c, n, X(400), 36, 800, SANS, 16); c.fillText(n, X(488), yc - Y(10)); c.fillStyle = '#e8d49a'; fitFont(c, sub, X(400), 26, 600, SANS, 14); c.fillText(sub, X(488), yc + Y(15)); c.fillStyle = '#f7e7b0'; }
+      else { fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc); }
+      c.fillStyle = '#f9df8e'; fitFont(c, v, X(116), 44, 900, SANS, 20); c.direction = 'ltr'; c.fillText(v, X(203), yc); c.direction = 'rtl';
+      const im = await iconImg(iconOf(n)), sz = Y(48); c.drawImage(im, X(755) - sz / 2, yc - sz / 2, sz, sz);
+    }
+  } else {
+    // AUTO-FIT: repaint the 8 baked slots and draw as many rows as there are (+ a divider per part of the week), shrinking pitch/fonts so everything fits
+    const RT = 1000, RB = 1644, RH = RB - RT, HF = 0.62, MINP = 28;
+    let rows = orderRows(d, shab);
+    const cost = (r) => (r[4]?.hdr ? HF : 1), total = (a) => a.reduce((t, r) => t + cost(r), 0);
+    d.cut = 0;
+    while (RH / total(rows) < MINP) { // too many for a readable size: drop lessons first, then prayers - never the zmanim
+      let i = -1; for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.l) i = j;
+      for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.p) i = j;
+      if (i < 0) break; rows.splice(i, 1); d.cut++;
+      rows = rows.filter((r, j) => !r[4]?.hdr || (rows[j + 1] && !rows[j + 1][4]?.hdr));
+    }
+    const kx = bg.naturalWidth / W, ky = bg.naturalHeight / H;
+    c.drawImage(bg, 105 * kx, RT * ky, 30 * kx, RH * ky, 150, RT, 780, RH);
+    const unit = Math.min(80, RH / Math.max(total(rows), 1)), gap = Math.max(4, unit * 0.1), BX = { t: [160, 308], l: [318, 805], i: [815, 920] };
+    const rr = (x, y, w, h, r) => (c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h));
+    const box = (x0, x1, y, h) => {
+      const r = Math.min(12, h * 0.24), g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#0d2257'); g.addColorStop(1, '#071538');
+      c.beginPath(); rr(x0, y, x1 - x0, h, r); c.fillStyle = g; c.fill(); c.lineWidth = 3; c.strokeStyle = '#e0bd5f'; c.stroke();
+      c.beginPath(); rr(x0 + 3, y + 3, x1 - x0 - 6, h - 6, Math.max(2, r - 2)); c.lineWidth = 1.2; c.strokeStyle = 'rgba(224,189,95,.35)'; c.stroke();
+    };
+    let y = RT;
+    for (const r of rows) {
+      const [n, v, sub] = r;
+      if (r[4]?.hdr) { // divider: "ערב שבת" / "שבת" / "מוצ״ש"
+        const h = unit * HF, yc = y + h / 2, fz = Math.min(34, h * 0.7); c.fillStyle = '#f9df8e'; c.font = `800 ${fz}px ${SANS}`; const tw = c.measureText(n).width;
+        c.fillText(n, 540, yc); c.strokeStyle = '#e0bd5f'; c.lineWidth = 2;
+        [[160, 540 - tw / 2 - 18], [540 + tw / 2 + 18, 920]].forEach(([a, b]) => { c.beginPath(); c.moveTo(a, yc); c.lineTo(b, yc); c.stroke(); });
+        y += h; continue;
+      }
+      const bh = unit - gap, yc = y + bh / 2, fs = Math.min(42, bh * 0.62);
+      box(...BX.t, y, bh); box(...BX.l, y, bh); box(...BX.i, y, bh);
+      c.fillStyle = '#f7e7b0';
+      if (sub && bh >= 58) { fitFont(c, n, 470, fs * 0.9, 800, SANS, 14); c.fillText(n, 561, yc - bh * 0.17); c.fillStyle = '#e8d49a'; fitFont(c, sub, 470, fs * 0.62, 600, SANS, 12); c.fillText(sub, 561, yc + bh * 0.24); }
+      else { const t = sub ? `${n} · ${sub}` : n; fitFont(c, t, 470, fs, 800, SANS, 14); c.fillText(t, 561, yc); }
+      c.fillStyle = '#f9df8e'; fitFont(c, v, 136, Math.min(48, bh * 0.7), 900, SANS, 14); c.direction = 'ltr'; c.fillText(v, 234, yc); c.direction = 'rtl';
+      const im = await iconImg(iconOf(n)), sz = Math.min(bh * 0.78, 58); c.drawImage(im, 867 - sz / 2, yc - sz / 2, sz, sz);
+      y += unit;
+    }
   }
   // banner
   const g = !shab ? 'יום מבורך!' : greet === 'chag' || (greet === 'auto' && d.chag) ? 'חג שמח!' : 'שבת שלום ומבורך!';
@@ -327,7 +400,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
     try {
       const data = await build({ syn, cols, st }, kind, opt);
       setD(data); setVec(false);
-      try { setPng(await renderPoster(data, greet)); setBusy(false); return; }
+      try { setPng(await renderPoster(data, greet)); if (data.cut) setMsg(`לא נכנסו כל השורות בגודל קריא – הושמטו ${data.cut} (קודם שיעורים). אפשר לכבות שיעורים או רבינו תם.`); setBusy(false); return; }
       catch (e) { setMsg('תבנית הרקע לא נטענה, נוצר עיצוב וקטורי חלופי.'); setVec(true); }
       await new Promise((r) => setTimeout(r, 200));
       if (document.fonts?.ready) await document.fonts.ready;
@@ -349,7 +422,8 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
       <Switch label="הצג פרשה בתמונה" on={st.waParsha !== false} onChange={(v) => set('waParsha', v)} />
       <Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} />
       <label>סוג התמונה</label>
-      <div className="row">{[['shabbat', 'שבת ומועדים'], ['weekday', 'ימי חול']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
+      <div className="row">{[['shabbat', 'שבת ומועדים (כולל ערב שבת)'], ['weekday', 'ימי חול (א׳–ה׳)']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
+      <div style={{ fontSize: 12, color: 'var(--mu)', margin: '4px 0' }}>{kind === 'shabbat' ? 'תמונת שבת: הדלקת נרות, מנחה וקבלת שבת של יום שישי, שבת ומוצאי שבת – הכל ממוין לפי שעה, עם כותרת לכל חלק.' : 'תמונת חול: ימים א׳–ה׳ בלבד (תפילות בוקר של שישי מצורפות). שישי בערב נמצא בתמונת השבת. אם מפיקים בשישי/שבת – הזמנים של יום ראשון הקרוב.'}</div>
       {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}
       <Switch label="הצג שיעורי תורה" on={opt.lessons} onChange={tg('lessons')} />
       <Switch label="הצג זמן רבינו תם" on={opt.rt} onChange={tg('rt')} />

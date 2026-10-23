@@ -454,3 +454,31 @@ label{font-size:13px;color:var(--mu)}
 
 /* full-screen scroll: enlarged so the parchment + text fill most of the screen (admin: scroll size slider) */
 .rl-scroll{transform:scale(var(--sz,1.3));transform-origin:50% 56%}
+
+/* lessons + psalms combined screen */
+.lsti{margin:.1em 0 .25em;font-size:1.7em;font-weight:900;text-align:center;font-family:'Frank Ruhl Libre',serif;line-height:1.1}
+.lsh{margin:.45em auto .3em;text-align:center;font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:1.3em;padding:.04em .9em;border-radius:99em;width:fit-content;border:.09em solid;line-height:1.25}
+.lsh.lesson{background:linear-gradient(180deg,#244fa8,#12306e);color:#f6d77a;border-color:#d9a52e}
+.lsh.psalms{background:linear-gradient(180deg,#9a3f62,#5a1f38);color:#ffe9c2;border-color:#e6b0c3}
+.ptr.ls-psalms b,.ptc.ls-psalms b{background:linear-gradient(180deg,#9a3f62,#5a1f38);color:#ffe9c2}
+.ptc.ls-psalms{border-color:#c9809a}.ptr.ls-psalms i{border-color:#c9809a}
+.ptb2 .lsti{font-size:min(4.2cqh,3cqw);color:#3a2606;margin:0}
+.ptb2 .lsh{margin:0 auto .2cqh;font-size:clamp(1.5cqh,calc(8cqh / var(--m)),3cqh)}
+.lss{display:flex;flex-direction:column;justify-content:center}
+.lss{--lf:1;overflow:hidden}
+.lss .lsti{font-size:calc(var(--lf) * 1.9em);margin:0 0 .15em}
+.lss .lsg{display:grid;grid-template-columns:1fr;gap:0 .8em;width:100%;direction:rtl;align-content:start}
+.lss .lsg.two{grid-template-columns:1fr 1fr}
+.lss .lsh{font-size:calc(var(--lf) * 1.35em);margin:.3em auto .2em}
+.lss .ptl3{width:100%;max-width:none;gap:calc(var(--lf) * .35em);font-size:1em}
+.lss .ptr b{font-size:calc(var(--lf) * 1.7em);padding:.05em .45em}
+.lss .ptr i{font-size:calc(var(--lf) * 1.95em);padding:.05em .45em}
+.lss .ptr small{font-size:calc(var(--lf) * 1em);color:#8a5a0c}
+.popup .lss .ptr b{font-size:calc(var(--lf) * 2em)}.popup .lss .ptr i{font-size:calc(var(--lf) * 2.3em)}
+.rl-stat.bpg{position:relative;animation:bpgIn .6s ease}
+@keyframes bpgIn{from{opacity:0;transform:translateY(.3em)}to{opacity:1;transform:none}}
+.rl-stat .bpd{position:absolute;bottom:.12em;left:0;right:0;display:flex;justify-content:center;gap:.35em;pointer-events:none}
+.rl-stat .bpd u{width:.35em;height:.35em;border-radius:50%;background:currentColor;opacity:.25;text-decoration:none}
+.rl-stat .bpd u.on{opacity:.9}
+.lss .lsg>div{min-width:0}.lss .ptr{min-width:0;width:100%;box-sizing:border-box}.lss .ptr b,.lss .ptr i{min-width:0;box-sizing:border-box}
+.lss .ptr b{border:.1em solid #d9a52e;border-inline-start:.1em solid #d9a52e;border-radius:0 .3em .3em 0}.lss .ptr i{border-radius:.3em 0 0 .3em}.lss .ptr.ls-psalms b{border-color:#c9809a}

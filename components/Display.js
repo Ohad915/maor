@@ -7,7 +7,7 @@ import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts, zmanimRows } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { isLive, pickDaily } from '@/lib/dailyHalacha';
-import { annOn, chagInfo, lessonOn, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, chagInfo, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -117,6 +117,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const ipp = (k) => Math.max(1, st.ipp?.[k] || 3);
   const [idx, setIdx] = useState(0);
   const [pg, setPg] = useState({ yz: 0, rf: 0, mr: 0 });
+  const [btI, setBtI] = useState(0); // bottom bar carousel page (fixed mode with long text)
+  useEffect(() => { const t = setInterval(() => setBtI((i) => i + 1), 5000); return () => clearInterval(t); }, []);
 
   /* ----- content ----- */
   const pi = parshaInfo(now, z.dow, !!z.tzeit && z.now >= z.tzeit);
@@ -183,7 +185,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
   const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
-  lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
+  // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
+  const ls = { mode: 'off', secs: 12, scope: 'today', ...(st.lsAll || {}) }, lsm = ls.mode === 'full' ? 'popup' : ls.mode, lsMin = (t) => { const m = /(\d+):(\d+)/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : 1e4; };
+  const lsRows = lessons.filter((l) => ls.scope === 'week' || lessonOn(l, dt, z.dow)).map((l) => ({ l, time: prayerTime(l, z) })).sort((a, b) => lsMin(a.time) - lsMin(b.time));
+  if ((lsm === 'block' || lsm === 'popup') && lsRows.length) slides.push({ k: 'ls', rows: lsRows, popup: lsm === 'popup', dur: Math.min(60, Math.max(5, +ls.secs || 12)) });
+  else lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
   // prayer times: ONE combined slide/popup listing all of today's selected prayers (off = top bar only; legacy 'full' = popup)
   const pm = pa.mode === 'full' ? 'popup' : pa.mode, ptRows = (() => { const sel = rowsToday.filter((r) => ['block', 'full'].includes(r.show)); return sel.length ? sel : rowsToday; })();
   if ((pm === 'block' || pm === 'popup') && ptRows.length) slides.push({ k: 'tall', full: false, popup: pm === 'popup', dur: pdur });
@@ -208,7 +214,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   useEffect(() => { if (rfPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, rf: p.rf + 1 })), cf('rf').secs * 1000); return () => clearInterval(t); }, [rfPages, cf('rf').secs]); // eslint-disable-line
 
   /* ----- heartbeat for the admin "screen health" indicator ----- */
-  const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : 'פרשה')) : '—';
+  const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : cur.k === 'ls' ? 'שיעורים ותהילים' : 'פרשה')) : '—';
   useEffect(() => {
     if (preview) return;
     const beat = () => !navigator.onLine || syn.id === 'demo' || setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
@@ -255,7 +261,27 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       emit(<div className={'an fade ' + cl} key={'dh' + idx + '-' + pg.mr} style={afs('hal')}><div className="lb">✦ הלכה יומית ✦</div><div className="ab">{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={cur.full ? undefined : { fontSize: em + 'em' }}>{tx}</p></div><div className="af">{cur.d.source}{dots && <><br />{dots}</>}</div></div>);
     }
   }
-  else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), '📚 שיעור תורה', <><h3>{cur.l.title}</h3><p>{[cur.l.rabbi, cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
+  else if (cur.k === 'l') emit(slide('l' + idx, afs('ann'), `${LESSON_TYPES[lessonType(cur.l)].ico} ${LESSON_TYPES[lessonType(cur.l)].name}`, <><h3>{cur.l.title}</h3><p>{[lessonWho(cur.l), cur.l.place].filter(Boolean).join(' · ')}<br />{cur.time}</p></>, '', cl));
+  else if (cur.k === 'ls') {
+    // dedicated screen: Torah lessons and Psalms recitals, visually separated (blue tag / rose tag), chronological inside each group
+    const grpT = (t) => cur.rows.filter((x) => lessonType(x.l) === t), G = [['lesson', grpT('lesson')], ['psalms', grpT('psalms')]].filter(([, a]) => a.length), nAll = cur.rows.length, week = ls.scope === 'week';
+    const sub = (l) => [lessonWho(l), l.place, week ? lessonDaysLabel(l) : ''].filter(Boolean).join(' · ');
+    const hdr = (t) => <h4 className={'lsh ' + t}>{LESSON_TYPES[t].ico} {LESSON_TYPES[t].name}</h4>;
+    const ttl = week ? 'שיעורי תורה ותהילים – השבוע' : 'שיעורי תורה ותהילים – היום';
+    if (cur.popup && royal) {
+      const mx = Math.max(...G.map(([, a]) => a.length), 1) + 1, two = G.length > 1;
+      const card = ({ l, time }) => <div className={'ptc ls-' + lessonType(l)} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i>{sub(l) && <small>{sub(l)}</small>}</div>;
+      full = <div className="rl-scroll" key={'ls' + idx} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': two ? mx : nAll + 1 }}><h2 className="lsti">{ttl}</h2>
+        <div className={'ptg' + (two ? ' two' : '')}>{G.map(([t, a]) => <div className="ptcol" key={t}>{hdr(t)}{a.map(card)}</div>)}</div></div></div></div>;
+      mid = null;
+    } else {
+      const mxr = Math.max(...G.map(([, a]) => a.length), 1), lf = Math.min(1, 6 / (mxr + 1.5)) * (cur.popup ? 1 : Math.max(0.38, Math.min(0.72, 1.7 / (mxr + 0.4))));
+      const body = <div className="an fade ptb lss" key={'ls' + idx} style={{ '--lf': lf }}><h2 className="lsti">{ttl}</h2>
+        <div className={'lsg' + (G.length > 1 ? ' two' : '')}>{G.map(([t, a]) => <div key={t}>{hdr(t)}<div className="ptl3">{a.map(({ l, time }) => <div className={'ptr ls-' + t} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i>{sub(l) && <small>{sub(l)}</small>}</div>)}</div></div>)}</div></div>;
+      if (cur.popup) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+      else mid = body;
+    }
+  }
   else if (cur.k === 't') emit(<div className={'an fade pts ' + cl} key={'t' + idx} style={afs('ann')}><div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /></div><div className="ab"><h3>{cur.row.name}</h3><p className="ptt">{cur.time}</p>{cur.row.note && <p className="ptn">{cur.row.note}</p>}</div>{slides.length > 1 && <div className="af">{dotStr(slides.length, idx % slides.length)}</div>}</div>);
   else emit(slide(idx + '-' + pg.mr, afs('hal'), '📖 הלכה ומנהגים', <><h3>{cur.t}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
 
@@ -309,7 +335,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const tkText = [st.tkText,
     st.tkParsha && ptitle ? ptitle + (hText ? ` · הפטרה: ${hText}` : '') : '',
     ...(cols.announcements || []).filter((a) => a.ticker && onS(a.screen) && annOn(a, h)).map((a) => a.title + (first(a.content) ? ' – ' + first(a.content) : '')),
-    ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && lessonOn(l, dt, z.dow)).map((l) => `שיעור ${l.title}${l.rabbi ? ' · ' + l.rabbi : ''} · ${prayerTime(l, z)}`),
+    ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && lessonOn(l, dt, z.dow)).map((l) => `${lessonType(l) === 'psalms' ? lessonLabel(l) : 'שיעור ' + l.title}${lessonWho(l) ? ' · ' + lessonWho(l) : ''} · ${prayerTime(l, z)}`),
     ...rowsToday.filter((r) => r.ticker || (inBar(r) && !pbShown)).map((r) => `${r.name}: ${tOf(r)}`),
     ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${m.name}`)].filter(Boolean).join('   ✦   ');
   const tkOn = !!(V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker);
@@ -378,8 +404,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
           const tx = st.blocks?.bt?.tx ? { color: st.blocks.bt.tx } : {};
           return mq
             ? <div className="rl-stat rl-mq" style={{ fontSize: `calc(2.1cqw * ${fb('bt').toFixed(3)})`, ...tx }}><span className="in" style={{ animationDuration: Math.max(18, bText.length * 0.45) + 's' }}>{bText}</span></div>
-            : btMode === 'fixed' && raw < 1.3 // fixed + too long for one line: wrap onto two centred lines instead of clipping
-              ? <div className="rl-stat two" style={{ fontSize: `calc(${fitCw(bText.slice(0, Math.ceil(bText.length / 2) + 6))} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>
+            : btMode === 'fixed' && raw < 1.3 // fixed + too much text: a carousel of readable pages (same size as short text) instead of shrinking or squeezing everything
+              ? (() => { const pages = []; let c = ''; bText.split(SEP).forEach((x) => { if (c && (c + SEP + x).length > 58) { pages.push(c); c = x; } else c = c ? c + SEP + x : x; }); if (c) pages.push(c);
+                const i = btI % pages.length, pt = pages[i], long = pt.length > 62;
+                return <div key={'bp' + i} className={'rl-stat bpg' + (long ? ' two' : '')} style={{ fontSize: `calc(${fitCw(long ? pt.slice(0, Math.ceil(pt.length / 2) + 6) : pt)} * ${fb('bt').toFixed(3)})`, ...tx }}>{pt}{pages.length > 1 && <i className="bpd">{pages.map((_, k) => <u key={k} className={k === i ? 'on' : ''} />)}</i>}</div>; })()
               : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>; })()}</div>
         <div className="rl-clk">{clock}</div>
       </div>

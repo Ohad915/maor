@@ -89,6 +89,14 @@ export const LDAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', '
 export const lessonDays = (l) => (Array.isArray(l.dow) ? l.dow : l.days === 'shab' ? [6] : l.days === 'all' ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5]);
 /** dt = dayType ('shab'|'fri'|'mots'|'week'), dow = JS weekday of the display day. */
 export const lessonOn = (l, dt, dow) => (Array.isArray(l.dow) ? l.dow.includes(dt === 'shab' ? 6 : dow === 6 ? -1 : dow) : l.days === 'all' || l.days === dt || (dt !== 'shab' && l.days === 'week'));
+/* ---- lesson kind (Torah lesson / Psalms recital) and the speaker's title ---- */
+export const LESSON_TYPES = { lesson: { name: 'שיעור תורה', ico: '📚', who: 'שם המוסר/ת', ph: 'דף יומי' }, psalms: { name: 'אמירת תהילים', ico: '📖', who: 'שם המנחה/ת', ph: 'אמירת תהילים' } };
+export const TITLE_PREFIXES = ['הרב', 'הרבנית', 'השליח', 'השליחה'];
+export const lessonType = (l) => (l?.type === 'psalms' ? 'psalms' : 'lesson');
+/** Speaker with the chosen title ("הרבנית שמחה שרעבי"); no title stored = name as typed (backward compatible); never doubles a title the name already has. */
+export const lessonWho = (l) => { const r = String(l?.rabbi || '').trim(), p = String(l?.titlePrefix || '').trim(); return !r ? '' : p && !r.startsWith(p + ' ') && r !== p ? `${p} ${r}` : r; };
+/** Row label for lists/images: psalms rows always say so. */
+export const lessonLabel = (l) => (lessonType(l) === 'psalms' && !/תהילים/.test(l.title || '') ? `תהילים · ${l.title}` : l.title);
 export const lessonDaysLabel = (l) => { const d = lessonDays(l); if (d.length === 7) return 'כל השבוע'; if (d.length === 6 && !d.includes(6)) return 'ימי חול'; if (d.length === 1 && d[0] === 6) return 'שבת'; return d.length ? d.map((i) => LDAY_NAMES[i]).join(' · ') : 'לא נבחרו ימים'; };
 
 /** Yom Tov detection for prayer-day selection: chag = Yom Tov now (from candle-lighting of its eve until tzeit), erev = eve of Yom Tov (before candle-lighting). */

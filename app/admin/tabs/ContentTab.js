@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
-import { gem, hebOf, holNames, LDAY_NAMES, lessonDays, lessonDaysLabel, monthName, rdOf, refuahOn, resolveSpan } from '@/lib/hebrew';
+import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan } from '@/lib/hebrew';
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
 import ZmanimCard from '../components/ZmanimCard';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
@@ -63,14 +63,21 @@ function DayPicker({ value, onChange }) {
     <div className="row" style={{ marginTop: 4 }}><button type="button" className="b g" onClick={() => onChange([0, 1, 2, 3, 4, 5])}>כל ימי החול</button><button type="button" className="b g" onClick={() => onChange([0, 1, 2, 3, 4, 5, 6])}>כל השבוע</button><button type="button" className="b g" onClick={() => onChange([6])}>שבת בלבד</button><button type="button" className="b g" onClick={() => onChange([])}>נקה</button></div>
   </div>);
 }
-function Lessons({ sid, cols }) {
-  const ed = useEditor({ title: '', rabbi: '', place: 'בית המדרש', days: 'week', dow: [0, 1, 2, 3, 4, 5], tmode: 'fixed', val: '20:00', showWa: true, screen: 'all' }), { f, setF } = ed;
-  const save = () => { if (!f.title.trim() || !(f.dow || []).length) return; const g = { ...f, days: dowToDays(f.dow) }; ed.eid ? updItem(sid, 'lessons', ed.eid, g) : addItem(sid, 'lessons', { ...g, mode: 'block' }); ed.reset(); };
+function Lessons({ sid, cols, st, set }) {
+  const ed = useEditor({ type: 'lesson', titlePrefix: '', title: '', rabbi: '', place: 'בית המדרש', days: 'week', dow: [0, 1, 2, 3, 4, 5], tmode: 'fixed', val: '20:00', showWa: true, screen: 'all' }), { f, setF } = ed;
+  const LT = LESSON_TYPES[f.type] || LESSON_TYPES.lesson, preOther = !!f.titlePrefix && !TITLE_PREFIXES.includes(f.titlePrefix) || f.prefOther;
+  const save = () => { if (!f.title.trim() || !(f.dow || []).length) return; const { prefOther, ...rest } = f, g = { ...rest, titlePrefix: (f.titlePrefix || '').trim(), days: dowToDays(f.dow) }; ed.eid ? updItem(sid, 'lessons', ed.eid, g) : addItem(sid, 'lessons', { ...g, mode: 'block' }); ed.reset(); };
   const when = (l) => (l.tmode === 'fixed' ? l.val : `${l.tmode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+l.val > 0 ? '+' : ''}${l.val}`);
   return (<>
-    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת שיעור' : '📚 שיעור תורה חדש'}>
-      <label>שם השיעור</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="דף יומי" />
-      <label>שם הרב</label><input value={f.rabbi} onChange={(e) => setF({ ...f, rabbi: e.target.value })} />
+    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת מפגש' : '📚 שיעור תורה / אמירת תהילים חדש'}>
+      <label>סוג המפגש</label>
+      <div className="row">{Object.entries(LESSON_TYPES).map(([k, v]) => <button key={k} type="button" className={`opt ${lessonType(f) === k ? 'on' : ''}`} aria-pressed={lessonType(f) === k} onClick={() => setF({ ...f, type: k })}>{v.ico} {v.name}</button>)}</div>
+      <label>{lessonType(f) === 'psalms' ? 'שם המפגש' : 'שם השיעור'}</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder={LT.ph} />
+      <div className="row">
+        <div><label>תואר</label><select value={preOther ? '__o' : f.titlePrefix || ''} onChange={(e) => e.target.value === '__o' ? setF({ ...f, prefOther: true, titlePrefix: TITLE_PREFIXES.includes(f.titlePrefix) ? '' : f.titlePrefix }) : setF({ ...f, prefOther: false, titlePrefix: e.target.value })}><option value="">ללא תואר</option>{TITLE_PREFIXES.map((x) => <option key={x} value={x}>{x}</option>)}<option value="__o">אחר (הזנה חופשית)…</option></select></div>
+        <div style={{ flex: '2 1 160px' }}><label>{LT.who}</label><input value={f.rabbi} onChange={(e) => setF({ ...f, rabbi: e.target.value })} /></div></div>
+      {preOther && <><label>תואר מותאם</label><input value={f.titlePrefix || ''} onChange={(e) => setF({ ...f, titlePrefix: e.target.value })} placeholder="למשל: ד״ר, הגברת, הרה״ג" /></>}
+      {f.rabbi && <div style={{ color: 'var(--mu)', fontSize: 13 }}>יוצג: {lessonWho(f)}</div>}
       <label>מיקום</label><input list="places" value={f.place} onChange={(e) => setF({ ...f, place: e.target.value })} /><datalist id="places"><option value="היכל" /><option value="בית המדרש" /><option value="עזרת נשים" /><option value="לובי" /></datalist>
       <label>ימי השיעור (אפשר לבחור כמה)</label><DayPicker value={f.dow} onChange={(v) => setF({ ...f, dow: v })} />
       {!(f.dow || []).length && <div style={{ color: 'var(--bad)', fontSize: 13 }}>יש לבחור לפחות יום אחד.</div>}
@@ -79,13 +86,21 @@ function Lessons({ sid, cols }) {
         <div><label>{f.tmode === 'fixed' ? 'שעה (08:00)' : 'דקות (למשל -20)'}</label><input style={{ direction: 'ltr' }} value={f.val} onChange={(e) => setF({ ...f, val: e.target.value })} /></div></div>
       <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
       <Switch label="הצג בתמונת WhatsApp" on={f.showWa} onChange={(v) => setF({ ...f, showWa: v })} />
-      <FormBtns ed={ed} onSave={save} label="הוסף שיעור" />
+      <FormBtns ed={ed} onSave={save} label={lessonType(f) === 'psalms' ? 'הוסף אמירת תהילים' : 'הוסף שיעור'} />
     </Card></div>
+    <Card fold title="🖥️ מסך מרוכז: שיעורי תורה ואמירת תהילים">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית אחת במסך התצוגה עם כל השיעורים והתהילים, מופרדים בצבעים (שיעורי תורה בכחול, תהילים בוורוד) וממוינים לפי שעה. כשהיא פעילה, שקופיות השיעורים הבודדות לא מוצגות.</div>
+      <label>הצגה</label>
+      <select value={st.lsAll?.mode === 'full' ? 'popup' : st.lsAll?.mode || 'off'} onChange={(e) => set('lsAll.mode', e.target.value)}><option value="off">כבוי – שקופית נפרדת לכל שיעור</option><option value="block">בלוק בקרוסלה – כל המפגשים יחד</option><option value="popup">מסך מלא – מגילת קלף מלכותית</option></select>
+      <label>טווח</label>
+      <div className="row">{[['today', 'היום בלבד'], ['week', 'כל השבוע']].map(([k, l]) => <button key={k} type="button" className={`opt ${(st.lsAll?.scope || 'today') === k ? 'on' : ''}`} onClick={() => set('lsAll.scope', k)}>{l}</button>)}</div>
+      <Range label="זמן תצוגה לשקופית (בשניות)" min={5} max={40} value={st.lsAll?.secs || 12} onChange={(v) => set('lsAll.secs', v)} />
+    </Card>
     {(cols.lessons || []).map((l) => (
-      <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{[l.rabbi, l.place].filter(Boolean).join(' · ')}</div>
-        <span className="tag">{lessonDaysLabel(l)}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa && <span className="tag ok">WhatsApp</span>}</div></div>
+      <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{[lessonWho(l), l.place].filter(Boolean).join(' · ')}</div>
+        <span className={`tag ${lessonType(l) === 'psalms' ? 'ok' : ''}`}>{LESSON_TYPES[lessonType(l)].ico} {LESSON_TYPES[lessonType(l)].name}</span><span className="tag">{lessonDaysLabel(l)}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa && <span className="tag ok">WhatsApp</span>}</div></div>
         <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => updItem(sid, 'lessons', l.id, { mode: v })} /><TkChk on={l.ticker} onChange={(v) => updItem(sid, 'lessons', l.id, { ticker: v })} /><ScreenSel value={l.screen} onChange={(v) => updItem(sid, 'lessons', l.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: l.tmode || 'fixed', val: l.val || '', showWa: !!l.showWa, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
+          <Edit onClick={() => ed.load({ type: lessonType(l), titlePrefix: l.titlePrefix || '', title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: l.tmode || 'fixed', val: l.val || '', showWa: !!l.showWa, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
   </>);
 }
 
