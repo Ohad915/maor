@@ -120,7 +120,7 @@ function Crown({ w = 300 }) {
     {[-60, -30, 30, 60].map((d) => <path key={d} d={`M${d * 1.5} 128C${d * 1.2} 90 ${d * 0.5} 54 0 32`} fill="none" stroke="#e8bd4a" strokeWidth="3" strokeOpacity=".8" />)}
     <path d="M-104 128C-92 52-30 24 0 24S92 52 104 128" fill="none" stroke="url(#gg)" strokeWidth="11" strokeLinecap="round" />
     <path d="M-104 128C-70 70-20 40 0 30S70 70 104 128" fill="none" stroke="url(#gh)" strokeWidth="7" strokeLinecap="round" />
-    <circle cx="0" cy="20" r="14" fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /><circle cx="0" cy="6" r="9" fill="url(#gg)" stroke="#6b430a" strokeWidth="2.5" />
+    <circle cx="0" cy="20" r="14" fill="url(#gg)" stroke="#6b430a" strokeWidth="3" /><path d="M0-12 L10.4 6 L-10.4 6Z M0 18 L10.4 0 L-10.4 0Z" transform="translate(0 4)" fill="url(#gg)" stroke="#6b430a" strokeWidth="2" strokeLinejoin="round" />
     <rect x="-118" y="124" width="236" height="42" rx="12" fill="url(#gg)" stroke="#6b430a" strokeWidth="3.5" />
     {jw.map(([x, c]) => <g key={x}><circle cx={x} cy="145" r="14" fill="url(#gh)" stroke="#6b430a" strokeWidth="2" /><circle cx={x} cy="145" r="9.5" fill={c} stroke="#fff3c4" strokeWidth="2" /><circle cx={x - 3} cy="142" r="2.6" fill="#fff" opacity=".8" /></g>)}
     {[-60, -20, 20, 60, -100, 100].map((x) => <circle key={x} cx={x} cy="145" r="5" fill="#fff" stroke="#c9b27a" />)}
