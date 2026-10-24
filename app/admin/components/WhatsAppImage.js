@@ -159,7 +159,13 @@ const iconOf = (n) => /נרות/.test(n) ? 'candle' : /מנחה|שיעור|גמ�
 /* ---------- data ---------- */
 const tmin = (v) => { const m = /(\d{1,2}):(\d{2})/.exec(String(v || '')); return m ? +m[1] * 60 + +m[2] : null; };
 const hm = (v) => String(v || '').replace(/(^|\D)(\d):(\d{2})/g, '$10$2:$3');
-const SEGN = ['ערב שבת', 'שבת', 'מוצ״ש'];
+const SEGN = ['ערב שבת', 'שבת', 'מוצ״ש'], DL = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳'];
+/** compact weekday list of a lesson for the weekday picture: "ימים א׳–ה׳" / "ימים ב׳, ד׳" (Friday-only lessons are labelled separately) */
+function weekDays(l) {
+  const d = lessonDays(l).filter((x) => x <= 5), a = d.filter((x) => x <= 4); if (!a.length) return '';
+  const runs = []; d.forEach((x) => { const r = runs[runs.length - 1]; if (r && r[1] === x - 1) r[1] = x; else runs.push([x, x]); });
+  return 'ימים ' + runs.map(([x, y]) => (x === y ? DL[x] : y === x + 1 ? `${DL[x]}, ${DL[y]}` : `${DL[x]}–${DL[y]}`)).join(', ');
+}
 /** Friday split: morning (stays in the weekday picture) vs. afternoon/evening (belongs to the Shabbat picture). By prayer name first, then by the time versus Friday's halachic noon. */
 function fridayPart(name, time, zf, candle = 20) {
   if (/שחרית|ותיקין|הנץ|נץ/.test(name)) return 'am';
@@ -176,7 +182,7 @@ export async function build({ syn, cols, st }, kind, opt) {
   // which prayer rows belong to which part of the week (same rules as the screen: explicit weekday list wins, otherwise the day-type)
   const pick = (idx, kinds) => pr.filter((r) => (hasDow(r) ? idx.some((i) => r.dow.includes(i)) : kinds.includes(pdayOf(r))));
   const les = opt.lessons ? (cols.lessons || []).filter((l) => l.showWa !== false && (l.mode ?? 'block') !== 'off') : [];
-  const items = [], add = (n, v, seg, o = {}) => { if (v && v !== '—') items.push({ n, v: hm(v), seg, ...o }); };
+  const items = [], add = (n, v, seg, o = {}) => { const t = String(v ?? '').trim(); if (t && t !== '—' && t !== '-') items.push({ n, v: hm(t), seg, ...o }); };
   /** prayers with the same name in the same part of the picture become ONE row with all the times (sorted, unique) */
   const addPrayers = (rows, z, seg, suf = '') => {
     const m = new Map(); rows.forEach((r) => { const k = r.name + suf, t = prayerTime(r, z); if (!m.has(k)) m.set(k, { n: r.name, suf, t: [] }); const g = m.get(k); if (t && t !== '—' && !g.t.includes(hm(t))) g.t.push(hm(t)); });
@@ -212,11 +218,13 @@ export async function build({ syn, cols, st }, kind, opt) {
   { const [n, v] = sel(z0); add(n, v, 0, { z: true }); }
   addPrayers(week, z0, 0);
   addPrayers(pick([5], ['fri']).filter((r) => !wid.has(r.id) && fridayPart(r.name, prayerTime(r, zf), zf, st.candle) === 'am'), zf, 0, ' · שישי');
-  les.filter((l) => lessonDays(l).some((x) => x <= 4)).forEach((l) => add(lessonLabel(l), prayerTime(l, z0), 0, { l: true, sub: lWho(l) }));
+  les.filter((l) => lessonDays(l).some((x) => x <= 4)).forEach((l) => add(lessonLabel(l), prayerTime(l, z0), 0, { l: true, sub: [lWho(l), weekDays(l)].filter(Boolean).join(' · ') }));
   les.filter((l) => lessonDays(l).includes(5) && !lessonDays(l).some((x) => x <= 4)).forEach((l) => { const t = prayerTime(l, zf); if (fridayPart(l.title, t, zf, st.candle) === 'am') add(lessonLabel(l) + ' · שישי', t, 0, { l: true, sub: lWho(l) }); });
   add('חצות היום', fmt(z0.chatzot), 0, { z: true }); add('שקיעה', fmt(z0.shkia), 0, { z: true }); add('צאת הכוכבים', fmt(z0.tzeit), 0, { z: true });
   if (opt.rt) add('רבינו תם', fmt(z0.rt), 0, { z: true });
-  return { name: syn.name, kind, items, parsha: '', date: `${gem(hn.d)} ב${monthName(hn.raw)} ה׳${gem(hn.y % 1000)}` };
+  const sat = new Date(+wk + (6 - z0.dow) * 864e5), pi = parshaInfo(sat, 6, false);
+  const haf = st.waHaftara === false || st.waParsha === false ? '' : st.hfText || (await haftaraHe(rdOf(sat), syn.nusach));
+  return { name: syn.name, kind, items, parsha: st.waParsha === false ? '' : pi.title, special: pi.sp.join(' · '), chag: !pi.title.startsWith('פרשת'), haftara: haf, date: `${gem(hn.d)} ב${monthName(hn.raw)} ה׳${gem(hn.y % 1000)}` };
 }
 
 /** Ordered rows [label, time, sub, seg, item]: ONE chronological merge of zmanim + prayers + lessons + psalms. Shabbat = Friday evening -> Shabbat -> Motzaei Shabbat (each part sorted by time); with `hdr` a divider row opens each part. */
@@ -256,12 +264,12 @@ function Poster({ d, tpl, greet, pref }) {
           <div style={{ ...gold, fontSize: 30, marginTop: 6 }}>זמני תפילות ושיעורי תורה</div>
         </div>
       </div>
-      {shab && d.parsha ? (
+      {d.parsha ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, marginTop: -6, position: 'relative' }}>
           <div style={{ position: 'absolute', right: -8, top: 46 }}><Laurel /></div><div style={{ position: 'absolute', left: -8, top: 46 }}><Laurel flip /></div>
           <TorahCase>
             <div style={{ position: 'absolute', top: -188, left: '50%', transform: 'translateX(-50%)', zIndex: 2, pointerEvents: 'none' }}><Crown w={292} /></div>
-            <div style={{ fontSize: 42, fontWeight: 800 }}>{d.chag ? '' : 'שבת פרשת'}</div>
+            <div style={{ fontSize: 42, fontWeight: 800 }}>{d.chag ? '' : shab ? 'שבת פרשת' : 'פרשת השבוע'}</div>
             <div style={{ fontSize: Math.max(52, Math.min(124, 330 / Math.max((d.chag ? d.parsha : pn).length * 0.5, 3))), fontWeight: 900, lineHeight: 1.05 }}>{d.chag ? d.parsha : pn}</div>
             {d.haftara && <div style={{ fontSize: 22, fontFamily: 'Heebo,Arial,sans-serif', marginTop: 4, whiteSpace: 'nowrap' }}>ההפטרה: {d.haftara}</div>}
           </TorahCase>
@@ -295,8 +303,14 @@ const ICON_SVG = {
   book: '<path d="M8 10h14a4 4 0 0 1 4 4v26a4 4 0 0 0-4-4H8zM40 10H26"/><path d="M40 10v26H26"/>',
 };
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('img ' + src)); i.src = src; });
-const iconImg = (k) => loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48" fill="none" stroke="#f2c85b" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[k] || ICON_SVG.shul}</svg>`));
+const ICONS = {};
+const iconImg = (k) => (ICONS[k] ||= loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48" fill="none" stroke="#f2c85b" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[k] || ICON_SVG.shul}</svg>`)));
 const SERIF = "'Frank Ruhl Libre','David Libre','David',serif", SANS = "Heebo,Arial,sans-serif";
+/** fit to width, then (below the minimum size) cut with an ellipsis instead of overflowing */
+function fitT(c, text, maxW, size, weight, fam, min = 14) {
+  const t = String(text ?? ''); fitFont(c, t, maxW, size, weight, fam, min); if (c.measureText(t).width <= maxW) return t;
+  let n = t.length; while (n > 2 && c.measureText(t.slice(0, n).trimEnd() + '…').width > maxW) n--; return t.slice(0, n).trimEnd() + '…';
+}
 function fitFont(c, text, maxW, size, weight, fam, min = 14) { let z = size; for (; z > min; z -= 2) { c.font = `${weight} ${z}px ${fam}`; if (c.measureText(text).width <= maxW) break; } c.font = `${weight} ${z}px ${fam}`; return z; }
 function goldText(c, text, x, y, size, maxW, fam = SERIF) {
   const z = fitFont(c, text, maxW, size, 900, fam, 20), d = Math.max(2, z / 22);
@@ -305,87 +319,110 @@ function goldText(c, text, x, y, size, maxW, fam = SERIF) {
 }
 export async function renderPoster(d, greet) {
   const W = 1080, H = 1920, sx = W / TW, sy = H / TH, X = (v) => v * sx, Y = (v) => v * sy;
-  await Promise.all([document.fonts?.load?.('900 60px "Frank Ruhl Libre"'), document.fonts?.load?.('700 30px Heebo')].map((p) => Promise.resolve(p).catch(() => {})));
+  const HE = 'אבגדהוזחטיכלמנסעפצקרשת0123456789'; // Hebrew sample text so the Hebrew subset of the web fonts is really loaded
+  await Promise.all([['900 60px "Frank Ruhl Libre"', HE], ['800 30px Heebo', HE], ['700 30px Heebo', HE]].map(([f, t]) => Promise.resolve(document.fonts?.load?.(f, t)).catch(() => {})));
+  await Promise.resolve(document.fonts?.ready).catch(() => {});
   const bg = await loadImg(TPL_SRC), cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(bg, 0, 0, W, H);
   c.direction = 'rtl'; c.textAlign = 'center'; c.textBaseline = 'middle';
   const shab = d.kind === 'shabbat', cx = X(470);
   // sign in the temple
-  const nm = (d.name || '').replace(/^בית (ה)?כנסת\s+/, '').trim() || d.name;
+  const nm = (d.name || '').replace(/^בית (ה)?כנסת\s+/, '').trim() || d.name || '';
   goldText(c, 'בית הכנסת', cx, Y(232), 54, X(400));
   goldText(c, nm, cx, Y(318), 112, X(440));
   goldText(c, 'זמני תפילות ושיעורי תורה', cx, Y(392), 40, X(440), SANS);
   // parchment: parsha + haftara (no verse numbers)
   c.fillStyle = '#2a1a05';
-  const pw = X(236);
-  if (shab && d.parsha) {
-    const pn = d.chag ? d.parsha : d.parsha.replace(/^פרשת\s+/, '');
-    if (!d.chag) { fitFont(c, 'שבת פרשת', pw, 44, 800, SERIF); c.fillText('שבת פרשת', cx, Y(626)); }
+  const pw = X(250);
+  if (d.parsha) {
+    const pn = d.chag ? d.parsha : d.parsha.replace(/^פרשת\s+/, ''), lead = shab ? 'שבת פרשת' : 'פרשת השבוע';
+    if (!d.chag) { fitFont(c, lead, pw, 44, 800, SERIF); c.fillText(lead, cx, Y(626)); }
     fitFont(c, pn, pw, 104, 900, SERIF, 30); c.fillText(pn, cx, Y(d.chag ? 680 : 690));
-    if (d.haftara) { const t = 'ההפטרה: ' + d.haftara; fitFont(c, t, pw, 26, 600, SANS, 14); c.fillText(t, cx, Y(762)); }
+    if (d.haftara) { c.fillStyle = '#1c1002'; c.fillText(fitT(c, 'ההפטרה: ' + d.haftara, pw, 32, 700, SANS, 20), cx, Y(762)); }
   } else {
-    fitFont(c, 'זמני היום', pw, 90, 900, SERIF); c.fillText('זמני היום', cx, Y(690));
+    { const t0 = shab ? 'זמני שבת' : 'זמני היום'; fitFont(c, t0, pw, 90, 900, SERIF); c.fillText(t0, cx, Y(690)); }
   }
   // Hebrew date under the scroll
-  c.fillStyle = '#f2c85b'; fitFont(c, d.date, X(250), 34, 700, SANS, 16); c.fillText(d.date, cx, Y(835));
-  // rows: time (left box) | label (middle) | icon (right box)
-  const dyn = shab || orderRows(d).length > 8; // weekday with <= 8 rows keeps the baked slots; everything else is laid out dynamically
-  if (!dyn) {
-    const rows = orderRows(d), top0 = 872, pitch = 69.9, bh = 62, MAXR = 8;
-    for (let i = 0; i < MAXR; i++) {
-      const y = top0 + i * pitch, yc = Y(y + bh / 2);
-      if (i >= rows.length) { // unused template slot: paint over it with the template's own background strip
-        const k = bg.naturalWidth / TW; c.drawImage(bg, 92 * k, (y - 8) * k, 30 * k, (bh + 16) * k, X(130), Y(y - 8), X(686), Y(bh + 16)); continue; }
-      const [n, v, sub] = rows[i];
-      c.fillStyle = '#f7e7b0';
-      if (sub) { fitFont(c, n, X(400), 36, 800, SANS, 16); c.fillText(n, X(488), yc - Y(10)); c.fillStyle = '#e8d49a'; fitFont(c, sub, X(400), 26, 600, SANS, 14); c.fillText(sub, X(488), yc + Y(15)); c.fillStyle = '#f7e7b0'; }
-      else { fitFont(c, n, X(400), 40, 800, SANS, 18); c.fillText(n, X(488), yc); }
-      c.fillStyle = '#f9df8e'; fitFont(c, v, X(116), 44, 900, SANS, 20); c.direction = 'ltr'; c.fillText(v, X(203), yc); c.direction = 'rtl';
-      const im = await iconImg(iconOf(n)), sz = Y(48); c.drawImage(im, X(755) - sz / 2, yc - sz / 2, sz, sz);
+  { const dt = (d.special ? d.special + ' · ' : '') + d.date; c.save(); c.fillStyle = '#f6d77a'; c.shadowColor = 'rgba(0,0,0,.75)'; c.shadowBlur = 6; c.fillText(fitT(c, dt, X(290), 38, 800, SANS, 22), cx, Y(835)); c.restore(); }
+  // rows: AUTO-FIT layout drawn on the canvas (same look for any number of rows). Zmanim = warm gold, prayers = classic navy, lessons/psalms = cool blue.
+  const TY = { z: { f: ['#2c2610', '#17130a'], e: '#f2c85b', t: '#ffe08a', l: '#fff0c4', s: '#d9c48a' }, p: { f: ['#0d2257', '#071538'], e: '#e0bd5f', t: '#f9df8e', l: '#fff6d6', s: '#e8d49a' }, l: { f: ['#15407f', '#0a2553'], e: '#9db8e6', t: '#d6e6ff', l: '#eaf2ff', s: '#b5caf0' } };
+  const tyOf = (it) => TY[it?.z ? 'z' : it?.l ? 'l' : 'p'];
+  const RT = 1004, RB = 1652, RH = RB - RT, HDR = 40, PRE = 8, MINP = 34, MAXU = 82, BX = { t: [160, 308], l: [318, 805], i: [815, 920] };
+  let rows = orderRows(d, shab); d.cut = 0;
+  const H2 = 38, MINU2 = 38, isH = (r) => !!r[4]?.hdr;
+  /** one column while it stays big (unit >= 40), otherwise two columns (right = earlier, left = later) with the split chosen to balance them */
+  const layout = (a) => {
+    const nH = a.filter(isH).length, nR = a.length - nH, u1 = (RH - nH * (HDR + PRE)) / Math.max(nR, 1);
+    if (u1 >= 40) return { cols: 1, u: Math.min(MAXU, u1), nH, nR };
+    for (let u = 64; u >= 20; u--) {
+      const h = (r) => (isH(r) ? H2 : u), sum = (x, y) => a.slice(x, y).reduce((t, r) => t + h(r), 0);
+      let best = -1, bv = 1e9; for (let sp = 1; sp < a.length; sp++) { if (isH(a[sp - 1])) continue; const l = sum(0, sp), r2 = sum(sp, a.length); if (l <= RH && r2 <= RH && Math.max(l, r2) < bv) { bv = Math.max(l, r2); best = sp; } }
+      if (best > 0) return { cols: 2, u, split: best, nH, nR };
     }
-  } else {
-    // AUTO-FIT: repaint the 8 baked slots and draw as many rows as there are (+ a divider per part of the week), shrinking pitch/fonts so everything fits
-    const RT = 1000, RB = 1644, RH = RB - RT, HF = 0.62, MINP = 28;
-    let rows = orderRows(d, shab);
-    const cost = (r) => (r[4]?.hdr ? HF : 1), total = (a) => a.reduce((t, r) => t + cost(r), 0);
-    d.cut = 0;
-    while (RH / total(rows) < MINP) { // too many for a readable size: drop lessons first, then prayers - never the zmanim
-      const nl = rows.filter((r) => r[4]?.l).length, np = rows.filter((r) => r[4]?.p).length, kk = nl > np ? 'l' : 'p'; // trim whichever group is bigger, so lessons and prayers both stay represented
-      let i = -1; for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.[kk]) i = j;
-      if (i < 0) break; rows.splice(i, 1); d.cut++;
-      rows = rows.filter((r, j) => !r[4]?.hdr || (rows[j + 1] && !rows[j + 1][4]?.hdr));
-    }
-    const kx = bg.naturalWidth / W, ky = bg.naturalHeight / H;
-    c.drawImage(bg, 105 * kx, RT * ky, 30 * kx, RH * ky, 150, RT, 780, RH);
-    const unit = Math.min(80, RH / Math.max(total(rows), 1)), gap = Math.max(4, unit * 0.1), BX = { t: [160, 308], l: [318, 805], i: [815, 920] };
-    const rr = (x, y, w, h, r) => (c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h));
-    const box = (x0, x1, y, h) => {
-      const r = Math.min(12, h * 0.24), g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#0d2257'); g.addColorStop(1, '#071538');
-      c.beginPath(); rr(x0, y, x1 - x0, h, r); c.fillStyle = g; c.fill(); c.lineWidth = 3; c.strokeStyle = '#e0bd5f'; c.stroke();
-      c.beginPath(); rr(x0 + 3, y + 3, x1 - x0 - 6, h - 6, Math.max(2, r - 2)); c.lineWidth = 1.2; c.strokeStyle = 'rgba(224,189,95,.35)'; c.stroke();
-    };
-    let y = RT;
+    return { cols: 2, u: 20, split: Math.ceil(a.length / 2), nH, nR };
+  };
+  let L = layout(rows);
+  while (L.cols === 2 && L.u < MINU2) { // too many even for two columns: trim the bigger of lessons / prayers - never the zmanim
+    const nl = rows.filter((r) => r[4]?.l).length, np = rows.filter((r) => r[4]?.p).length, kk = nl > np ? 'l' : 'p';
+    let i = -1; for (let j = rows.length - 1; j >= 0 && i < 0; j--) if (rows[j][4]?.[kk]) i = j;
+    if (i < 0) break; const old = rows; rows = old.filter((r, j) => j !== i && (!isH(r) || (old[j + 1] && !isH(old[j + 1]) && !(j + 1 === i && (!old[j + 2] || isH(old[j + 2])))))); d.cut++; L = layout(rows);
+  }
+  const kx = bg.naturalWidth / W, ky = bg.naturalHeight / H;
+  c.drawImage(bg, 105 * kx, 996 * ky, 30 * kx, (RB + 8 - 996) * ky, 150, 996, 780, RB + 8 - 996); // repaint the 8 baked slots
+  const rr = (x, y, w, h, r) => (c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h));
+  const box = (x0, x1, y, h, T) => {
+    const r = Math.min(12, h * 0.24), g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, T.f[0]); g.addColorStop(1, T.f[1]);
+    c.beginPath(); rr(x0, y, x1 - x0, h, r); c.fillStyle = g; c.fill(); c.lineWidth = 3; c.strokeStyle = T.e; c.stroke();
+    c.save(); c.globalAlpha = 0.35; c.beginPath(); rr(x0 + 3, y + 3, x1 - x0 - 6, h - 6, Math.max(2, r - 2)); c.lineWidth = 1.2; c.stroke(); c.restore();
+  };
+  const pill = (txt, xa, xb, yc, fz, ph) => { // section divider: gold pill between two thin lines
+    c.font = `800 ${fz}px ${SANS}`; const xm = (xa + xb) / 2, pwid = c.measureText(txt).width + fz * 2.4;
+    c.strokeStyle = 'rgba(224,189,95,.7)'; c.lineWidth = 2.5;
+    [[xa, xm - pwid / 2 - 10], [xm + pwid / 2 + 10, xb]].forEach(([p1, p2]) => { c.beginPath(); c.moveTo(p1, yc); c.lineTo(p2, yc); c.stroke(); });
+    const g2 = c.createLinearGradient(0, yc - ph / 2, 0, yc + ph / 2); g2.addColorStop(0, '#f8e08c'); g2.addColorStop(1, '#c9a043');
+    c.beginPath(); rr(xm - pwid / 2, yc - ph / 2, pwid, ph, ph / 2); c.fillStyle = g2; c.fill(); c.fillStyle = '#1a1204'; c.fillText(txt, xm, yc + 1);
+  };
+  const timeLines = (v, bh, stackMin) => { const parts = String(v).split(/\s*,\s*/), two = parts.length > 2 && bh >= stackMin, k = Math.ceil(parts.length / 2); return two ? [parts.slice(0, k).join(' , '), parts.slice(k).join(' , ')] : [parts.join(' , ')]; };
+  if (L.cols === 1) {
+    const unit = L.u, gap = Math.max(4, unit * 0.1), used = L.nR * unit + L.nH * (HDR + PRE);
+    let y = RT + Math.max(0, (RH - used) / 2) * 0.8;
     for (const r of rows) {
-      const [n, v, sub] = r;
-      if (r[4]?.hdr) { // divider: "ערב שבת" / "שבת" / "מוצ״ש"
-        const h = unit * HF, yc = y + h / 2, fz = Math.min(34, h * 0.7); c.fillStyle = '#f9df8e'; c.font = `800 ${fz}px ${SANS}`; const tw = c.measureText(n).width;
-        c.fillText(n, 540, yc); c.strokeStyle = '#e0bd5f'; c.lineWidth = 2;
-        [[160, 540 - tw / 2 - 18], [540 + tw / 2 + 18, 920]].forEach(([a, b]) => { c.beginPath(); c.moveTo(a, yc); c.lineTo(b, yc); c.stroke(); });
-        y += h; continue;
-      }
-      const bh = unit - gap, yc = y + bh / 2, fs = Math.min(42, bh * 0.62);
-      box(...BX.t, y, bh); box(...BX.l, y, bh); box(...BX.i, y, bh);
-      c.fillStyle = '#f7e7b0';
-      if (sub && bh >= 58) { fitFont(c, n, 470, fs * 0.9, 800, SANS, 14); c.fillText(n, 561, yc - bh * 0.17); c.fillStyle = '#e8d49a'; fitFont(c, sub, 470, fs * 0.62, 600, SANS, 12); c.fillText(sub, 561, yc + bh * 0.24); }
-      else { const t = sub ? `${n} · ${sub}` : n; fitFont(c, t, 470, fs, 800, SANS, 14); c.fillText(t, 561, yc); }
-      c.fillStyle = '#f9df8e'; fitFont(c, v, 136, Math.min(48, bh * 0.7), 900, SANS, 14); c.direction = 'ltr'; c.fillText(v, 234, yc); c.direction = 'rtl';
-      const im = await iconImg(iconOf(n)), sz = Math.min(bh * 0.78, 58); c.drawImage(im, 867 - sz / 2, yc - sz / 2, sz, sz);
+      const [n, v, sub] = r, it = r[4];
+      if (isH(r)) { pill(n, 160, 920, y + PRE + HDR / 2, 28, 38); y += PRE + HDR; continue; }
+      const T = tyOf(it), bh = unit - gap, yc = y + bh / 2, fs = Math.min(46, bh * 0.7);
+      box(...BX.t, y, bh, T); box(...BX.l, y, bh, T); box(...BX.i, y, bh, T);
+      if (it?.l) { c.fillStyle = T.e; c.fillRect(BX.l[1] - 10, y + 9, 4, Math.max(4, bh - 18)); } // accent bar: lessons / psalms
+      c.fillStyle = T.l;
+      if (sub && bh >= 62) { c.fillText(fitT(c, n, 450, fs * 0.92, 800, SANS, 20), 561, yc - bh * 0.18); c.fillStyle = T.s; c.fillText(fitT(c, sub, 450, fs * 0.66, 700, SANS, 18), 561, yc + bh * 0.24); }
+      else c.fillText(fitT(c, sub ? `${n} · ${sub}` : n, 450, fs, it?.p ? 900 : 800, SANS, 20), 561, yc);
+      c.fillStyle = T.t; const lines = timeLines(v, bh, 42), lh = bh / lines.length;
+      c.direction = 'ltr'; lines.forEach((t, i) => { c.fillText(fitT(c, t, 136, Math.min(it?.p ? 52 : 48, lh * (lines.length > 1 ? 0.62 : 0.72)), 900, SANS, 16), 234, y + lh * (i + 0.5)); }); c.direction = 'rtl';
+      const im = await iconImg(iconOf(n)), sz = Math.min(bh * 0.8, 58); c.drawImage(im, 867 - sz / 2, yc - sz / 2, sz, sz);
       y += unit;
+    }
+  } else { // two columns: [time | label] cells, no icons, bigger than squeezing everything into one column
+    const unit = L.u, gap = Math.max(4, unit * 0.1), CX = [[548, 920], [160, 532]];
+    for (let col = 0; col < 2; col++) {
+      const [x0, x1] = CX[col]; let y = RT;
+      for (const r of col ? rows.slice(L.split) : rows.slice(0, L.split)) {
+        const [n, v, sub] = r, it = r[4];
+        if (isH(r)) { pill(n, x0, x1, y + H2 / 2, 22, 30); y += H2; continue; }
+        const T = tyOf(it), bh = unit - gap, yc = y + bh / 2, fs = Math.min(38, bh * 0.6), tw = 118, lx = x0 + tw + 8, lw = x1 - 14 - lx;
+        box(x0, x1, y, bh, T);
+        c.save(); c.globalAlpha = 0.5; c.strokeStyle = T.e; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0 + tw, y + 7); c.lineTo(x0 + tw, y + bh - 7); c.stroke(); c.restore();
+        if (it?.l) { c.fillStyle = T.e; c.fillRect(x1 - 9, y + 8, 4, Math.max(4, bh - 16)); }
+        c.fillStyle = T.l; const cxl = lx + lw / 2;
+        if (sub && bh >= 58) { c.fillText(fitT(c, n, lw, fs * 0.9, 800, SANS, 18), cxl, yc - bh * 0.18); c.fillStyle = T.s; c.fillText(fitT(c, sub, lw, fs * 0.62, 700, SANS, 16), cxl, yc + bh * 0.24); }
+        else c.fillText(fitT(c, sub ? `${n} · ${sub}` : n, lw, fs, it?.p ? 900 : 800, SANS, 18), cxl, yc);
+        c.fillStyle = T.t; const lines = timeLines(v, bh, 54), lh = bh / lines.length;
+        c.direction = 'ltr'; lines.forEach((t, i) => { c.fillText(fitT(c, t, tw - 12, Math.min(it?.p ? 42 : 40, lh * 0.7), 900, SANS, 14), x0 + tw / 2, y + lh * (i + 0.5)); }); c.direction = 'rtl';
+        y += unit;
+      }
     }
   }
   // banner
   const g = !shab ? 'יום מבורך!' : greet === 'chag' || (greet === 'auto' && d.chag) ? 'חג שמח!' : 'שבת שלום ומבורך!';
-  goldText(c, g, cx, Y(1538), 104, X(600));
+  goldText(c, g, cx, Y(1544), 104, X(600));
   return cv.toDataURL('image/png');
 }
 
