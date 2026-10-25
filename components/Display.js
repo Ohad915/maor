@@ -7,7 +7,7 @@ import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts, zmanimRows } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { isLive, pickDaily } from '@/lib/dailyHalacha';
-import { annOn, chagInfo, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, chagInfo, fullName, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -37,6 +37,25 @@ function royBox(st, k, l, t, w, h, anchor = 'c', mul = null, force = false) {
   const ghost = resized ? { position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' } : null;
   const hide = { position: 'absolute', left: Math.max(0, l - 0.35) + '%', top: Math.max(0, t - 0.8) + '%', width: Math.min(100, w + 0.7) + '%', height: Math.min(100, h + 1.6) + '%' }; // masks the baked frame when the block is switched off
   return { style, cls: cls.join(' '), ghost, hide };
+}
+/** seconds left on the current carousel slide (next to the progress bar) */
+function Cd({ d }) {
+  const [n, setN] = useState(Math.ceil(d));
+  useEffect(() => { setN(Math.ceil(d)); const t = setInterval(() => setN((x) => Math.max(0, x - 1)), 1000); return () => clearInterval(t); }, [d]);
+  return <span className="cdn" aria-hidden="true">{n}</span>;
+}
+/** Cards stacked in one column (memorial / refuah / QR): when one is enlarged the others move and shrink so they never overlap or leave [lo,hi] (% of the screen). */
+function stackCol(items, lo, hi, maxR = 100, gap = 1.2) {
+  const a = items.filter(Boolean).map((b) => ({ b, t: parseFloat(b.style.top), h: parseFloat(b.style.height), t0: parseFloat(b.style.top), h0: parseFloat(b.style.height) }));
+  if (a.length < 1) return;
+  a.forEach((p) => { const l = parseFloat(p.b.style.left), w = parseFloat(p.b.style.width); if (l + w > maxR) { p.b.style.width = Math.max(10, maxR - l) + '%'; if (!/rl-sized/.test(p.b.cls)) p.b.cls = (p.b.cls + ' rl-sized').trim(); } });
+  a.sort((x, y) => x.t - y.t);
+  const tot = a.reduce((q, p) => q + p.h, 0) + gap * (a.length - 1), k = Math.min(1, (hi - lo - 0.01) / tot);
+  if (k < 1) a.forEach((p) => { p.h *= k; });
+  for (let i = 0; i < a.length; i++) { const min = i ? a[i - 1].t + a[i - 1].h + gap : lo; if (a[i].t < min) a[i].t = min; }
+  for (let i = a.length - 1; i >= 0; i--) { const max = (i === a.length - 1 ? hi : a[i + 1].t - gap) - a[i].h; if (a[i].t > max) a[i].t = max; }
+  for (let i = 0; i < a.length; i++) { const min = i ? a[i - 1].t + a[i - 1].h + gap : lo; if (a[i].t < min) a[i].t = min; }
+  a.forEach((p) => { if (Math.abs(p.t - p.t0) > 0.01 || Math.abs(p.h - p.h0) > 0.01) { p.b.style.top = p.t + '%'; p.b.style.height = p.h + '%'; if (!/rl-sized/.test(p.b.cls)) p.b.cls = (p.b.cls + ' rl-sized').trim(); if (!p.b.ghost) { p.b.ghost = { position: 'absolute', left: p.b.style.left, top: p.t0 - 1.2 + '%', width: parseFloat(p.b.style.width) + 1.4 + '%', height: p.h0 + 2.4 + '%' }; } } });
 }
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
@@ -176,6 +195,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const slides = [];
   if (st.pSlide && V('pr') && !royal) slides.push({ k: 'p', dur: cf('pr').secs });
   anns.forEach((a) => slides.push({ k: 'a', a, full: modeOf(a) === 'full', dur: cf('ann').secs }));
+  // sponsor of the week / blessing of the year: carousel slide with its own duration (up to 30s)
+  (cols.sponsors || []).filter((x) => onS(x.screen) && refuahOn(x, h) && (x.mode || 'block') !== 'off').forEach((x) => {
+    const ttl = x.kind === 'bracha' ? 'ברכת השנה' : x.kind === 'other' ? x.title || 'הקדשה' : 'פרנס השבוע';
+    slides.push({ k: 'a', a: { id: 'sp-' + x.id, label: '🏅 ' + ttl, title: fullName(x), content: [x.text, x.blessing].filter((v) => v && String(v).trim()).join('\n') }, full: x.mode === 'full', dur: Math.min(30, Math.max(5, +x.secs || 20)) });
+  });
   if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
   if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
@@ -228,15 +252,15 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const slide = (key, sty, lbl, body, foot, cls = '') => <div className={`an fade ${cls}`} key={key} style={sty}><div className="lb">{lbl}</div><div className="ab">{body}</div><div className="af">{foot}</div></div>;
   const emit = (el) => { if (cur.full) full = el; else mid = el; }, cl = cur?.full ? 'fsl' : '';
   if (!cur) mid = <div className="an"><div className="lb">✦ ברוכים הבאים ✦</div><div className="ab"><h3>{syn.name}</h3></div></div>;
-  else if (cur.k === 'a') emit(slide(idx + '-' + pg.mr, afs('ann'), '✦ הודעת הגבאי והנהלת בית הכנסת ✦', <><h3>{cur.a.title}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
-  else if (cur.k === 'm') mid = slide(idx + '-' + pg.mr, afs('mem'), '🕯 לעילוי נשמת', <><h3>{cur.m.name}</h3><p>{cur.m.gender === 'f' ? 'נפטרה' : 'נפטר'} {gem(cur.m.d)} ב{monthName(cur.m.month)}{tx && <><br />{tx}</>}</p></>, dotStr(tparts.length, pg.mr));
+  else if (cur.k === 'a') emit(slide(idx + '-' + pg.mr, afs('ann'), cur.a.label || '✦ הודעת הגבאי והנהלת בית הכנסת ✦', <><h3>{cur.a.title}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
+  else if (cur.k === 'm') mid = slide(idx + '-' + pg.mr, afs('mem'), '🕯 לעילוי נשמת', <><h3>{fullName(cur.m)}</h3><p>{cur.m.gender === 'f' ? 'נפטרה' : cur.m.gender === 'p' ? 'נפטרו' : 'נפטר'} {gem(cur.m.d)} ב{monthName(cur.m.month)}{tx && <><br />{tx}</>}</p></>, dotStr(tparts.length, pg.mr));
   else if (cur.k === 'p') mid = slide(idx, afs('pr'), '✦ פרשת השבוע ✦', <><h3>{ptitle}</h3>{hText && <p>הפטרה: {hText}</p>}{st.pSub && <p>{st.pSub}</p>}</>, '');
-  else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{r.name}</b>{r.note ? ' · ' + r.note : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
+  else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{fullName(r)}</b>{(r.blessing || r.note) ? ' · ' + (r.blessing || r.note) : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
   else if (cur.k === 'tall') {
     const n = ptRows.length;
     const isAm = (r) => { const m = /(\d+):(\d+)/.exec(tOf(r) || ''); return m ? +m[1] < 13 : /שחרית|מוסף/.test(r.name); };
     const am = ptRows.filter(isAm), pm2 = ptRows.filter((r) => !isAm(r));
-    const card = (r) => <div className="ptc" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>;
+    const card = (r) => <div className="ptc" key={r.id}><b>{fullName(r)}</b><i>{tOf(r)}</i>{(r.blessing || r.note) && <small>{r.blessing || r.note}</small>}</div>;
     const ico = <div className="pti"><img src="/images/icons/prayer_times_icon.svg" alt="" /><h2 className="ptti">זמני תפילות</h2></div>;
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
@@ -246,7 +270,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       mid = null;
     } else {
       const body = <div className="an fade ptb" key={'t' + idx}>{ico}
-        <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{r.name}</b><i>{tOf(r)}</i>{r.note && <small>{r.note}</small>}</div>)}</div></div>;
+        <div className="ptl3" style={{ fontSize: Math.min(1, 7 / Math.max(n, 1)) + 'em', '--n': Math.max(n, 1) }}>{ptRows.map((r) => <div className="ptr" key={r.id}><b>{fullName(r)}</b><i>{tOf(r)}</i>{(r.blessing || r.note) && <small>{r.blessing || r.note}</small>}</div>)}</div></div>;
       if (cur.popup) { popup = <div className="popup"><div className="pcard">{body}</div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
       else mid = body; // block mode: in place on the central parchment
     }
@@ -307,19 +331,19 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       <b>{ptitle}</b>{hText && <div className="hf">הפטרה: {hText}</div>}{(st.pSub || pi.sp.length > 0) && <div>{pi.sp.map((x) => <i key={x}>{x}</i>)}{st.pSub && <i>{st.pSub}</i>}</div>}
     </Blk>);
   const cu = V('cu') && <Blk {...B({ id: 'cu', t: 'x', b: 2.6, cls: 'cu', mult: LM === '4' ? 1.3 : 1 })}><span className="cl">💡 מנהגי היום בתפילה:</span>{chips.map((c, i) => <i key={i}>{c}</i>)}</Blk>;
-  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>;
+  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>;
   const yzList = mems.length ? mems : null, yc = chunk(yzList || [0], ipp('yz'), pg.yz);
   const yz = V('yz') && (
     <Blk {...B({ id: 'yz', t: 's', b: 3, cls: 'pn yz', share: R[1], style: { fontFamily: FONTS[cf('mem').font] } })}>
       <div className="lb">🕯 לעילוי נשמת</div>
-      <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div>
+      <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div>
       <div className="dots">{yc.pages > 1 ? Array.from({ length: yc.pages }, (_, i) => (i === pg.yz % yc.pages ? '●' : '○')).join(' ') : ''}</div>
     </Blk>);
   const rc = chunk(refs, ipp('rf'), pg.rf);
   const rf = V('rf') && (
     <Blk {...B({ id: 'rf', t: 's', b: 2, cls: 'pn rf', share: R[1], style: { fontFamily: FONTS[cf('rf').font] } })}>
       <div className="lb">🏥 רפואה שלמה</div>
-      <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div>
+      <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{fullName(r)}</b>{(r.blessing || r.note) && <small>{r.blessing || r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div>
       <div className="dots">{rc.pages > 1 ? Array.from({ length: rc.pages }, (_, i) => (i === pg.rf % rc.pages ? '●' : '○')).join(' ') : ''}</div>
     </Blk>);
   const hasDon = !!(st.payUrl || st.donTitle || st.donSub);
@@ -339,7 +363,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     ...(cols.announcements || []).filter((a) => a.ticker && onS(a.screen) && annOn(a, h)).map((a) => a.title + (first(a.content) ? ' – ' + first(a.content) : '')),
     ...(cols.lessons || []).filter((l) => l.ticker && onS(l.screen) && lessonOn(l, dt, z.dow)).map((l) => `${lessonType(l) === 'psalms' ? lessonLabel(l) : 'שיעור ' + l.title}${lessonWho(l) ? ' · ' + lessonWho(l) : ''} · ${prayerTime(l, z)}`),
     ...rowsToday.filter((r) => r.ticker || (inBar(r) && !pbShown)).map((r) => `${r.name}: ${tOf(r)}`),
-    ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${m.name}`)].filter(Boolean).join('   ✦   ');
+    ...mems.filter((m) => m.ticker).map((m) => `לעילוי נשמת ${fullName(m)}`)].filter(Boolean).join('   ✦   ');
   const tkOn = !!(V('tk') && tkText && onS(st.tkScreen) && syn.plan?.features?.runningTicker);
   const tk = tkOn && <div className="tk"><span>{tkText}</span></div>;
   const col = (kids, f) => kids.some(Boolean) && <div className="sd" style={{ flex: f }}>{Children.toArray(kids)}</div>;
@@ -367,6 +391,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       : m2
       ? { mn: royBox(st, 'mn', 50.5 + sa(35.6, 37.6).d, 22.1, 37.6 - sa(35.6, 37.6).d, 64.6, 'r', null, sa(35.6, 37.6).d !== 0), yz: royBox(st, 'yz', 12.7, 22.1, 35.6, 31.6, 'l', sa(35.6, 37.6).m), rf: royBox(st, 'rf', 12.7, 55.2, 35.6, 31.5, 'l', sa(35.6, 37.6).m), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) }
       : { mn: royBox(st, 'mn', 50.5 + sa(35.5, 37.6).d, 37.8, 37.6 - sa(35.5, 37.6).d, 48.8, 'r', null, sa(35.5, 37.6).d !== 0), yz: royBox(st, 'yz', 12.7, 37.8, 35.5, 21.5, 'l', sa(35.5, 37.6).m), rf: royBox(st, 'rf', 12.7, 60.9, 35.5, 25.7, 'l', sa(35.5, 37.6).m), pr: royBox(st, 'pr', 13.5, 22.2, 73, 13.6), hd: royBox(st, 'hd', 9.3, 8.5, 81.4, 11.5) };
+    stackCol([V('yz') && RB.yz, V('rf') && RB.rf, m4 && V('qr') && onS(st.donScreen) && hasDon && RB.qr], m4 ? 21.9 : m2 ? 22.1 : 37.8, m4 ? 88.1 : m2 ? 86.7 : 86.6, m4 ? 28.4 : 49.3);
     const fb = (k) => ((st.blocks?.[k]?.fs ?? st.fsAll ?? 18) / 18), pf = fb('pr').toFixed(3);
     body = <div className="rl">
       <div className={'rl-top ' + (ps ? 'ps ' : '') + RB.hd.cls} style={{ ...RB.hd.style, '--hs': fb('hd').toFixed(3) }}>
@@ -384,15 +409,15 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       {!ps && !V('pr') && <div className="rl-ghost" style={RB.pr.hide} />}
       {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
       {RB.mn.ghost && Math.abs(sa(m4 ? 18.7 : m2 ? 35.6 : 35.5, m4 ? 62.3 : 37.6).d) > 0 && <div className="rl-ghost" style={gh(mnNom[0], mnNom[1], mnNom[2], mnNom[3])} />}
-      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />}</Blk>
+      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>
       {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
         <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
-        <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{m.name}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}ת.נ.צ.ב.ה</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
+        <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
       {V('rf') ? RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} /> : <div className="rl-ghost" style={RB.rf.hide} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
-        <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{r.name}</b>{r.note && <small>{r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
+        <div className="pgw fade" key={'rf' + pg.rf}>{refs.length ? rc.items.map((r) => <div className="yi" key={r.id}><b>{fullName(r)}</b>{(r.blessing || r.note) && <small>{r.blessing || r.note}</small>}</div>) : <div className="yi"><small>אין שמות לרפואה שלמה כרגע</small></div>}</div></div></Blk>}
       {m4 && (V('qr') && onS(st.donScreen) && hasDon ? RB.qr.ghost && <div className="rl-ghost" style={RB.qr.ghost} /> : <div className="rl-ghost" style={RB.qr.hide} />)}
       {m4 && V('qr') && onS(st.donScreen) && hasDon && <Blk {...B({ id: 'qr', t: 'x', b: 3, cls: 'rl-card rl-qr ' + RB.qr.cls, share: 0.2, style: RB.qr.style })}>
         {st.payUrl && <div className="rl-ic"><div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div></div>}<div className="rl-bd">

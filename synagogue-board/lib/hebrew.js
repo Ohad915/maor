@@ -29,7 +29,7 @@ export function hebOf(date, afterSunset) {
   const raw = m === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : m === 13 ? 'Adar II' : MONTHS.find((x) => x[2] === m)[0];
   return { d: hd.getDate(), raw, y: hd.getFullYear(), hd };
 }
-export const hmatch = (k, h) => k === h.raw || (k === 'Adar' && h.raw === 'Adar II') || (k === 'Adar II' && h.raw === 'Adar');
+export const hmatch = (k, h) => k === h.raw || (k === 'Adar' && h.raw === 'Adar II') || (k === 'Adar II' && h.raw === 'Adar') || (k === 'Adar I' && h.raw === 'Adar');
 
 export function hAbs(d, key, y) {
   const lp = HDate.isLeapYear(y);
@@ -53,8 +53,20 @@ export function resolveSpan(f, t, h) {
   }
   return { hs: 0, he: 0 };
 }
-export const refuahOn = (r, h) => !r.hs || (nowAbs(h) >= r.hs && nowAbs(h) <= r.he);
-export const memOn = (m, h) => (m.mode === 'p' ? true : m.mode === 'r' ? inRange(m.from, m.to, h) : m.d === h.d && hmatch(m.month, h));
+export const refuahOn = (r, h) => r.active !== false && (!r.hs || (nowAbs(h) >= r.hs && nowAbs(h) <= r.he));
+export const memOn = (m, h) => m.active !== false && (m.mode === 'p' ? true : m.mode === 't' ? !m.hs || (nowAbs(h) >= m.hs && nowAbs(h) <= m.he) : m.mode === 'r' ? inRange(m.from, m.to, h) : m.d === h.d && hmatch(m.month, h));
+/** Hebrew day/month of an absolute day number */
+export function hebFromAbs(abs) { const hd = new HDate(abs), mo = hd.getMonth(); return { d: hd.getDate(), m: mo === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : mo === 13 ? 'Adar II' : MONTHS.find((x) => x[2] === mo)[0], y: hd.getFullYear() }; }
+/** Shared "time type" of dedications (memorial / refuah / sponsor): fixed = never expires, otherwise a span in absolute days */
+export function spanOf(f, h) {
+  const n = nowAbs(h);
+  if (f.tmode === 'range') return resolveSpan(f.from, f.to, h);
+  if (f.tmode === 'days') return { hs: n, he: n + Math.max(1, Math.min(3650, +f.days || 7)) - 1 };
+  if (f.tmode === 'until') return resolveSpan({ d: h.d, m: h.raw }, f.to, h);
+  return { hs: 0, he: 0 };
+}
+/** name with the parent: "פלוני בן פלונית" (gender m/f/p = plural) */
+export const fullName = (x) => { const n = String(x?.name || '').trim(), p = String(x?.parent || '').trim(); return !p ? n : x.gender === 'f' ? `${n} בת ${p}` : x.gender === 'p' ? `${n} ו${p}` : `${n} בן ${p}`; };
 export const annOn = (a, h) => (a.limited ? inRange(a.from, a.to, h) : true);
 
 const G = (n) => { try { return Locale.gettext(n, 'he-x-NoNikud'); } catch { return n; } };
@@ -108,3 +120,6 @@ export function chagInfo(date, z, candle = 30) {
   const chagDay = has(hd, flags.CHAG), eveOfChag = has(nx, flags.CHAG);
   return { chag: (chagDay && beforeTzeit) || (eveOfChag && after), erev: eveOfChag && !after };
 }
+
+/** keep the original window when editing an item without touching its time settings */
+export const keepSpan = (old, f, sp) => (old && old.hs && old.tmode === f.tmode && old.days === f.days && JSON.stringify(old.from) === JSON.stringify(f.from) && JSON.stringify(old.to) === JSON.stringify(f.to) ? { hs: old.hs, he: old.he } : sp);

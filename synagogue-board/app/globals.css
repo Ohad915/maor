@@ -484,3 +484,9 @@ label{font-size:13px;color:var(--mu)}
 .lss .ptr b{border:.1em solid #d9a52e;border-inline-start:.1em solid #d9a52e;border-radius:0 .3em .3em 0}.lss .ptr i{border-radius:.3em 0 0 .3em}.lss .ptr.ls-psalms b{border-color:#c9809a}
 .ptb2 .ptg.cards{grid-template-columns:1fr 1fr;gap:1.2cqh 1.4cqw;align-content:start;flex:1}
 .fsdots{text-align:center;font-size:2.2cqh;color:#6b4306;letter-spacing:.3em;line-height:1}
+
+/* carousel timer: bold glowing progress bar + seconds-left badge */
+.prg{height:.5em!important;background:linear-gradient(90deg,#ffe58a,#f0b429,#ffe58a)!important;box-shadow:0 0 .8em #f0b429cc,0 0 .2em #fff8!important;border-radius:1em 0 0 1em}
+.rl-main .prg{left:6%!important;right:6%!important;bottom:.25cqw!important;height:.55cqw!important;opacity:1!important;background:linear-gradient(90deg,#ffe58a,#e0a526,#ffe58a)!important;box-shadow:0 0 .8cqw #f0b429cc!important;border-radius:1em!important}
+.cdn{position:absolute;z-index:3;bottom:1.1em;left:.8em;min-width:1.9em;height:1.9em;line-height:1.9em;text-align:center;border-radius:50%;font:900 .8em/1.9em Heebo,sans-serif;color:#2a1a05;background:radial-gradient(#ffe58a,#e0a526);border:.12em solid #fff4c4;box-shadow:0 .1em .5em #0008}
+.rl-main .cdn{bottom:1.6cqw;left:1.4cqw;font-size:1.25cqw}

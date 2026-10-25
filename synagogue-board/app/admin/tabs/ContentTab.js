@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
-import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan } from '@/lib/hebrew';
+import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan, memOn, fullName, spanOf, hebFromAbs, keepSpan } from '@/lib/hebrew';
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
 import ZmanimCard from '../components/ZmanimCard';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
@@ -23,7 +23,7 @@ function useEditor(blank) {
 const FormBtns = ({ ed, onSave, label }) => (
   <div className="row"><button className="b" onClick={onSave}>{ed.eid ? 'עדכן' : label}</button>{ed.eid && <button className="b g" onClick={ed.reset}>בטל עריכה</button>}</div>);
 
-const SUBS = [['prsh', '📜 פרשה והפטרה'], ['pr', '🕌 זמני תפילות'], ['les', '📚 שיעורי תורה'], ['ann', '📣 הודעות ומנהגים'], ['mem', '🕯️ הנצחות ורפואה שלמה']];
+const SUBS = [['prsh', '📜 פרשה והפטרה'], ['pr', '🕌 זמני תפילות'], ['les', '📚 שיעורי תורה'], ['ann', '📣 הודעות ומנהגים'], ['mem', '🕯️ הנצחות ורפואה שלמה'], ['sp', '🏅 פרנס השבוע / ברכה']];
 export default function ContentTab({ ctx }) {
   const { role } = ctx, [sub, setSub] = useState('prsh');
   const cur = role === 'sub_gabbai' ? 'ann' : sub; // sub-gabbai: announcements only
@@ -34,6 +34,7 @@ export default function ContentTab({ ctx }) {
       {cur === 'prsh' && <Parsha {...ctx} />}{cur === 'pr' && <Prayers {...ctx} />}{cur === 'les' && <Lessons {...ctx} />}
       {cur === 'ann' && <><Announcements {...ctx} />{role !== 'sub_gabbai' && <Halacha {...ctx} />}</>}
       {cur === 'mem' && <><Memorials {...ctx} /><Refuah {...ctx} /></>}
+      {cur === 'sp' && <Sponsors {...ctx} />}
     </>);
 }
 
@@ -165,14 +166,41 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
   </>);
 }
 
+/** ---- shared dedication form pieces: memorial (לעילוי נשמת), refuah (רפואה שלמה), sponsor (פרנס השבוע / ברכת השנה) ---- */
+const TMODES = [['fixed', 'זמן קבוע (ללא תפוגה)'], ['range', 'זמן קצוב · טווח תאריכים עברי'], ['days', 'זמן קצוב · מספר ימים מהיום'], ['until', 'זמן קצוב · עד תאריך']];
+const DED_BLANK = { name: '', parent: '', gender: 'm', blessing: '', screen: 'all', tmode: 'fixed', days: 7, from: HB, to: { d: 30, m: 'Tishri' }, active: true };
+/** one identical block of fields for all three admin forms */
+function DedFields({ f, setF, who, yz }) {
+  const pl = f.gender === 'p';
+  return (<>
+    <label>{who}</label><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+    <div className="row">
+      <div><label>מגדר / נוסח</label><select value={f.gender} onChange={(e) => setF({ ...f, gender: e.target.value })}><option value="m">זכר</option><option value="f">נקבה</option><option value="p">רבים</option></select></div>
+      <div><label>{pl ? 'שמות נוספים' : f.gender === 'f' ? 'שם האב / האם (בת …)' : 'שם האב / האם (בן …)'}</label><input value={f.parent} placeholder="רשות" onChange={(e) => setF({ ...f, parent: e.target.value })} /></div>
+    </div>
+    <label>איחול / נוסח מותאם (רשות – מחליף את הנוסח הרגיל)</label><input value={f.blessing} placeholder={yz ? 'ת.נ.צ.ב.ה' : 'רפואה שלמה במהרה'} onChange={(e) => setF({ ...f, blessing: e.target.value })} />
+    <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
+    <label>סוג זמן</label>
+    <select value={f.tmode} onChange={(e) => setF({ ...f, tmode: e.target.value })}>{TMODES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}{yz && <option value="y">יום פטירה שנתי (אזכרה)</option>}</select>
+    {f.tmode === 'range' && <><label>מ- (יום וחודש עברי)</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} /><label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} /></>}
+    {f.tmode === 'days' && <><label>מספר ימים מהיום: {f.days}</label><input type="number" min={1} max={365} value={f.days} onChange={(e) => setF({ ...f, days: Math.max(1, Math.min(365, +e.target.value || 1)) })} /></>}
+    {f.tmode === 'until' && <><label>מוצג עד (יום וחודש עברי)</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} /></>}
+    {f.tmode === 'y' && <><label>תאריך פטירה (יום, חודש, שנה עברית רשות)</label><HebPick value={{ d: f.d, m: f.month }} onChange={(v) => setF({ ...f, d: v.d, month: v.m })} /><input placeholder="תשפ״ה או 5785" value={f.y} onChange={(e) => setF({ ...f, y: e.target.value })} /></>}
+  </>);
+}
+const tmodeOf = (x) => x.tmode || (x.mode === 'p' ? 'fixed' : x.mode === 'r' ? 'range' : x.mode === 'y' || (x.d && !x.mode) ? 'y' : x.hs ? 'range' : 'fixed');
+const spanTxt = (x, h) => (x.tmode === 'y' || x.mode === 'y' ? `${gem(x.d)} ב${monthName(x.month)}${x.y ? ' ' + gem(x.y % 1000) : ''}${x.y && h.y > x.y ? ` · ${h.y - x.y} שנים` : ''}` : !x.hs && x.mode !== 'r' ? 'זמן קבוע' : x.mode === 'r' ? `בטווח ${gem(x.from.d)} ${monthName(x.from.m)} – ${gem(x.to.d)} ${monthName(x.to.m)}` : `${gem(hebFromAbs(x.hs).d)} ${monthName(hebFromAbs(x.hs).m)} – ${gem(hebFromAbs(x.he).d)} ${monthName(hebFromAbs(x.he).m)}`);
+const StatusBtn = ({ on, onClick }) => <button className="b g" style={{ flex: '0 0 auto' }} onClick={onClick}>{on ? '⏸ השבת' : '▶ הפעל'}</button>;
+
 function Memorials({ sid, st, set, cols, feat }) {
-  const ed = useEditor({ name: '', desc: '', screen: 'all', gender: 'm', mode: 'y', d: 1, month: 'Tishri', y: '', from: HB, to: HB }), { f, setF } = ed;
+  const ed = useEditor({ ...DED_BLANK, tmode: 'y', desc: '', d: 1, month: 'Tishri', y: '' }), { f, setF } = ed;
   const mems = cols.memorials || [], limited = !ed.eid && mems.length >= 10 && !feat('unlimitedMemorials');
   const h = hebOf(new Date(), false);
-  const save = () => {
+  const save = async () => {
     if (!f.name.trim()) return;
-    const data = { name: f.name, desc: f.desc, screen: f.screen, gender: f.gender, mode: f.mode, d: f.d, month: f.month, y: parseY(f.y), from: f.from, to: f.to };
-    ed.eid ? updItem(sid, 'memorials', ed.eid, data) : addItem(sid, 'memorials', data); ed.reset();
+    const sp = keepSpan(mems.find((q) => q.id === ed.eid), f, spanOf(f, h)), data = { name: f.name.trim(), parent: f.parent.trim(), desc: f.desc, blessing: f.blessing.trim(), screen: f.screen, gender: f.gender, tmode: f.tmode, days: f.days, active: f.active !== false, d: f.d, month: f.month, y: parseY(f.y), from: f.from, to: f.to,
+      mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
+    try { await (ed.eid ? updItem(sid, 'memorials', ed.eid, data) : addItem(sid, 'memorials', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
   };
   return (<>
     <Card title="רכיב ההנצחה">
@@ -181,47 +209,70 @@ function Memorials({ sid, st, set, cols, feat }) {
     </Card>
     <div ref={ed.ref}>{limited ? <Lock title="הנצחות ללא הגבלה (מעל 10)" /> : (
       <Card title={ed.eid ? 'עריכת הנצחה' : 'הנצחה חדשה'}>
-        <label>שם הנפטר/ת</label><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <DedFields f={f} setF={setF} who="שם הנפטר/ת" yz />
         <label>הקדשה (רשות, ירידות שורה נשמרות)</label><textarea value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} />
-        <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
-        <div className="row"><div><label>מין</label><select value={f.gender} onChange={(e) => setF({ ...f, gender: e.target.value })}><option value="m">זכר</option><option value="f">נקבה</option></select></div>
-          <div><label>אופן הצגה</label><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="y">ביום הפטירה העברי</option><option value="r">בטווח תאריכים עברי</option><option value="p">קבוע (ללא תאריך)</option></select></div></div>
-        {f.mode === 'y' && <><label>תאריך פטירה (יום, חודש, שנה עברית רשות)</label><HebPick value={{ d: f.d, m: f.month }} onChange={(v) => setF({ ...f, d: v.d, month: v.m })} /><input placeholder="תשפ״ה או 5785" value={f.y} onChange={(e) => setF({ ...f, y: e.target.value })} /></>}
-        {f.mode === 'r' && <><label>מ-</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} /><label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} /></>}
         <FormBtns ed={ed} onSave={save} label="הוסף הנצחה" />
       </Card>)}</div>
-    {mems.map((m) => <Card key={m.id}><div style={{ flex: '3 1 200px' }}><b>{m.name}</b>{m.desc && <small style={{ whiteSpace: 'pre-line' }}> {m.desc}</small>}
-      <div style={{ color: 'var(--mu)' }}>{m.mode === 'p' ? 'הצגה קבועה' : m.mode === 'r' ? `בטווח ${gem(m.from.d)} ${monthName(m.from.m)} – ${gem(m.to.d)} ${monthName(m.to.m)}` : `${gem(m.d)} ב${monthName(m.month)}${m.y ? ' ' + gem(m.y % 1000) : ''}${m.y && h.y > m.y ? ` · ${h.y - m.y} שנים` : ''}`}</div></div>
-      <div className="row"><TkChk on={m.ticker} onChange={(v) => updItem(sid, 'memorials', m.id, { ticker: v })} /><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} />
-        <Edit onClick={() => ed.load({ name: m.name, desc: m.desc || '', screen: m.screen || 'all', gender: m.gender || 'm', mode: m.mode || 'y', d: m.d || 1, month: m.month || 'Tishri', y: m.y ? String(m.y) : '', from: m.from || HB, to: m.to || HB }, m.id)} />
-        <Del onClick={() => delItem(sid, 'memorials', m.id)} /></div></Card>)}
+    {mems.map((m) => { const on = memOn(m, h); return <Card key={m.id}><div style={{ flex: '3 1 200px' }}><b>{fullName(m)}</b>{m.desc && <small style={{ whiteSpace: 'pre-line' }}> {m.desc}</small>}
+      <div style={{ color: 'var(--mu)' }}>{spanTxt(m, h)} <span className={`tag ${m.active === false ? '' : 'ok'}`}>{m.active === false ? 'מושבת' : m.mode === 'y' ? 'פעיל' : on ? 'פעיל' : 'לא בתוקף'}</span></div></div>
+      <div className="row"><StatusBtn on={m.active !== false} onClick={() => updItem(sid, 'memorials', m.id, { active: m.active === false })} /><TkChk on={m.ticker} onChange={(v) => updItem(sid, 'memorials', m.id, { ticker: v })} /><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} />
+        <Edit onClick={() => ed.load({ ...DED_BLANK, name: m.name, parent: m.parent || '', desc: m.desc || '', blessing: m.blessing || '', screen: m.screen || 'all', gender: m.gender || 'm', tmode: tmodeOf(m), days: m.days || 7, active: m.active !== false, d: m.d || 1, month: m.month || 'Tishri', y: m.y ? String(m.y) : '', from: m.from || HB, to: m.to || { d: 30, m: 'Tishri' } }, m.id)} />
+        <Del onClick={() => delItem(sid, 'memorials', m.id)} /></div></Card>; })}
   </>);
 }
 
 function Refuah({ sid, st, set, cols }) {
-  const ed = useEditor({ name: '', note: '', screen: 'all', from: HB, to: { d: 30, m: 'Tishri' } }), { f, setF } = ed;
+  const ed = useEditor({ ...DED_BLANK, tmode: 'range', from: HB, to: { d: 30, m: 'Tishri' } }), { f, setF } = ed;
   const h = hebOf(new Date(), false);
-  const save = () => {
+  const save = async () => {
     if (!f.name.trim()) return;
-    const data = { ...f, ...resolveSpan(f.from, f.to, h) };
-    ed.eid ? updItem(sid, 'refuah', ed.eid, data) : addItem(sid, 'refuah', data); ed.reset();
+    const sp = keepSpan((cols.refuah || []).find((q) => q.id === ed.eid), f, spanOf(f, h));
+    const data = { name: f.name.trim(), parent: f.parent.trim(), gender: f.gender, blessing: f.blessing.trim(), note: '', screen: f.screen, tmode: f.tmode, days: f.days, from: f.from, to: f.to, active: f.active !== false, hs: sp.hs, he: sp.he };
+    try { await (ed.eid ? updItem(sid, 'refuah', ed.eid, data) : addItem(sid, 'refuah', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
   };
   return (<>
     <Card title="🏥 רפואה שלמה">
       <Switch label="הקפצה בקרוסלת ההודעות" on={st.vis?.rfPop !== false} onChange={(v) => set('vis.rfPop', v)} />
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת שם' : 'שם חדש'}>
-      <label>שם החולה/ה (כולל שם האם)</label><input value={f.name} placeholder="פלוני בן פלונית" onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <label>בקשה / תפילה קצרה (רשות)</label><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
-      <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
-      <label>תוקף מ- (יום וחודש עברי)</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} />
-      <label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} />
+      <DedFields f={f} setF={setF} who="שם החולה/ה" />
       <FormBtns ed={ed} onSave={save} label="הוסף" />
     </Card></div>
     {(cols.refuah || []).map((r) => { const on = refuahOn(r, h); return (
-      <Card key={r.id}><div style={{ flex: '3 1 200px' }}><b>{r.name}</b>{r.note && <small> {r.note}</small>}<div style={{ color: 'var(--mu)', fontSize: 13 }}>{gem(r.from.d)} {monthName(r.from.m)} – {gem(r.to.d)} {monthName(r.to.m)} <span className={`tag ${on ? 'ok' : ''}`}>{on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
-        <div className="row"><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'refuah', r.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ name: r.name, note: r.note || '', screen: r.screen || 'all', from: r.from, to: r.to }, r.id)} /><Del onClick={() => delItem(sid, 'refuah', r.id)} /></div></Card>); })}
+      <Card key={r.id}><div style={{ flex: '3 1 200px' }}><b>{fullName(r)}</b>{(r.blessing || r.note) && <small> {r.blessing || r.note}</small>}<div style={{ color: 'var(--mu)', fontSize: 13 }}>{spanTxt(r, h)} <span className={`tag ${on ? 'ok' : ''}`}>{r.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
+        <div className="row"><StatusBtn on={r.active !== false} onClick={() => updItem(sid, 'refuah', r.id, { active: r.active === false })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'refuah', r.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ ...DED_BLANK, name: r.name, parent: r.parent || '', gender: r.gender || 'm', blessing: r.blessing || r.note || '', screen: r.screen || 'all', tmode: r.tmode || (r.hs ? 'range' : 'fixed'), days: r.days || 7, from: r.from || (r.hs ? hebFromAbs(r.hs) : HB), to: r.to || (r.he ? hebFromAbs(r.he) : { d: 30, m: 'Tishri' }), active: r.active !== false }, r.id)} /><Del onClick={() => delItem(sid, 'refuah', r.id)} /></div></Card>); })}
+  </>);
+}
+
+const SP_KINDS = [['parnas', 'פרנס השבוע'], ['bracha', 'ברכת השנה'], ['other', 'הקדשה אחרת']];
+function Sponsors({ sid, cols }) {
+  const ed = useEditor({ ...DED_BLANK, kind: 'parnas', title: '', text: '', mode: 'block', secs: 20, tmode: 'days', days: 7 }), { f, setF } = ed;
+  const h = hebOf(new Date(), false), list = cols.sponsors || [];
+  const save = async () => {
+    if (!f.name.trim()) return;
+    const sp = keepSpan(list.find((q) => q.id === ed.eid), f, spanOf(f, h));
+    const data = { kind: f.kind, title: f.title.trim(), name: f.name.trim(), parent: f.parent.trim(), gender: f.gender, blessing: f.blessing.trim(), text: f.text, screen: f.screen, mode: f.mode, secs: Math.min(30, Math.max(5, +f.secs || 20)), tmode: f.tmode, days: f.days, from: f.from, to: f.to, active: f.active !== false, hs: sp.hs, he: sp.he };
+    try { await (ed.eid ? updItem(sid, 'sponsors', ed.eid, data) : addItem(sid, 'sponsors', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
+  };
+  return (<>
+    <Card title="🏅 פרנס השבוע / ברכת השנה">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית הקדשה בקרוסלה של מסך הטלוויזיה. אפשר להגדיר זמן קבוע או זמן קצוב (למשל 7 ימים), לערוך, להשבית ולמחוק בכל עת.</div>
+    </Card>
+    <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הקדשה' : 'הקדשה חדשה'}>
+      <label>סוג</label><select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{SP_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      {f.kind === 'other' && <><label>כותרת השקופית</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></>}
+      <DedFields f={f} setF={setF} who="שם התורם / המשפחה" />
+      <label>הקדשה (רשות, ירידות שורה נשמרות)</label><textarea value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />
+      <div className="row"><div><label>אופן תצוגה</label><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="block">בלוק בקרוסלה</option><option value="full">מסך מלא</option><option value="off">כבוי</option></select></div></div>
+      <Range label="זמן תצוגת השקופית (בשניות)" min={5} max={30} value={f.secs} onChange={(v) => setF({ ...f, secs: v })} />
+      <FormBtns ed={ed} onSave={save} label="הוסף" />
+    </Card></div>
+    {list.map((x) => { const on = refuahOn(x, h) && (x.mode || 'block') !== 'off'; return (
+      <Card key={x.id}><div style={{ flex: '3 1 200px' }}><span className="tag">{(SP_KINDS.find((k) => k[0] === x.kind) || SP_KINDS[0])[1]}{x.kind === 'other' && x.title ? ` · ${x.title}` : ''}</span> <b>{fullName(x)}</b>{x.text && <small style={{ whiteSpace: 'pre-line' }}> {x.text}</small>}
+        <div style={{ color: 'var(--mu)', fontSize: 13 }}>{spanTxt(x, h)} · {x.secs || 20} שנ׳ <span className={`tag ${on ? 'ok' : ''}`}>{x.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
+        <div className="row"><StatusBtn on={x.active !== false} onClick={() => updItem(sid, 'sponsors', x.id, { active: x.active === false })} /><ScreenSel value={x.screen} onChange={(v) => updItem(sid, 'sponsors', x.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ ...DED_BLANK, kind: x.kind || 'parnas', title: x.title || '', name: x.name, parent: x.parent || '', gender: x.gender || 'm', blessing: x.blessing || '', text: x.text || '', screen: x.screen || 'all', mode: x.mode || 'block', secs: x.secs || 20, tmode: x.tmode || (x.hs ? 'range' : 'fixed'), days: x.days || 7, from: x.from || (x.hs ? hebFromAbs(x.hs) : HB), to: x.to || (x.he ? hebFromAbs(x.he) : { d: 30, m: 'Tishri' }), active: x.active !== false }, x.id)} /><Del onClick={() => delItem(sid, 'sponsors', x.id)} /></div></Card>); })}
   </>);
 }
 
