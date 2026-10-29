@@ -1,6 +1,7 @@
 'use client';
 import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import KeepAlive from '@/lib/keepAlive';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
@@ -94,17 +95,14 @@ const chunk = (arr, n, p) => { const pages = Math.max(1, Math.ceil(arr.length / 
 
 export default function Display({ sid, screenId, fixedSize, preview, authErr }) {
   const live = useSynagogue(sid);
-  // TV reliability (real screen only): keep the display awake, and reload once a night (04:00-04:05 Israel time) to free memory and pick up new versions
+  // TV reliability (real screen only): <KeepAlive/> = wake lock + silent video loop + watchdog/soft refresh; plus one nightly reload at 04:00 Israel time
   useEffect(() => {
     if (preview || typeof window === 'undefined') return;
-    let lock = null, alive = true;
-    const ask = async () => { try { if (alive && document.visibilityState === 'visible' && navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); } catch {} };
-    ask(); document.addEventListener('visibilitychange', ask);
     const t = setInterval(() => {
       const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-      if (p >= '04:00' && p < '04:05') { const k = 'maor-reload-' + new Date().toISOString().slice(0, 10); try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); location.reload(); } } catch {} }
+      if (p >= '04:00' && p < '04:05' && navigator.onLine !== false) { const k = 'maor-reload-' + new Date().toISOString().slice(0, 10); try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); location.reload(); } } catch {} }
     }, 30000);
-    return () => { alive = false; clearInterval(t); document.removeEventListener('visibilitychange', ask); try { lock?.release(); } catch {} };
+    return () => clearInterval(t);
   }, [preview]);
   // no connection / empty or missing document and nothing cached: calm demo board (zmanim are computed locally) instead of a network error
   const offlineNow = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -115,9 +113,9 @@ export default function Display({ sid, screenId, fixedSize, preview, authErr }) 
   const [size, setSize] = useState({ w: 1280, h: 720 });
   useEffect(() => { if (fixedSize) { setSize(fixedSize); return; } const u = () => setSize({ w: innerWidth, h: innerHeight }); u(); addEventListener('resize', u); return () => removeEventListener('resize', u); }, [fixedSize?.w, fixedSize?.h]); // eslint-disable-line
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(t); }, []);
-  if (!syn) return <div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div>;
-  if (syn.suspended) return <div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div>;
-  return <Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={offlineNow ? '' : (authErr || live.error || '')} authErr={offlineNow ? '' : authErr} />;
+  if (!syn) return <>{!preview && <KeepAlive />}<div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div></>;
+  if (syn.suspended) return <>{!preview && <KeepAlive />}<div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div></>;
+  return <>{!preview && <KeepAlive />}<Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={offlineNow ? '' : (authErr || live.error || '')} authErr={offlineNow ? '' : authErr} /></>;
 }
 
 function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr }) {
