@@ -281,13 +281,19 @@ function Sponsors({ sid, cols }) {
 
 /** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
 function PsalmsDaily({ st, set }) {
-  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 230), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
   const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
   const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
   return (<>
     <Card title="📖 תהילים יומי">
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
       <Switch label="הצג שקופית תהילים יומי בקרוסלה" on={!!c.on} onChange={(v) => set('psalmsConfig.on', v)} />
+      <label>איפה להציג</label>
+      <div className="pills" style={{ flexWrap: 'wrap' }}>{[['full', '🖥 מסך מלא'], ['block', '🎞 בקרוסלה (בלוח המרכזי)']].map(([k, l]) => <button key={k} className={`opt ${(c.show || 'full') === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.show', k); setPi(0); }}>{l}</button>)}</div>
+      <label>קצב התצוגה</label>
+      <div className="pills" style={{ flexWrap: 'wrap' }}>{[['page', 'עמוד אחד בכל סבב (מומלץ)'], ['whole', 'כל הפרק ברצף']].map(([k, l]) => <button key={k} className={`opt ${(c.pace || 'page') === k ? 'on' : ''}`} onClick={() => set('psalmsConfig.pace', k)}>{l}</button>)}</div>
+      <label>תדירות</label>
+      <select value={c.every || 1} onChange={(e) => set('psalmsConfig.every', +e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n === 1 ? 'בכל סבב של הקרוסלה' : `פעם ב-${n} סבבים`}</option>)}</select>
       <label>מצב</label>
       <div className="pills" style={{ flexWrap: 'wrap' }}>{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
       {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)}</div>}
@@ -295,7 +301,7 @@ function PsalmsDaily({ st, set }) {
       {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
       <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />
       <Range label="זמן תצוגה לכל עמוד (שניות, עד 30)" min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
-      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>פרק ארוך מתחלק לעמודים קריאים שמתחלפים לבד: {pages.length} עמודים · כ-{mm ? `${mm} דק׳ ` : ''}{ss ? `${ss} שנ׳` : ''} בסך הכול.</div>}
+      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>{(c.pace || 'page') === 'page' ? `הפרק מתחלק ל-${pages.length} עמודים. בכל סבב קרוסלה יוצג עמוד אחד בלבד (${Math.min(30, Math.max(5, +c.duration || 15))} שנ׳), והמשך הפרק בסבב הבא${(+c.every || 1) > 1 ? ` (פעם ב-${c.every} סבבים)` : ''}.` : `כל הפרק ברצף: ${pages.length} עמודים · כ-${mm ? mm + ' דק׳ ' : ''}${ss ? ss + ' שנ׳' : ''} בסך הכול.`}</div>}
       <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
     </Card>
     <Card title="תצוגה מקדימה">

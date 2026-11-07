@@ -205,6 +205,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     }).catch(() => {});
     return () => { alive = false; };
   }, [st.dh?.on, st.dh?.mode, st.dh?.src, st.dh?.manual, dhDay]); // eslint-disable-line
+  const [psq, setPsq] = useState({ seq: 0, rnd: 0 }); // daily psalm: seq = how many times the psalm slide was shown, rnd = finished carousel rounds
   const slides = [];
   if (st.pSlide && V('pr') && !royal) slides.push({ k: 'p', dur: cf('pr').secs });
   anns.forEach((a) => slides.push({ k: 'a', a, full: modeOf(a) === 'full', dur: cf('ann').secs }));
@@ -221,7 +222,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
   const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
-  { const pc = st.psalmsConfig; if (pc?.on && onS(pc.screen)) { const pages = psalmsPages(pc, h, nowAbs(h)); if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: true, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
+  { const pc = st.psalmsConfig; if (pc?.on && onS(pc.screen) && psq.rnd % Math.max(1, Math.min(10, +pc.every || 1)) === 0) {
+    const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 230); // 'page' pace: ONE page per carousel round, the next page next round
+    const pages = pc.pace === 'whole' ? all : all.length ? [all[psq.seq % all.length]] : [];
+    if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: !blk, blk, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
   const ls = { mode: 'off', secs: 12, scope: 'today', ...(st.lsAll || {}) }, lsm = ls.mode === 'full' ? 'popup' : ls.mode, lsMin = (t) => { const m = /(\d+):(\d+)/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : 1e4; };
@@ -245,7 +249,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (!slides.length) return;
     const t = setTimeout(() => {
       if (pg.mr < subPages - 1) setPg((p) => ({ ...p, mr: p.mr + 1 }));
-      else { setPg((p) => ({ ...p, mr: 0 })); setIdx((i) => i + 1); }
+      else {
+        const last = idx % slides.length === slides.length - 1; // a full round is over → back to the first slide (the slide list may change between rounds)
+        setPg((p) => ({ ...p, mr: 0 })); setIdx((i) => (last ? 0 : i + 1));
+        setPsq((s) => ({ seq: s.seq + (cur?.k === 'ps' ? 1 : 0), rnd: s.rnd + (last ? 1 : 0) }));
+      }
     }, (cur?.dur || 10) * 1000);
     return () => clearTimeout(t);
   }, [idx, pg.mr, slides.length, subPages]); // eslint-disable-line
@@ -254,7 +262,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   useEffect(() => { if (rfPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, rf: p.rf + 1 })), cf('rf').secs * 1000); return () => clearInterval(t); }, [rfPages, cf('rf').secs]); // eslint-disable-line
 
   /* ----- heartbeat for the admin "screen health" indicator ----- */
-  const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : cur.k === 'ls' ? 'שיעורים ותהילים' : 'פרשה')) : '—';
+  const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : cur.k === 'ls' ? 'שיעורים ותהילים' : cur.k === 'ps' ? 'תהילים יומי' : 'פרשה')) : '—';
   useEffect(() => {
     if (preview) return;
     const beat = () => !navigator.onLine || syn.id === 'demo' || setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
@@ -291,9 +299,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   }
   else if (cur.k === 'ps') {
     // daily psalm: full-screen parchment, one readable page at a time (each page stays for the slide duration), vowelled text from the bundled JSON (works offline)
-    const N = cur.pages.length, pgi = pg.mr % N, dots = N > 10 ? `${pgi + 1} / ${N}` : dotStr(N, pgi);
-    if (royal) { full = <div className="rl-scroll" key={'ps' + idx + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><PsalmsFullscreenSlide page={cur.pages[pgi]} dedication={cur.ded} dots={dots} /></div></div>; mid = null; }
-    else { popup = <div className="popup" key={'ps' + idx + '-' + pg.mr}><div className="pcard psc"><PsalmsFullscreenSlide page={cur.pages[pgi]} dedication={cur.ded} dots={dots} unit="vh" scale={0.8} /></div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+    const N = cur.pages.length, pgi = pg.mr % N, pp = cur.pages[pgi], dots = pp.of > 1 && N === 1 ? `${pp.i + 1} / ${pp.of}` : N > 10 ? `${pgi + 1} / ${N}` : dotStr(N, pgi);
+    if (cur.blk) mid = slide('ps' + idx + '-' + psq.seq + '-' + pg.mr, afs('ann'), '✦ תהילים ✦', <><h3>{pp.title}{pp.range && ' · ' + pp.range}</h3>{cur.ded && cur.ded.trim() && <p><b>{cur.ded.trim()}</b></p>}<p>{pp.v.map(([n, t], i) => <span key={i}>{n > 0 && <sup>{gem(n).replace(/[׳״]/g, '')}</sup>}{t} </span>)}</p></>, dots);
+    else if (royal) { full = <div className="rl-scroll" key={'ps' + idx + '-' + psq.seq + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><PsalmsFullscreenSlide page={pp} dedication={cur.ded} dots={dots} /></div></div>; mid = null; }
+    else { popup = <div className="popup" key={'ps' + idx + '-' + psq.seq + '-' + pg.mr}><div className="pcard psc"><PsalmsFullscreenSlide page={pp} dedication={cur.ded} dots={dots} unit="vh" scale={0.8} /></div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
   }
   else if (cur.k === 'dh') {
     const L = Math.max(60, (tx || '').length), dots = dotStr(tparts.length, pg.mr);
