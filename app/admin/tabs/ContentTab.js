@@ -163,7 +163,7 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
     </Card></div>
     {(cols.announcements || []).map((a) => (
       <Card key={a.id}><div style={{ flex: '3 1 200px' }}><b>{a.title}</b><div style={{ color: 'var(--mu)', fontSize: 14, whiteSpace: 'pre-line' }}>{a.content}</div>
-        <span className="tag">{a.screen === 'all' || !a.screen ? 'כל המסכים' : SCREEN_NAMES[a.screen]}</span>{a.limited && <span className="tag">{gem(a.from.d)} {monthName(a.from.m)} – {gem(a.to.d)} {monthName(a.to.m)}</span>}</div>
+        <span className="tag">{a.screen === 'all' || !a.screen ? 'כל המסכים' : SCREEN_NAMES[a.screen]}</span>{a.limited && <span className="tag">{gem((a.from || HB).d)} {monthName((a.from || HB).m)} – {gem((a.to || HB).d)} {monthName((a.to || HB).m)}</span>}</div>
         <div className="row"><ModeSel value={modeVal(a)} onChange={(v) => updItem(sid, 'announcements', a.id, { mode: v })} /><TkChk on={a.ticker} onChange={(v) => updItem(sid, 'announcements', a.id, { ticker: v })} />
           <Edit onClick={() => ed.load({ title: a.title, content: a.content || '', screen: a.screen || 'all', limited: !!a.limited, from: a.from || HB, to: a.to || HB }, a.id)} /><Del onClick={() => delItem(sid, 'announcements', a.id)} /></div></Card>))}
   </>);
@@ -173,7 +173,7 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
 const TMODES = [['fixed', 'זמן קבוע (ללא תפוגה)'], ['range', 'זמן קצוב · טווח תאריכים עברי'], ['days', 'זמן קצוב · מספר ימים מהיום'], ['until', 'זמן קצוב · עד תאריך']];
 const DED_BLANK = { name: '', parent: '', gender: 'm', blessing: '', screen: 'all', tmode: 'fixed', days: 7, from: HB, to: { d: 30, m: 'Tishri' }, active: true };
 /** one identical block of fields for all three admin forms */
-function DedFields({ f, setF, who, yz }) {
+function DedFields({ f, setF, who, yz, ph }) {
   const pl = f.gender === 'p';
   return (<>
     <label>{who}</label><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
@@ -181,7 +181,7 @@ function DedFields({ f, setF, who, yz }) {
       <div><label>מגדר / נוסח</label><select value={f.gender} onChange={(e) => setF({ ...f, gender: e.target.value })}><option value="m">זכר</option><option value="f">נקבה</option><option value="p">רבים</option></select></div>
       <div><label>{pl ? 'שמות נוספים' : f.gender === 'f' ? 'שם האב / האם (בת …)' : 'שם האב / האם (בן …)'}</label><input value={f.parent} placeholder="רשות" onChange={(e) => setF({ ...f, parent: e.target.value })} /></div>
     </div>
-    <label>איחול / נוסח מותאם (רשות – מחליף את הנוסח הרגיל)</label><input value={f.blessing} placeholder={yz ? 'ת.נ.צ.ב.ה' : 'רפואה שלמה במהרה'} onChange={(e) => setF({ ...f, blessing: e.target.value })} />
+    <label>איחול / נוסח מותאם (רשות – מחליף את הנוסח הרגיל)</label><input value={f.blessing} placeholder={yz ? 'ת.נ.צ.ב.ה' : ph || 'רפואה שלמה במהרה'} onChange={(e) => setF({ ...f, blessing: e.target.value })} />
     <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
     <label>סוג זמן</label>
     <select value={f.tmode} onChange={(e) => setF({ ...f, tmode: e.target.value })}>{TMODES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}{yz && <option value="y">יום פטירה שנתי (אזכרה)</option>}</select>
@@ -265,7 +265,7 @@ function Sponsors({ sid, cols }) {
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הקדשה' : 'הקדשה חדשה'}>
       <label>סוג</label><select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{SP_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       {f.kind === 'other' && <><label>כותרת השקופית</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></>}
-      <DedFields f={f} setF={setF} who="שם התורם / המשפחה" />
+      <DedFields f={f} setF={setF} who="שם התורם / המשפחה" ph="ברכה והצלחה" />
       <label>הקדשה (רשות, ירידות שורה נשמרות)</label><textarea value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />
       <div className="row"><div><label>אופן תצוגה</label><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="block">בלוק בקרוסלה</option><option value="full">מסך מלא</option><option value="off">כבוי</option></select></div></div>
       <Range label="זמן תצוגת השקופית (בשניות)" min={5} max={30} value={f.secs} onChange={(v) => setF({ ...f, secs: v })} />
@@ -296,7 +296,7 @@ function PsalmsDaily({ st, set }) {
       <select value={c.every || 1} onChange={(e) => set('psalmsConfig.every', +e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n === 1 ? 'בכל סבב של הקרוסלה' : `פעם ב-${n} סבבים`}</option>)}</select>
       <label>מצב</label>
       <div className="pills" style={{ flexWrap: 'wrap' }}>{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
-      {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)}</div>}
+      {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)} (לפי התאריך הלועזי; בלוח, אחרי השקיעה עוברים ליום העברי הבא)</div>}
       {c.mode === 'manual' && <><label>פרק</label><select value={c.manualChapter} onChange={(e) => { set('psalmsConfig.manualChapter', +e.target.value); setPi(0); }}>{Array.from({ length: 150 }, (_, i) => <option key={i} value={i + 1}>{`פרק ${gem(i + 1)} (${i + 1})`}</option>)}</select></>}
       {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
       <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />

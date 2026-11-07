@@ -217,7 +217,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
   if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
-  if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
+  if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: chips.length ? chips : reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
@@ -246,7 +246,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
 
   /* ----- carousel (frozen on Shabbat) ----- */
   useEffect(() => {
-    if (!slides.length) return;
+    if (!slides.length) { const t0 = setTimeout(() => setPsq((s) => ({ ...s, rnd: s.rnd + 1 })), 5000); return () => clearTimeout(t0); } // nothing to show this round (psalm 'every N') → count rounds so it returns
     const t = setTimeout(() => {
       if (pg.mr < subPages - 1) setPg((p) => ({ ...p, mr: p.mr + 1 }));
       else {
@@ -256,7 +256,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       }
     }, (cur?.dur || 10) * 1000);
     return () => clearTimeout(t);
-  }, [idx, pg.mr, slides.length, subPages]); // eslint-disable-line
+  }, [idx, pg.mr, slides.length, subPages, psq.rnd, psq.seq]); // eslint-disable-line
   const yzPages = Math.max(1, Math.ceil(Math.max(mems.length, 1) / ipp('yz'))), rfPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   useEffect(() => { if (yzPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, yz: p.yz + 1 })), cf('mem').secs * 1000); return () => clearInterval(t); }, [yzPages, cf('mem').secs]); // eslint-disable-line
   useEffect(() => { if (rfPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, rf: p.rf + 1 })), cf('rf').secs * 1000); return () => clearInterval(t); }, [rfPages, cf('rf').secs]); // eslint-disable-line

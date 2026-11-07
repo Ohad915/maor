@@ -217,7 +217,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
   if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
   const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
-  if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: reminders(h), full: am === 'full', dur: cf('hal').secs });
+  if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: chips.length ? chips : reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
