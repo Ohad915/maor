@@ -122,4 +122,4 @@ export function chagInfo(date, z, candle = 30) {
 }
 
 /** keep the original window when editing an item without touching its time settings */
-export const keepSpan = (old, f, sp) => (old && old.hs && old.tmode === f.tmode && old.days === f.days && JSON.stringify(old.from) === JSON.stringify(f.from) && JSON.stringify(old.to) === JSON.stringify(f.to) ? { hs: old.hs, he: old.he } : sp);
+export const keepSpan = (old, f, sp) => (old && old.hs && old.tmode === f.tmode && (old.days ?? f.days) === f.days && JSON.stringify(old.from) === JSON.stringify(f.from) && JSON.stringify(old.to) === JSON.stringify(f.to) ? { hs: old.hs, he: old.he } : sp);

@@ -263,7 +263,7 @@ label{font-size:13px;color:var(--mu)}
 .rl-fx{flex:0 0 18.5%;text-align:center;color:#f6d77a;font-weight:900;font-size:2.1cqw;text-shadow:0 .1cqw .2cqw #000}
 .rl-clk{flex:0 0 14.5%;text-align:center;color:#f6d77a;font-weight:900;font-size:2.8cqw;direction:ltr;text-shadow:0 .1cqw .2cqw #000;font-variant-numeric:tabular-nums}
 .rl-tk{flex:1;height:100%;overflow:hidden;direction:ltr;white-space:nowrap;display:flex;align-items:center}
-.rl-tk span{direction:rtl;display:inline-block;padding-left:100%;font-size:2.1cqw;font-weight:800;color:#2a1a05;animation:tk 28s linear infinite}
+.rl-tk .rl-mq>span,.rl-tk>span{direction:rtl;display:inline-block;padding-left:100%;font-size:2.1cqw;font-weight:800;color:#2a1a05;animation:tk 28s linear infinite}
 .rl-ic{display:flex;align-items:center;justify-content:center;height:100%}
 .rl-ic img{max-width:100%;max-height:92%;object-fit:contain;filter:drop-shadow(0 .3cqw .4cqw #0005)}
 .rl-yz .rl-ic{flex-basis:17%}.rl-rf .rl-ic{flex-basis:24%}
@@ -509,7 +509,7 @@ label{font-size:13px;color:var(--mu)}
 /* living candle flame: the flame tip is a separate layer that flickers (GPU: transform + opacity only) */
 .cndl{position:relative;display:block;height:92%;aspect-ratio:390/601;max-width:100%}
 .rl-ic .cndl img{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
-.rl-ic .cndl img.fl{inset:auto;left:41.03%;top:0;width:19.23%;height:15.8%;transform-origin:50% 100%;will-change:transform,opacity;animation:candleFlicker 2.3s ease-in-out infinite;animation-delay:calc(var(--cd,0) * -1s);filter:drop-shadow(0 0 .35em #ffb52acc) drop-shadow(0 0 .9em #ff8a0066)}
+.rl-ic .cndl img.fl{inset:auto;left:41.03%;top:0;width:19.23%;height:17.97%;transform-origin:50% 100%;will-change:transform,opacity;animation:candleFlicker 2.3s ease-in-out infinite;animation-delay:calc(var(--cd,0) * -1s);filter:drop-shadow(0 0 .35em #ffb52acc) drop-shadow(0 0 .9em #ff8a0066)}
 .cndl::after{content:'';position:absolute;left:25%;top:-6%;width:50%;height:30%;border-radius:50%;background:radial-gradient(closest-side,#ffd36a88,#ffb52a33 55%,transparent);will-change:opacity,transform;animation:candleGlow 2.9s ease-in-out infinite;pointer-events:none}
 @keyframes candleFlicker{
   0%{transform:translate(0,0) scale(1,1) rotate(0);opacity:1}
@@ -527,3 +527,7 @@ label{font-size:13px;color:var(--mu)}
 .pcard.psc .psf{height:100%}
 .psf p sup{font-size:.72em!important;color:#7a1f1f!important;font-weight:900!important}
 .psf{padding-bottom:5cqh!important}
+.rl-ic.nofx{filter:none}
+
+.rl-stat:not(.rl-mq)>span{animation:none!important;padding:0!important}
+.psf small{margin-bottom:1.6cqw}

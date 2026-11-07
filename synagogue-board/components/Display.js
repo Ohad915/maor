@@ -47,7 +47,7 @@ function FitText({ children, text }) {
   useLayoutEffect(() => {
     const el = ref.current, box = el?.parentElement; if (!el || !box) return;
     let dead = false;
-    const run = () => { if (dead) return; el.style.transform = ''; const cs = getComputedStyle(box), avail = box.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0), w = el.offsetWidth; if (w > avail && avail > 0) el.style.transform = `scale(${Math.max(0.35, (avail / w) * 0.97).toFixed(3)})`; };
+    const run = () => { if (dead) return; el.style.transform = ''; const cs = getComputedStyle(box), avail = box.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0), w = el.offsetWidth; if (w > avail && avail > 0) el.style.transform = `scale(${Math.max(0.5, (avail / w) * 0.97).toFixed(3)})`; };
     run(); try { document.fonts?.ready?.then(run); } catch {}
     addEventListener('resize', run);
     return () => { dead = true; removeEventListener('resize', run); };
@@ -66,7 +66,7 @@ function stackCol(items, lo, hi, maxR = 100, gap = 1.2) {
   if (a.length < 1) return;
   a.forEach((p) => { const l = parseFloat(p.b.style.left), w = parseFloat(p.b.style.width); if (l + w > maxR) { p.b.style.width = Math.max(10, maxR - l) + '%'; if (!/rl-sized/.test(p.b.cls)) p.b.cls = (p.b.cls + ' rl-sized').trim(); } });
   a.sort((x, y) => x.t - y.t);
-  const tot = a.reduce((q, p) => q + p.h, 0) + gap * (a.length - 1), k = Math.min(1, (hi - lo - 0.01) / tot);
+  const tot = a.reduce((q, p) => q + p.h, 0) + gap * (a.length - 1), k = Math.min(1, (hi - lo - 0.01 - gap * (a.length - 1)) / (tot - gap * (a.length - 1)));
   if (k < 1) a.forEach((p) => { p.h *= k; });
   for (let i = 0; i < a.length; i++) { const min = i ? a[i - 1].t + a[i - 1].h + gap : lo; if (a[i].t < min) a[i].t = min; }
   for (let i = a.length - 1; i >= 0; i--) { const max = (i === a.length - 1 ? hi : a[i + 1].t - gap) - a[i].h; if (a[i].t > max) a[i].t = max; }
@@ -432,7 +432,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>
       {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
-        <div className="rl-ic"><span className="cndl"><img src="/images/icons/candle_base.png" alt="" /><img className="fl" src="/images/icons/candle_flame.png" alt="" /></span></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
+        <div className="rl-ic nofx"><span className="cndl"><img src="/images/icons/candle_base.png" alt="" /><img className="fl" src="/images/icons/candle_flame.png" alt="" /></span></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
       {V('rf') ? RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} /> : <div className="rl-ghost" style={RB.rf.hide} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>

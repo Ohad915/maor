@@ -5,7 +5,7 @@ import { gem } from '@/lib/hebrew';
 /** One page of the daily-psalm slide: gold title with the chapter (Hebrew letters), optional dedication, vowelled text. Used full-screen in Display and as the live preview in the admin. */
 export default function PsalmsFullscreenSlide({ page, dedication, dots, source = true, unit = 'cqh', scale = 1 }) {
   const box = useRef(null), pr = useRef(null);
-  const key = page ? page.title + (page.range || '') + (dedication || '') : '';
+  const key = page ? page.title + (page.range || '') + (dedication || '') + page.v.reduce((n, [, t]) => n + t.length, 0) : '';
   // auto-fit: shrink the text until the whole page is visible inside the card (never cut)
   useLayoutEffect(() => {
     const b = box.current, p = pr.current; if (!b || !p) return;

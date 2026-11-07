@@ -202,7 +202,7 @@ function Memorials({ sid, st, set, cols, feat }) {
   const save = async () => {
     if (!f.name.trim()) return;
     const sp = keepSpan(mems.find((q) => q.id === ed.eid), f, spanOf(f, h)), data = { name: f.name.trim(), parent: f.parent.trim(), desc: f.desc, blessing: f.blessing.trim(), screen: f.screen, gender: f.gender, tmode: f.tmode, days: f.days, active: f.active !== false, d: f.d, month: f.month, y: parseY(f.y), from: f.from, to: f.to,
-      mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
+      mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : (mems.find((q) => q.id === ed.eid)?.mode === 'r' && f.tmode === 'range') ? 'r' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
     try { await (ed.eid ? updItem(sid, 'memorials', ed.eid, data) : addItem(sid, 'memorials', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
   };
   return (<>
@@ -281,7 +281,7 @@ function Sponsors({ sid, cols }) {
 
 /** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
 function PsalmsDaily({ st, set }) {
-  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs), [pi, setPi] = useState(0), cur = pages[Math.min(pi, Math.max(0, pages.length - 1))];
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
   const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
   const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
   return (<>
@@ -289,17 +289,17 @@ function PsalmsDaily({ st, set }) {
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
       <Switch label="הצג שקופית תהילים יומי בקרוסלה" on={!!c.on} onChange={(v) => set('psalmsConfig.on', v)} />
       <label>מצב</label>
-      <div className="pills">{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => set('psalmsConfig.mode', k)}>{l}</button>)}</div>
+      <div className="pills" style={{ flexWrap: 'wrap' }}>{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
       {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)}</div>}
       {c.mode === 'manual' && <><label>פרק</label><select value={c.manualChapter} onChange={(e) => { set('psalmsConfig.manualChapter', +e.target.value); setPi(0); }}>{Array.from({ length: 150 }, (_, i) => <option key={i} value={i + 1}>{`פרק ${gem(i + 1)} (${i + 1})`}</option>)}</select></>}
-      {c.mode === 'custom' && <><label>כותרת</label><input value={c.customTitle} onChange={(e) => set('psalmsConfig.customTitle', e.target.value)} /><label>הטקסט (כל שורה = פסקה)</label><textarea value={c.customText} onChange={(e) => { set('psalmsConfig.customText', e.target.value); setPi(0); }} /></>}
-      <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><input value={c.dedicationText} onChange={(e) => set('psalmsConfig.dedicationText', e.target.value)} />
-      <Range label={`זמן תצוגה לכל עמוד: ${c.duration} שניות (עד 30)`} min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>פרק ארוך מתחלק לעמודים קריאים שמתחלפים לבד: {pages.length} עמודים · כ-{mm ? `${mm} דק׳ ` : ''}{ss ? `${ss} שנ׳` : ''} בסך הכול.</div>
+      {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
+      <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />
+      <Range label="זמן תצוגה לכל עמוד (שניות, עד 30)" min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
+      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>פרק ארוך מתחלק לעמודים קריאים שמתחלפים לבד: {pages.length} עמודים · כ-{mm ? `${mm} דק׳ ` : ''}{ss ? `${ss} שנ׳` : ''} בסך הכול.</div>}
       <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
     </Card>
     <Card title="תצוגה מקדימה">
-      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 1 ? `${pi + 1} / ${pages.length}` : ''} /></div>
+      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 10 ? `${pi + 1} / ${pages.length}` : pages.length > 1 ? pages.map((_, k) => (k === pi ? '●' : '○')).join(' ') : ''} /></div>
         <div className="row" style={{ justifyContent: 'center' }}><button className="b g" disabled={pi <= 0} onClick={() => setPi(Math.max(0, pi - 1))}>→ הקודם</button><button className="b g" disabled={pi >= pages.length - 1} onClick={() => setPi(Math.min(pages.length - 1, pi + 1))}>הבא ←</button></div></>
         : <div style={{ color: 'var(--mu)' }}>אין טקסט להצגה – הזינו טקסט מותאם.</div>}
     </Card>
