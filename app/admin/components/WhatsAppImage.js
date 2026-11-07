@@ -164,7 +164,7 @@ const SEGN = ['ערב שבת', 'שבת', 'מוצ״ש'], DL = ['א׳', 'ב׳', '�
 function weekDays(l) {
   const d = lessonDays(l).filter((x) => x <= 5), a = d.filter((x) => x <= 4); if (!a.length) return '';
   const runs = []; d.forEach((x) => { const r = runs[runs.length - 1]; if (r && r[1] === x - 1) r[1] = x; else runs.push([x, x]); });
-  return 'ימים ' + runs.map(([x, y]) => (x === y ? DL[x] : y === x + 1 ? `${DL[x]}, ${DL[y]}` : `${DL[x]}–${DL[y]}`)).join(', ');
+  return (d.length === 1 ? 'יום ' : 'ימים ') + runs.map(([x, y]) => (x === y ? DL[x] : y === x + 1 ? `${DL[x]}, ${DL[y]}` : `${DL[x]}–${DL[y]}`)).join(', ');
 }
 /** Friday split: morning (stays in the weekday picture) vs. afternoon/evening (belongs to the Shabbat picture). By prayer name first, then by the time versus Friday's halachic noon. */
 function fridayPart(name, time, zf, candle = 20) {
@@ -408,7 +408,7 @@ export async function renderPoster(d, greet) {
       if (sub && bh >= 44) { c.fillText(fitT(c, n, 450, fs * 0.72, 800, SANS, 20), 561, y + bh * 0.31); c.fillStyle = T.s; c.fillText(fitT(c, sub, 450, fs * 0.54, 700, SANS, 12), 561, y + bh * 0.73); }
       else c.fillText(fitT(c, sub ? `${n} · ${sub}` : n, 450, fs, it?.p ? 900 : 800, SANS, 20), 561, yc);
       c.fillStyle = T.t; const lines = timeLines(v, bh, 42), lh = bh / lines.length;
-      c.direction = 'ltr'; lines.forEach((t, i) => { c.fillText(fitT(c, t, 136, Math.min(it?.p ? 52 : 48, lh * (lines.length > 1 ? 0.62 : 0.72)), 900, SANS, 16), 234, y + lh * (i + 0.5)); }); c.direction = 'rtl';
+      c.direction = 'ltr'; lines.forEach((t, i) => { c.fillText(fitT(c, t, 136, Math.min(it?.p ? 52 : 48, lh * (lines.length > 1 ? 0.8 : 0.72)), 900, SANS, 16), 234, y + lh * (i + 0.5)); }); c.direction = 'rtl';
       const im = await iconImg(iconOf(n)), sz = Math.min(bh * 0.8, 58); c.drawImage(im, 867 - sz / 2, yc - sz / 2, sz, sz);
       y += unit;
     }

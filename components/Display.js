@@ -66,7 +66,7 @@ function stackCol(items, lo, hi, maxR = 100, gap = 1.2) {
   if (a.length < 1) return;
   a.forEach((p) => { const l = parseFloat(p.b.style.left), w = parseFloat(p.b.style.width); if (l + w > maxR) { p.b.style.width = Math.max(10, maxR - l) + '%'; if (!/rl-sized/.test(p.b.cls)) p.b.cls = (p.b.cls + ' rl-sized').trim(); } });
   a.sort((x, y) => x.t - y.t);
-  const tot = a.reduce((q, p) => q + p.h, 0) + gap * (a.length - 1), k = Math.min(1, (hi - lo - 0.01) / tot);
+  const tot = a.reduce((q, p) => q + p.h, 0) + gap * (a.length - 1), k = Math.min(1, (hi - lo - 0.01 - gap * (a.length - 1)) / (tot - gap * (a.length - 1)));
   if (k < 1) a.forEach((p) => { p.h *= k; });
   for (let i = 0; i < a.length; i++) { const min = i ? a[i - 1].t + a[i - 1].h + gap : lo; if (a[i].t < min) a[i].t = min; }
   for (let i = a.length - 1; i >= 0; i--) { const max = (i === a.length - 1 ? hi : a[i + 1].t - gap) - a[i].h; if (a[i].t > max) a[i].t = max; }

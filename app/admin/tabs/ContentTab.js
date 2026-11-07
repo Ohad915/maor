@@ -202,7 +202,7 @@ function Memorials({ sid, st, set, cols, feat }) {
   const save = async () => {
     if (!f.name.trim()) return;
     const sp = keepSpan(mems.find((q) => q.id === ed.eid), f, spanOf(f, h)), data = { name: f.name.trim(), parent: f.parent.trim(), desc: f.desc, blessing: f.blessing.trim(), screen: f.screen, gender: f.gender, tmode: f.tmode, days: f.days, active: f.active !== false, d: f.d, month: f.month, y: parseY(f.y), from: f.from, to: f.to,
-      mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
+      mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : (mems.find((q) => q.id === ed.eid)?.mode === 'r' && f.tmode === 'range') ? 'r' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
     try { await (ed.eid ? updItem(sid, 'memorials', ed.eid, data) : addItem(sid, 'memorials', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
   };
   return (<>
