@@ -281,7 +281,7 @@ function Sponsors({ sid, cols }) {
 
 /** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
 function PsalmsDaily({ st, set }) {
-  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 520), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 760), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
   const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
   const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
   return (<>

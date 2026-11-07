@@ -526,9 +526,9 @@ label{font-size:13px;color:var(--mu)}
 .pcard.psc{width:78%;height:82%;background:linear-gradient(#f4e8c6,#e9d6a1)!important;border-color:#c9a043!important}
 .pcard.psc .psf{height:100%}
 .psf p sup{font-size:.72em!important;color:#7a1f1f!important;font-weight:900!important}
-.psf{padding-bottom:5cqh!important}
+.psf{padding-bottom:3.4cqh!important;position:relative}
+.psf>small{position:absolute!important;left:0;right:0;bottom:.7cqh;margin:0!important;text-align:center;font-size:2.2cqh!important;line-height:1}
 .rl-ic.nofx{filter:none}
 
 .rl-stat:not(.rl-mq)>span{animation:none!important;padding:0!important}
-.psf small{margin-bottom:1.6cqw}
 .an p sup{font-size:.7em;color:#7a1f1f;margin-inline-start:.15em}
