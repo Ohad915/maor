@@ -525,3 +525,5 @@ label{font-size:13px;color:var(--mu)}
 
 .pcard.psc{width:78%;height:82%;background:linear-gradient(#f4e8c6,#e9d6a1)!important;border-color:#c9a043!important}
 .pcard.psc .psf{height:100%}
+.psf p sup{font-size:.72em!important;color:#7a1f1f!important;font-weight:900!important}
+.psf{padding-bottom:5cqh!important}

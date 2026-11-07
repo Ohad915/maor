@@ -289,7 +289,7 @@ function PsalmsDaily({ st, set }) {
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
       <Switch label="הצג שקופית תהילים יומי בקרוסלה" on={!!c.on} onChange={(v) => set('psalmsConfig.on', v)} />
       <label>מצב</label>
-      <div className="pills">{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
+      <div className="pills" style={{ flexWrap: 'wrap' }}>{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
       {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)}</div>}
       {c.mode === 'manual' && <><label>פרק</label><select value={c.manualChapter} onChange={(e) => { set('psalmsConfig.manualChapter', +e.target.value); setPi(0); }}>{Array.from({ length: 150 }, (_, i) => <option key={i} value={i + 1}>{`פרק ${gem(i + 1)} (${i + 1})`}</option>)}</select></>}
       {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
@@ -299,7 +299,7 @@ function PsalmsDaily({ st, set }) {
       <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
     </Card>
     <Card title="תצוגה מקדימה">
-      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 1 ? `${pi + 1} / ${pages.length}` : ''} /></div>
+      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 10 ? `${pi + 1} / ${pages.length}` : pages.length > 1 ? pages.map((_, k) => (k === pi ? '●' : '○')).join(' ') : ''} /></div>
         <div className="row" style={{ justifyContent: 'center' }}><button className="b g" disabled={pi <= 0} onClick={() => setPi(Math.max(0, pi - 1))}>→ הקודם</button><button className="b g" disabled={pi >= pages.length - 1} onClick={() => setPi(Math.min(pages.length - 1, pi + 1))}>הבא ←</button></div></>
         : <div style={{ color: 'var(--mu)' }}>אין טקסט להצגה – הזינו טקסט מותאם.</div>}
     </Card>
