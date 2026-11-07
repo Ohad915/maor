@@ -15,7 +15,7 @@ export default function PsalmsFullscreenSlide({ page, dedication, dots, source =
   }, [key, unit, scale]); // eslint-disable-line
   if (!page) return null;
   const L = page.v.reduce((n, [, t]) => n + t.replace(/[֑-ׇ]/g, '').length, 0);
-  const f = Math.min(4.6, Math.max(1.9, Math.sqrt(3200 / Math.max(L, 80)))).toFixed(2); // font size in cqh by amount of text
+  const f = 4.4.toFixed(2); // font size in cqh by amount of text
   return (
     <div className="dhf psf" dir="rtl" ref={box}>
       <em>✦ תהילים ✦</em>

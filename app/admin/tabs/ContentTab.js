@@ -281,7 +281,7 @@ function Sponsors({ sid, cols }) {
 
 /** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
 function PsalmsDaily({ st, set }) {
-  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 340), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 520), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
   const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
   const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
   return (<>
@@ -291,7 +291,7 @@ function PsalmsDaily({ st, set }) {
       <label>איפה להציג</label>
       <div className="pills" style={{ flexWrap: 'wrap' }}>{[['full', '🖥 מסך מלא'], ['block', '🎞 בקרוסלה (בלוח המרכזי)']].map(([k, l]) => <button key={k} className={`opt ${(c.show || 'full') === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.show', k); setPi(0); }}>{l}</button>)}</div>
       <label>קצב התצוגה</label>
-      <div className="pills" style={{ flexWrap: 'wrap' }}>{[['whole', 'כל הפרק ברצף, ואז ממשיכות השקופיות (מומלץ)'], ['page', 'עמוד אחד בכל סבב']].map(([k, l]) => <button key={k} className={`opt ${(c.pace || 'whole') === k ? 'on' : ''}`} onClick={() => set('psalmsConfig.pace', k)}>{l}</button>)}</div>
+      <div className="pills" style={{ flexWrap: 'wrap' }}>{[['chapter', 'פרק שלם בכל סבב, ואז שאר השקופיות, ואז הפרק הבא (מומלץ)'], ['whole', 'כל פרקי היום ברצף'], ['page', 'עמוד אחד בכל סבב']].map(([k, l]) => <button key={k} className={`opt ${(c.pace || 'chapter') === k ? 'on' : ''}`} onClick={() => set('psalmsConfig.pace', k)}>{l}</button>)}</div>
       <label>תדירות</label>
       <select value={c.every || 1} onChange={(e) => set('psalmsConfig.every', +e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n === 1 ? 'בכל סבב של הקרוסלה' : `פעם ב-${n} סבבים`}</option>)}</select>
       <label>מצב</label>
@@ -301,7 +301,7 @@ function PsalmsDaily({ st, set }) {
       {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
       <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />
       <Range label="זמן תצוגה לכל עמוד (שניות, עד 30)" min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
-      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>{(c.pace || 'whole') === 'page' ? `הפרק מתחלק ל-${pages.length} עמודים. בכל סבב קרוסלה יוצג עמוד אחד בלבד (${Math.min(30, Math.max(5, +c.duration || 15))} שנ׳), והמשך הפרק בסבב הבא${(+c.every || 1) > 1 ? ` (פעם ב-${c.every} סבבים)` : ''}.` : `כל הפרק ברצף: ${pages.length} עמודים · כ-${mm ? mm + ' דק׳ ' : ''}${ss ? ss + ' שנ׳' : ''} בסך הכול.`}</div>}
+      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>{(c.pace || 'chapter') === 'chapter' ? `בכל סבב קרוסלה יוצג פרק שלם אחד (${new Set(pages.map((p) => p.chapter)).size} פרקים היום, ${pages.length} עמודים), ואז שאר השקופיות, ואז הפרק הבא.` : (c.pace || 'chapter') === 'page' ? `הפרק מתחלק ל-${pages.length} עמודים. בכל סבב קרוסלה יוצג עמוד אחד בלבד (${Math.min(30, Math.max(5, +c.duration || 15))} שנ׳), והמשך הפרק בסבב הבא${(+c.every || 1) > 1 ? ` (פעם ב-${c.every} סבבים)` : ''}.` : `כל הפרק ברצף: ${pages.length} עמודים · כ-${mm ? mm + ' דק׳ ' : ''}${ss ? ss + ' שנ׳' : ''} בסך הכול.`}</div>}
       <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
     </Card>
     <Card title="תצוגה מקדימה">

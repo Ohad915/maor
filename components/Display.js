@@ -223,8 +223,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
   const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
   { const pc = st.psalmsConfig; if (pc?.on && onS(pc.screen) && psq.rnd % Math.max(1, Math.min(10, +pc.every || 1)) === 0) {
-    const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 340); // 'page' pace: ONE page per carousel round, the next page next round
-    const pages = pc.pace === 'page' ? (all.length ? [all[psq.seq % all.length]] : []) : all; // default: the whole chapter in one go, then the carousel continues
+    const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 520); // 'page' pace: ONE page per carousel round, the next page next round
+    const chs = []; all.forEach((p) => { const k = p.chapter ?? 'x'; let g = chs.find((x) => x.k === k); if (!g) chs.push(g = { k, pages: [] }); g.pages.push(p); });
+    const pages = pc.pace === 'page' ? (all.length ? [all[psq.seq % all.length]] : []) : pc.pace === 'whole' ? all : (chs.length ? chs[psq.seq % chs.length].pages : []); // default 'chapter': ONE whole chapter per carousel round, the other slides in between, then the next chapter // default: the whole chapter in one go, then the carousel continues
     if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: !blk, blk, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
