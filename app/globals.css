@@ -393,7 +393,7 @@ label{font-size:13px;color:var(--mu)}
 
 /* royal full-screen prayer times: the original royal-scroll background untouched; a transparent container sits exactly on its parchment (between the wooden rollers), two columns of cards */
 .rl-scroll{position:absolute;inset:0;z-index:8;container-type:size;background:#0a1a3a url(/images/templates/royal_scroll_xl.jpg) center/100% 100% no-repeat}
-.rl-sc-card{position:absolute;left:34.6%;top:31%;width:30.8%;height:55.5%;box-sizing:border-box;padding:0;background:transparent;border:0;box-shadow:none}
+.rl-sc-card{position:absolute;left:30.3%;top:31%;width:38.4%;height:55.5%;box-sizing:border-box;padding:0;background:transparent;border:0;box-shadow:none}
 .ptb2{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:1.4cqh;overflow:hidden}
 .ptb2 .pti img{height:min(11cqh,8.5cqw);width:auto;filter:drop-shadow(0 .2cqh .4cqh #0005)}
 .ptg{flex:1;min-height:0;width:100%;display:grid;grid-template-columns:1fr;gap:0 1.2cqw;direction:rtl;align-content:start}

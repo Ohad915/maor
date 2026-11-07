@@ -10,7 +10,7 @@ import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts, zmanimRows } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { isLive, pickDaily } from '@/lib/dailyHalacha';
-import { annOn, chagInfo, fullName, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, nowAbs, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, chagInfo, fullName, LESSON_TYPES, lessonDays, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, nowAbs, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -223,13 +223,13 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
   const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
   { const pc = st.psalmsConfig; if (pc?.on && onS(pc.screen) && psq.rnd % Math.max(1, Math.min(10, +pc.every || 1)) === 0) {
-    const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 230); // 'page' pace: ONE page per carousel round, the next page next round
-    const pages = pc.pace === 'whole' ? all : all.length ? [all[psq.seq % all.length]] : [];
+    const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 340); // 'page' pace: ONE page per carousel round, the next page next round
+    const pages = pc.pace === 'page' ? (all.length ? [all[psq.seq % all.length]] : []) : all; // default: the whole chapter in one go, then the carousel continues
     if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: !blk, blk, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
   const ls = { mode: 'off', secs: 12, scope: 'today', ...(st.lsAll || {}) }, lsm = ls.mode === 'full' ? 'popup' : ls.mode, lsMin = (t) => { const m = /(\d+):(\d+)/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : 1e4; };
-  const lsRows = lessons.filter((l) => ls.scope === 'week' || lessonOn(l, dt, z.dow)).map((l) => ({ l, time: prayerTime(l, z) })).sort((a, b) => lsMin(a.time) - lsMin(b.time));
+  const lsRows = lessons.filter((l) => ls.scope === 'week' || lessonOn(l, dt, z.dow)).map((l) => ({ l, time: prayerTime(l, z) })).sort((a, b) => (ls.scope === 'week' ? Math.min(...lessonDays(a.l), 9) - Math.min(...lessonDays(b.l), 9) : 0) || lsMin(a.time) - lsMin(b.time)); // week = ordered by days (Sun…Shabbat), then by time
   if ((lsm === 'block' || lsm === 'popup') && lsRows.length) slides.push({ k: 'ls', rows: lsRows, popup: lsm === 'popup', dur: Math.min(60, Math.max(5, +ls.secs || 12)) });
   else lessons.filter((l) => lessonOn(l, dt, z.dow)).forEach((l) => slides.push({ k: 'l', l, time: prayerTime(l, z), full: modeOf(l) === 'full', dur: cf('ann').secs }));
   // prayer times: ONE combined slide/popup listing all of today's selected prayers (off = top bar only; legacy 'full' = popup)
