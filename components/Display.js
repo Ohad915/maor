@@ -2,13 +2,15 @@
 import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import KeepAlive from '@/lib/keepAlive';
+import PsalmsFullscreenSlide from '@/components/PsalmsSlide';
+import { psalmsPages } from '@/lib/psalms';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useSynagogue } from '@/lib/hooks';
 import { dayType, fmt, getPrayersForToday, getZmanim, isShabbat, prayerTime, zOpts, zmanimRows } from '@/lib/zmanim';
 import { haftaraHe } from '@/lib/haftara';
 import { isLive, pickDaily } from '@/lib/dailyHalacha';
-import { annOn, chagInfo, fullName, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
+import { annOn, chagInfo, fullName, LESSON_TYPES, lessonDaysLabel, lessonLabel, lessonOn, lessonType, lessonWho, gem, hebOf, holNames, memOn, nowAbs, monthName, parshaInfo, rdOf, refuahOn, reminders } from '@/lib/hebrew';
 import { DEFAULT_SETTINGS, FONTS, SCREENS, tbgKeyOf, tbgPath } from '@/lib/types';
 import { DEMO_PRAYERS, DEMO_SYN } from '@/lib/defaults';
 
@@ -38,6 +40,19 @@ function royBox(st, k, l, t, w, h, anchor = 'c', mul = null, force = false) {
   const ghost = resized ? { position: 'absolute', left: Math.max(0, l - 0.7) + '%', top: Math.max(0, t - 1.2) + '%', width: Math.min(100, w + 1.4) + '%', height: Math.min(100, h + 2.4) + '%' } : null;
   const hide = { position: 'absolute', left: Math.max(0, l - 0.35) + '%', top: Math.max(0, t - 0.8) + '%', width: Math.min(100, w + 0.7) + '%', height: Math.min(100, h + 1.6) + '%' }; // masks the baked frame when the block is switched off
   return { style, cls: cls.join(' '), ghost, hide };
+}
+/** one-line text that is always fully visible: if it is wider than its box it is scaled down to fit (never clipped at the sides) */
+function FitText({ children, text }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current, box = el?.parentElement; if (!el || !box) return;
+    let dead = false;
+    const run = () => { if (dead) return; el.style.transform = ''; const cs = getComputedStyle(box), avail = box.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0), w = el.offsetWidth; if (w > avail && avail > 0) el.style.transform = `scale(${Math.max(0.35, (avail / w) * 0.97).toFixed(3)})`; };
+    run(); try { document.fonts?.ready?.then(run); } catch {}
+    addEventListener('resize', run);
+    return () => { dead = true; removeEventListener('resize', run); };
+  }, [text]);
+  return <span ref={ref} style={{ display: 'inline-block', whiteSpace: 'nowrap', transformOrigin: 'center' }}>{children}</span>;
 }
 /** seconds left on the current carousel slide (next to the progress bar) */
 function Cd({ d }) {
@@ -206,6 +221,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) };
   const dhItem = dh.on && dh.mode !== 'off' ? (String(dh.manual || '').trim() ? { title: 'הלכה יומית', content: String(dh.manual).trim(), source: '' } : (isLive(dh.src) && dhLive) ? dhLive : pickDaily({ src: dh.src, dayNum: rdOf(now, 0), holidays: holNames(now, !!z.shkia && z.now >= z.shkia), dow: z.dow })) : null;
+  { const pc = st.psalmsConfig; if (pc?.on && onS(pc.screen)) { const pages = psalmsPages(pc, h, nowAbs(h)); if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: true, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
   const ls = { mode: 'off', secs: 12, scope: 'today', ...(st.lsAll || {}) }, lsm = ls.mode === 'full' ? 'popup' : ls.mode, lsMin = (t) => { const m = /(\d+):(\d+)/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : 1e4; };
@@ -218,7 +234,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const cur = slides[idx % (slides.length || 1)];
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : c.k === 'dh' ? c.d.content : '');
-  const tparts = cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), cur.k === 'dh' ? (cur.full && royal ? 14 : 9) : st.lpp || 6) : [''];
+  const tparts = cur?.k === 'ps' ? cur.pages.map(() => '') : cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), cur.k === 'dh' ? (cur.full && royal ? 14 : 9) : st.lpp || 6) : [''];
   const FS_CAP = 10; // full-screen lists on the royal scroll: 2 per row x 5 rows per page; the rest continues on the next page
   const fsN = cur?.popup && royal ? (cur.k === 'tall' ? ptRows.length : cur.k === 'ls' ? cur.rows.length : 0) : 0;
   const subPages = cur?.k === 'r' ? mrPages : fsN ? Math.max(1, Math.ceil(fsN / FS_CAP)) : tparts.length;
@@ -263,7 +279,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
       const fp = pg.mr % subPages, per = Math.ceil(ptRows.length / subPages / 2) * 2, items = ptRows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2);
-      full = <div className="rl-scroll" key={'sc' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}>{ico}
+      full = <div className="rl-scroll" key={'sc' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.15, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}>{ico}
         <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
@@ -273,12 +289,18 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       else mid = body; // block mode: in place on the central parchment
     }
   }
+  else if (cur.k === 'ps') {
+    // daily psalm: full-screen parchment, one readable page at a time (each page stays for the slide duration), vowelled text from the bundled JSON (works offline)
+    const N = cur.pages.length, pgi = pg.mr % N, dots = N > 10 ? `${pgi + 1} / ${N}` : dotStr(N, pgi);
+    if (royal) { full = <div className="rl-scroll" key={'ps' + idx + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.15, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><PsalmsFullscreenSlide page={cur.pages[pgi]} dedication={cur.ded} dots={dots} /></div></div>; mid = null; }
+    else { popup = <div className="popup" key={'ps' + idx + '-' + pg.mr}><div className="pcard psc"><PsalmsFullscreenSlide page={cur.pages[pgi]} dedication={cur.ded} dots={dots} unit="vh" scale={0.8} /></div></div>; mid = <div className="an"><div className="lb">✦ {syn.name} ✦</div><div className="ab" /></div>; }
+  }
   else if (cur.k === 'dh') {
     const L = Math.max(60, (tx || '').length), dots = dotStr(tparts.length, pg.mr);
     if (cur.full && royal) {
       // royal full screen: the extended royal scroll, large readable text
       const f = Math.min(4.6, Math.max(2.2, Math.sqrt(3000 / L))).toFixed(2);
-      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em>{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots && <><br />{dots}</>}</small></div></div></div>;
+      full = <div className="rl-scroll" key={'dh' + idx + '-' + pg.mr} style={{ '--sz': Math.max(1, Math.min(1.15, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="dhf"><em>✦ הלכה יומית ✦</em>{cur.d.title !== 'הלכה יומית' && <h3>{cur.d.title}</h3>}<p style={{ fontSize: f + 'cqh' }}>{tx}</p><small>{cur.d.source}{dots && <><br />{dots}</>}</small></div></div></div>;
       mid = null;
     } else {
       const em = L < 110 ? 2.5 : L < 200 ? 2.15 : L < 300 ? 1.8 : 1.45;
@@ -295,7 +317,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (cur.popup && royal) {
       const fp = pg.mr % subPages, per = Math.ceil(cur.rows.length / subPages / 2) * 2, items = cur.rows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2) + 1;
       const card = ({ l, time }) => <div className={'ptc ls-' + lessonType(l)} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i><small>{LESSON_TYPES[lessonType(l)].ico} {[lessonWho(l), l.place, week ? lessonDaysLabel(l) : ''].filter(Boolean).join(' · ')}</small></div>;
-      full = <div className="rl-scroll" key={'ls' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.7, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}><h2 className="lsti">{ttl}</h2>
+      full = <div className="rl-scroll" key={'ls' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.15, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}><h2 className="lsti">{ttl}</h2>
         <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
@@ -410,7 +432,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>
       {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
-        <div className="rl-ic"><img src="/images/icons/candle.png" alt="" /></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
+        <div className="rl-ic"><span className="cndl"><img src="/images/icons/candle_base.png" alt="" /><img className="fl" src="/images/icons/candle_flame.png" alt="" /></span></div><div className="rl-bd"><div className="lb">לעילוי נשמת</div>
         <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
       {V('rf') ? RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} /> : <div className="rl-ghost" style={RB.rf.hide} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
@@ -432,8 +454,8 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
             : btMode === 'fixed' && raw < 1.3 // fixed + too much text: a carousel of readable pages (same size as short text) instead of shrinking or squeezing everything
               ? (() => { const pages = []; let c = ''; bText.split(SEP).forEach((x) => { if (c && (c + SEP + x).length > 58) { pages.push(c); c = x; } else c = c ? c + SEP + x : x; }); if (c) pages.push(c);
                 const i = btI % pages.length, pt = pages[i], long = pt.length > 62;
-                return <div key={'bp' + i} className={'rl-stat bpg' + (long ? ' two' : '')} style={{ fontSize: `calc(${fitCw(long ? pt.slice(0, Math.ceil(pt.length / 2) + 6) : pt)} * ${fb('bt').toFixed(3)})`, ...tx }}>{pt}{pages.length > 1 && <i className="bpd">{pages.map((_, k) => <u key={k} className={k === i ? 'on' : ''} />)}</i>}</div>; })()
-              : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}>{bText}</div>; })()}</div>
+                return <div key={'bp' + i} className={'rl-stat bpg' + (long ? ' two' : '')} style={{ fontSize: `calc(${fitCw(long ? pt.slice(0, Math.ceil(pt.length / 2) + 6) : pt)} * ${fb('bt').toFixed(3)})`, ...tx }}><FitText text={pt}>{pt}</FitText>{pages.length > 1 && <i className="bpd">{pages.map((_, k) => <u key={k} className={k === i ? 'on' : ''} />)}</i>}</div>; })()
+              : <div className="rl-stat" style={{ fontSize: `calc(${fitCw(bText)} * ${fb('bt').toFixed(3)})`, ...tx }}><FitText text={bText}>{bText}</FitText></div>; })()}</div>
         <div className="rl-clk">{clock}</div>
       </div>
     </div>;
@@ -444,7 +466,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   return (
     <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t="gold" data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
-      {body}{full}{popup}
+      {body}{full}{popup}{(cur?.full || cur?.popup) && slides.length > 0 && <div className="fsprg"><i className="prg" key={'fp-' + idx + '-' + pg.mr} style={{ '--d': (cur.dur || 10) + 's' }} />{st.cdn !== false && <Cd key={'fc-' + idx + '-' + pg.mr} d={cur.dur || 10} />}</div>}
       {status !== 'live' && (quiet
         ? <span title="אין חיבור לאינטרנט – מוצגים הנתונים האחרונים שנשמרו" style={{ position: 'absolute', bottom: 6, left: 8, width: 7, height: 7, borderRadius: '50%', background: '#d9534f', opacity: 0.75 }} />
         : <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.6, direction: 'rtl', maxWidth: '70%' }}>● {status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}{(() => { const c = diag || ''; if (!c || preview) return null; const why = /operation-not-allowed|admin-restricted/.test(c) ? 'התחברות אנונימית כבויה ב-Firebase Authentication' : /^auth\//.test(c) || authErr ? 'כשל בהתחברות אנונימית' : /permission-denied/.test(c) ? 'אין הרשאת קריאה – בדקו Firestore Rules והתחברות אנונימית' : /not-found/.test(c) ? 'בית הכנסת לא נמצא – בדקו את ?s= בכתובת' : /unavailable|network/.test(c) ? 'אין חיבור לשרת' : ''; return <> · {why ? why + ' · ' : ''}<span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{c}</span></>; })()}</span>)}

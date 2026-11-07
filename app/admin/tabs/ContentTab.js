@@ -3,9 +3,11 @@ import { useRef, useState } from 'react';
 import { addItem, delItem, updItem } from '@/lib/db';
 import { SCREEN_NAMES } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
-import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan, memOn, fullName, spanOf, hebFromAbs, keepSpan } from '@/lib/hebrew';
+import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan, nowAbs, memOn, fullName, spanOf, hebFromAbs, keepSpan } from '@/lib/hebrew';
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
 import ZmanimCard from '../components/ZmanimCard';
+import PsalmsFullscreenSlide from '@/components/PsalmsSlide';
+import { PS_DEFAULT, psalmsPages, psalmsSummary } from '@/lib/psalms';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => { if (confirm('למחוק? הפעולה אינה ניתנת לשחזור.')) onClick(); }}>מחק</button>;
@@ -23,7 +25,7 @@ function useEditor(blank) {
 const FormBtns = ({ ed, onSave, label }) => (
   <div className="row"><button className="b" onClick={onSave}>{ed.eid ? 'עדכן' : label}</button>{ed.eid && <button className="b g" onClick={ed.reset}>בטל עריכה</button>}</div>);
 
-const SUBS = [['prsh', '📜 פרשה והפטרה'], ['pr', '🕌 זמני תפילות'], ['les', '📚 שיעורי תורה'], ['ann', '📣 הודעות ומנהגים'], ['mem', '🕯️ הנצחות ורפואה שלמה'], ['sp', '🏅 פרנס השבוע / ברכה']];
+const SUBS = [['prsh', '📜 פרשה והפטרה'], ['pr', '🕌 זמני תפילות'], ['les', '📚 שיעורי תורה'], ['ann', '📣 הודעות ומנהגים'], ['mem', '🕯️ הנצחות ורפואה שלמה'], ['sp', '🏅 פרנס השבוע / ברכה'], ['ps', '📖 תהילים יומי']];
 export default function ContentTab({ ctx }) {
   const { role } = ctx, [sub, setSub] = useState('prsh');
   const cur = role === 'sub_gabbai' ? 'ann' : sub; // sub-gabbai: announcements only
@@ -35,6 +37,7 @@ export default function ContentTab({ ctx }) {
       {cur === 'ann' && <><Announcements {...ctx} />{role !== 'sub_gabbai' && <Halacha {...ctx} />}</>}
       {cur === 'mem' && <><Memorials {...ctx} /><Refuah {...ctx} /></>}
       {cur === 'sp' && <Sponsors {...ctx} />}
+      {cur === 'ps' && <PsalmsDaily {...ctx} />}
     </>);
 }
 
@@ -273,6 +276,33 @@ function Sponsors({ sid, cols }) {
         <div style={{ color: 'var(--mu)', fontSize: 13 }}>{spanTxt(x, h)} · {x.secs || 20} שנ׳ <span className={`tag ${on ? 'ok' : ''}`}>{x.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
         <div className="row"><StatusBtn on={x.active !== false} onClick={() => updItem(sid, 'sponsors', x.id, { active: x.active === false })} /><ScreenSel value={x.screen} onChange={(v) => updItem(sid, 'sponsors', x.id, { screen: v })} />
           <Edit onClick={() => ed.load({ ...DED_BLANK, kind: x.kind || 'parnas', title: x.title || '', name: x.name, parent: x.parent || '', gender: x.gender || 'm', blessing: x.blessing || '', text: x.text || '', screen: x.screen || 'all', mode: x.mode || 'block', secs: x.secs || 20, tmode: x.tmode || (x.hs ? 'range' : 'fixed'), days: x.days || 7, from: x.from || (x.hs ? hebFromAbs(x.hs) : HB), to: x.to || (x.he ? hebFromAbs(x.he) : { d: 30, m: 'Tishri' }), active: x.active !== false }, x.id)} /><Del onClick={() => delItem(sid, 'sponsors', x.id)} /></div></Card>); })}
+  </>);
+}
+
+/** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
+function PsalmsDaily({ st, set }) {
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
+  const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
+  const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
+  return (<>
+    <Card title="📖 תהילים יומי">
+      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
+      <Switch label="הצג שקופית תהילים יומי בקרוסלה" on={!!c.on} onChange={(v) => set('psalmsConfig.on', v)} />
+      <label>מצב</label>
+      <div className="pills">{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
+      {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)}</div>}
+      {c.mode === 'manual' && <><label>פרק</label><select value={c.manualChapter} onChange={(e) => { set('psalmsConfig.manualChapter', +e.target.value); setPi(0); }}>{Array.from({ length: 150 }, (_, i) => <option key={i} value={i + 1}>{`פרק ${gem(i + 1)} (${i + 1})`}</option>)}</select></>}
+      {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
+      <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />
+      <Range label="זמן תצוגה לכל עמוד (שניות, עד 30)" min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
+      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>פרק ארוך מתחלק לעמודים קריאים שמתחלפים לבד: {pages.length} עמודים · כ-{mm ? `${mm} דק׳ ` : ''}{ss ? `${ss} שנ׳` : ''} בסך הכול.</div>}
+      <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
+    </Card>
+    <Card title="תצוגה מקדימה">
+      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 1 ? `${pi + 1} / ${pages.length}` : ''} /></div>
+        <div className="row" style={{ justifyContent: 'center' }}><button className="b g" disabled={pi <= 0} onClick={() => setPi(Math.max(0, pi - 1))}>→ הקודם</button><button className="b g" disabled={pi >= pages.length - 1} onClick={() => setPi(Math.min(pages.length - 1, pi + 1))}>הבא ←</button></div></>
+        : <div style={{ color: 'var(--mu)' }}>אין טקסט להצגה – הזינו טקסט מותאם.</div>}
+    </Card>
   </>);
 }
 

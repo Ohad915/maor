@@ -218,8 +218,8 @@ export async function build({ syn, cols, st }, kind, opt) {
   { const [n, v] = sel(z0); add(n, v, 0, { z: true }); }
   addPrayers(week, z0, 0);
   addPrayers(pick([5], ['fri']).filter((r) => !wid.has(r.id) && fridayPart(r.name, prayerTime(r, zf), zf, st.candle) === 'am'), zf, 0, ' · שישי');
-  les.filter((l) => lessonDays(l).some((x) => x <= 4)).forEach((l) => add(lessonLabel(l), prayerTime(l, z0), 0, { l: true, sub: [lWho(l), weekDays(l)].filter(Boolean).join(' · ') }));
-  les.filter((l) => lessonDays(l).includes(5) && !lessonDays(l).some((x) => x <= 4)).forEach((l) => { const t = prayerTime(l, zf); if (fridayPart(l.title, t, zf, st.candle) === 'am') add(lessonLabel(l) + ' · שישי', t, 0, { l: true, sub: lWho(l) }); });
+  les.filter((l) => lessonDays(l).some((x) => x <= 4)).forEach((l) => add(lessonLabel(l), prayerTime(l, z0), 1, { l: true, dk: Math.min(...lessonDays(l).filter((x) => x <= 4)), sub: [lWho(l), weekDays(l)].filter(Boolean).join(' · ') }));
+  les.filter((l) => lessonDays(l).includes(5) && !lessonDays(l).some((x) => x <= 4)).forEach((l) => { const t = prayerTime(l, zf); if (fridayPart(l.title, t, zf, st.candle) === 'am') add(lessonLabel(l) + ' · שישי', t, 1, { l: true, dk: 5, sub: lWho(l) }); });
   add('חצות היום', fmt(z0.chatzot), 0, { z: true }); add('שקיעה', fmt(z0.shkia), 0, { z: true });
   if (opt.rt) add('רבינו תם', fmt(z0.rt), 0, { z: true });
   const sat = new Date(+wk + (6 - z0.dow) * 864e5), pi = parshaInfo(sat, 6, false);
@@ -232,9 +232,9 @@ export function orderRows(d, hdr) {
   const sh = d.kind === 'shabbat', segs = {};
   d.items.forEach((i) => { if (i.p) (segs[i.n] ||= new Set()).add(i.seg); });
   const lab = (i) => (sh && i.p && segs[i.n].size > 1 ? `${i.n} · ${SEGN[i.seg]}` : i.n) + (i.suf || '');
-  const rows = d.items.map((i, k) => [i, k]).filter(([i]) => i.v).sort(([a, i], [b, j]) => (a.seg - b.seg) || ((tmin(a.v) ?? 1e4) - (tmin(b.v) ?? 1e4)) || i - j).map(([i]) => [lab(i), i.v, i.sub || '', i.seg, i]);
-  if (!hdr || !sh) return rows;
-  const out = []; let last = -1; rows.forEach((r) => { if (r[3] !== last) { out.push([SEGN[r[3]], '', '', r[3], { hdr: true }]); last = r[3]; } out.push(r); }); return out;
+  const rows = d.items.map((i, k) => [i, k]).filter(([i]) => i.v).sort(([a, i], [b, j]) => (a.seg - b.seg) || (!sh && a.l && b.l && (a.dk ?? 9) - (b.dk ?? 9)) || ((tmin(a.v) ?? 1e4) - (tmin(b.v) ?? 1e4)) || i - j).map(([i]) => [lab(i), i.v, i.sub || '', i.seg, i]);
+  if (!hdr) return rows;
+  const out = []; let last = -1; rows.forEach((r) => { if (r[3] !== last) { if (!sh && r[3] === 0) { last = 0; out.push(r); return; } out.push([sh ? SEGN[r[3]] : 'שיעורי תורה לפי ימים', '', '', r[3], { hdr: true }]); last = r[3]; } out.push(r); }); return out;
 }
 /** thin inner line of a card (a real border: html2canvas does not paint inset shadows correctly) */
 const Inner = () => <i style={{ position: 'absolute', inset: 3, border: '2px solid #7a5410', borderRadius: 8, pointerEvents: 'none' }} />;
@@ -359,7 +359,7 @@ export async function renderPoster(d, greet) {
   const TY = { z: { f: ['#2c2610', '#17130a'], e: '#f2c85b', t: '#ffe08a', l: '#fff0c4', s: '#d9c48a' }, p: { f: ['#0d2257', '#071538'], e: '#e0bd5f', t: '#f9df8e', l: '#fff6d6', s: '#e8d49a' }, l: { f: ['#15407f', '#0a2553'], e: '#9db8e6', t: '#d6e6ff', l: '#eaf2ff', s: '#b5caf0' } };
   const tyOf = (it) => TY[it?.z ? 'z' : it?.l ? 'l' : 'p'];
   const RT = 952, RB = 1652, RH = RB - RT, HDR = 40, PRE = 8, MINP = 34, MAXU = 82, BX = { t: [160, 308], l: [318, 805], i: [815, 920] };
-  let rows = orderRows(d, shab); d.cut = 0;
+  let rows = orderRows(d, true); d.cut = 0;
   const H2 = 38, MINU2 = 38, isH = (r) => !!r[4]?.hdr;
   /** one column while it stays big (unit >= 40), otherwise two columns (right = earlier, left = later) with the split chosen to balance them */
   const layout = (a) => {

@@ -490,3 +490,38 @@ label{font-size:13px;color:var(--mu)}
 .rl-main .prg{left:6%!important;right:6%!important;bottom:.25cqw!important;height:.55cqw!important;opacity:1!important;background:linear-gradient(90deg,#ffe58a,#e0a526,#ffe58a)!important;box-shadow:0 0 .8cqw #f0b429cc!important;border-radius:1em!important}
 .cdn{position:absolute;z-index:3;bottom:1.1em;left:.8em;min-width:1.9em;height:1.9em;line-height:1.9em;text-align:center;border-radius:50%;font:900 .8em/1.9em Heebo,sans-serif;color:#2a1a05;background:radial-gradient(#ffe58a,#e0a526);border:.12em solid #fff4c4;box-shadow:0 .1em .5em #0008}
 .rl-main .cdn{bottom:1.6cqw;left:1.4cqw;font-size:1.25cqw}
+
+/* daily psalm slide */
+.psf p{white-space:normal!important;text-align:justify;text-align-last:center;line-height:1.6!important;font-weight:600!important;padding:0 .5em}
+.psf p sup{font-size:.5em;color:#8a5a0c;font-weight:900;margin-inline-end:.25em;vertical-align:super}
+.psf .psd{font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:3cqh;color:#7a1f1f;border-top:.2cqh solid #c9a043;border-bottom:.2cqh solid #c9a043;padding:.3cqh 1.5cqh}
+.psf .psr{font-size:.5em;color:#8a5a0c;font-weight:700}
+.pcard .psf{width:100%}
+.psprev{container-type:size;aspect-ratio:16/9;width:100%;max-width:560px;margin:.5em auto;border:.2em solid #c9a043;border-radius:.6em;background:linear-gradient(#f4e8c6,#e9d6a1);overflow:hidden;position:relative}
+.psprev .psf{position:absolute;inset:0;padding:1.5cqh 3cqw}
+
+/* full-screen slides: bold bar + seconds badge at the bottom of the screen */
+.fsprg{position:absolute;left:0;right:0;bottom:0;height:1.1cqw;z-index:14;pointer-events:none}
+.fsprg .prg{left:3%!important;right:3%!important;bottom:.45cqw!important;height:.55cqw!important;border-radius:1em!important;opacity:1}
+.fsprg .cdn{position:absolute;bottom:1.4cqw;left:2.2cqw;font-size:1.3cqw;z-index:15}
+.rl-scroll{transform-origin:50% 0%!important}
+
+/* living candle flame: the flame tip is a separate layer that flickers (GPU: transform + opacity only) */
+.cndl{position:relative;display:block;height:92%;aspect-ratio:390/601;max-width:100%}
+.rl-ic .cndl img{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+.rl-ic .cndl img.fl{inset:auto;left:41.03%;top:0;width:19.23%;height:15.8%;transform-origin:50% 100%;will-change:transform,opacity;animation:candleFlicker 2.3s ease-in-out infinite;animation-delay:calc(var(--cd,0) * -1s);filter:drop-shadow(0 0 .35em #ffb52acc) drop-shadow(0 0 .9em #ff8a0066)}
+.cndl::after{content:'';position:absolute;left:25%;top:-6%;width:50%;height:30%;border-radius:50%;background:radial-gradient(closest-side,#ffd36a88,#ffb52a33 55%,transparent);will-change:opacity,transform;animation:candleGlow 2.9s ease-in-out infinite;pointer-events:none}
+@keyframes candleFlicker{
+  0%{transform:translate(0,0) scale(1,1) rotate(0);opacity:1}
+  12%{transform:translate(.4px,0) scale(.97,1.05) rotate(1.8deg);opacity:.93}
+  25%{transform:translate(-.5px,.3px) scale(1.03,.96) rotate(-2.2deg);opacity:1}
+  38%{transform:translate(.3px,0) scale(.96,1.07) rotate(2.6deg);opacity:.88}
+  52%{transform:translate(-.4px,.2px) scale(1.04,.97) rotate(-1.4deg);opacity:.97}
+  66%{transform:translate(.5px,0) scale(.98,1.06) rotate(1.2deg);opacity:.9}
+  80%{transform:translate(-.3px,.3px) scale(1.02,.95) rotate(-2.8deg);opacity:1}
+  100%{transform:translate(0,0) scale(1,1) rotate(0);opacity:1}}
+@keyframes candleGlow{0%,100%{opacity:.75;transform:scale(1)}30%{opacity:1;transform:scale(1.08)}60%{opacity:.82;transform:scale(.96)}80%{opacity:.95;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.rl-ic .cndl img.fl,.cndl::after{animation:none}}
+
+.pcard.psc{width:78%;height:82%;background:linear-gradient(#f4e8c6,#e9d6a1)!important;border-color:#c9a043!important}
+.pcard.psc .psf{height:100%}
