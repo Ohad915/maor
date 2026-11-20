@@ -452,7 +452,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
         {st.payUrl && <div className="rl-ic"><div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div></div>}<div className="rl-bd">
         {(st.donTitle || st.donSub) && <div className="pgw"><div className="yi">{st.donTitle && <b>{st.donTitle}</b>}{st.donSub && <small>{st.donSub}</small>}</div></div>}</div></Blk>}
       <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
-        <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
+        <div className="rl-fx"><FitText text={st.footerText || 'עם ישראל חי'}>{st.footerText || 'עם ישראל חי'}</FitText></div>
         <div className="rl-tk">{(() => {
           const bText = [tkOn && tkText, V('zm') && zText].filter(Boolean).join(SEP); // running ticker text first, then the day's times
           if (!bText) return null;
