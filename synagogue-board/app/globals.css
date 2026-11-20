@@ -533,3 +533,6 @@ label{font-size:13px;color:var(--mu)}
 .rl-stat:not(.rl-mq)>span{animation:none!important;padding:0!important}
 .an p sup{font-size:.7em;color:#7a1f1f;margin-inline-start:.15em}
 .rl-fx{white-space:nowrap;overflow:hidden;padding:0 .4cqw}
+.dhf small{white-space:normal;text-wrap:balance;max-width:94%;line-height:1.25;text-align:center}
+.dhf p{margin-top:auto;margin-bottom:auto}
+.dhf small{margin-top:0}
