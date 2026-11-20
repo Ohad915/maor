@@ -4,8 +4,10 @@ import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Display from '@/components/Display';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import KeepAlive from '@/lib/keepAlive';
+import Recover from '@/lib/recover';
 
-const Msg = ({ children }) => <div className="dp" style={{ width: '100vw', height: '100vh' }}><p style={{ margin: 'auto', textAlign: 'center' }}>{children}</p></div>;
+const Msg = ({ children }) => <div className="dp" style={{ width: '100vw', height: '100vh' }}><KeepAlive /><Recover /><p style={{ margin: 'auto', textAlign: 'center' }}>{children}</p></div>;
 
 /** Public TV screen: /display?s=<synagogueId>&screen=main-hall  (anonymous sign-in; never stays blank) */
 export default function DisplayPage() {
@@ -22,5 +24,5 @@ export default function DisplayPage() {
   }, []);
   if (!q || !ready) return <Msg>מתחבר…</Msg>;
   if (!q.sid) return <Msg>חסר מזהה בית כנסת בכתובת (?s=...)</Msg>;
-  return <div style={{ width: '100vw', height: '100vh' }}><ErrorBoundary><Display sid={q.sid} screenId={q.screen} authErr={authErr} /></ErrorBoundary></div>;
+  return <div style={{ width: '100vw', height: '100vh' }}><KeepAlive /><Recover /><ErrorBoundary><Display sid={q.sid} screenId={q.screen} authErr={authErr} /></ErrorBoundary></div>;
 }

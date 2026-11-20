@@ -1,7 +1,6 @@
 'use client';
 import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import KeepAlive from '@/lib/keepAlive';
 import PsalmsFullscreenSlide from '@/components/PsalmsSlide';
 import { psalmsPages } from '@/lib/psalms';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -115,7 +114,7 @@ export default function Display({ sid, screenId, fixedSize, preview, authErr }) 
     if (preview || typeof window === 'undefined') return;
     const t = setInterval(() => {
       const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-      if (p >= '04:00' && p < '04:05' && navigator.onLine !== false) { const k = 'maor-reload-' + new Date().toISOString().slice(0, 10); try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); location.reload(); } } catch {} }
+      if (p >= '04:00' && p < '04:05' && navigator.onLine !== false) { const k = 'maor-reload-' + new Date().toISOString().slice(0, 10); try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); location.reload(); } } catch { /* storage blocked: skip, the 6h refresh still runs */ } }
     }, 30000);
     return () => clearInterval(t);
   }, [preview]);
@@ -128,9 +127,9 @@ export default function Display({ sid, screenId, fixedSize, preview, authErr }) 
   const [size, setSize] = useState({ w: 1280, h: 720 });
   useEffect(() => { if (fixedSize) { setSize(fixedSize); return; } const u = () => setSize({ w: innerWidth, h: innerHeight }); u(); addEventListener('resize', u); return () => removeEventListener('resize', u); }, [fixedSize?.w, fixedSize?.h]); // eslint-disable-line
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(t); }, []);
-  if (!syn) return <>{!preview && <KeepAlive />}<div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div></>;
-  if (syn.suspended) return <>{!preview && <KeepAlive />}<div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div></>;
-  return <>{!preview && <KeepAlive />}<Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={offlineNow ? '' : (authErr || live.error || '')} authErr={offlineNow ? '' : authErr} /></>;
+  if (!syn) return <><div className="dp"><p style={{ margin: 'auto', textAlign: 'center' }}>טוען נתונים…</p></div></>;
+  if (syn.suspended) return <><div className="dp"><div style={{ margin: 'auto', textAlign: 'center' }}><h1>⏸ המסך מושהה</h1><p>השירות לבית כנסת זה הושהה זמנית. לפרטים פנו למנהל המערכת.</p></div></div></>;
+  return <><Inner syn={syn} cols={cols} screenId={screenId} now={now} size={size} status={status} preview={preview} diag={offlineNow ? '' : (authErr || live.error || '')} authErr={offlineNow ? '' : authErr} /></>;
 }
 
 function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr }) {
@@ -167,7 +166,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     let alive = true; const ah = z.dow === 6 && z.tzeit && z.now >= z.tzeit ? 7 : (6 - z.dow + 7) % 7;
     const rd = rdOf(new Date(+now + ah * 864e5)), key = `haf:${rd}:${syn.nusach}`;
     try { const c = localStorage.getItem(key); if (c !== null) setHaf(c); } catch {}
-    haftaraHe(rd, syn.nusach).then((x) => { if (alive) { setHaf(x); try { localStorage.setItem(key, x); } catch {} } });
+    haftaraHe(rd, syn.nusach).then((x) => { if (alive && x) { setHaf(x); try { localStorage.setItem(key, x); } catch {} } }); // an empty result (failed chunk/network) is never cached
     return () => { alive = false; };
   }, [hfOn, Math.floor(+now / 36e5), syn.nusach]); // eslint-disable-line
   const hText = st.hfShow ? st.hfText || haf : '';

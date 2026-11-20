@@ -21,12 +21,14 @@ const SEC = [
 ];
 /** @type {import('next').NextConfig} */
 module.exports = {
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now()) }, // same value in the client bundle and in /api/version of ONE deployment
   reactStrictMode: true, poweredByHeader: false, transpilePackages: ['kosher-zmanim'],
   experimental: { serverComponentsExternalPackages: ['firebase-admin', 'nodemailer'] },
   async headers() {
     return [
       { source: '/(.*)', headers: SEC },
       { source: '/(admin|super-admin|login)(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }, { key: 'Cache-Control', value: 'no-store' }] },
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }] },
       { source: '/api/auth/(.*)', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
     ];
   },
