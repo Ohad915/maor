@@ -532,3 +532,4 @@ label{font-size:13px;color:var(--mu)}
 
 .rl-stat:not(.rl-mq)>span{animation:none!important;padding:0!important}
 .an p sup{font-size:.7em;color:#7a1f1f;margin-inline-start:.15em}
+.rl-fx{white-space:nowrap;overflow:hidden;padding:0 .4cqw}

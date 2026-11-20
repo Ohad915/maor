@@ -26,20 +26,21 @@ export const rdOf = (date, add = 0) => { const c = civil(date); return Math.floo
 /** Current Hebrew date; after sunset the Hebrew day advances. */
 export function hebOf(date, afterSunset) {
   const hd = new HDate(rdOf(date, afterSunset ? 1 : 0)), m = hd.getMonth();
-  const raw = m === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : m === 13 ? 'Adar II' : MONTHS.find((x) => x[2] === m)[0];
+  const raw = m === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : m === 13 ? 'Adar II' : (MONTHS.find((x) => x[2] === m) || ['Tishrei'])[0];
   return { d: hd.getDate(), raw, y: hd.getFullYear(), hd };
 }
 export const hmatch = (k, h) => k === h.raw || (k === 'Adar' && h.raw === 'Adar II') || (k === 'Adar II' && h.raw === 'Adar') || (k === 'Adar I' && h.raw === 'Adar');
 
 export function hAbs(d, key, y) {
   const lp = HDate.isLeapYear(y);
-  const M = key === 'Adar' ? (lp ? 13 : 12) : key === 'Adar I' ? 12 : key === 'Adar II' ? (lp ? 13 : 12) : MONTHS.find((x) => x[0] === key)[2];
+  const M = key === 'Adar' ? (lp ? 13 : 12) : key === 'Adar I' ? 12 : key === 'Adar II' ? (lp ? 13 : 12) : (MONTHS.find((x) => x[0] === key) || [0, 0, 7])[2];
   return new HDate(Math.min(d, HDate.daysInMonth(M, y)), M, y).abs();
 }
 export const nowAbs = (h) => hAbs(h.d, h.raw, h.y);
 
 /** Annual Hebrew day/month range (wraps over year end). */
 export function inRange(f, t, h) {
+  if (!f || !t || f.d == null || t.d == null) return true; // half-saved range: treat as always on instead of crashing the TV
   const x = h.d + ord(h.raw) * 100, a = f.d + ord(f.m) * 100, b = t.d + ord(t.m) * 100;
   return a <= b ? x >= a && x <= b : x >= a || x <= b;
 }
@@ -54,9 +55,9 @@ export function resolveSpan(f, t, h) {
   return { hs: 0, he: 0 };
 }
 export const refuahOn = (r, h) => r.active !== false && (!r.hs || (nowAbs(h) >= r.hs && nowAbs(h) <= r.he));
-export const memOn = (m, h) => m.active !== false && (m.mode === 'p' ? true : m.mode === 't' ? !m.hs || (nowAbs(h) >= m.hs && nowAbs(h) <= m.he) : m.mode === 'r' ? inRange(m.from, m.to, h) : m.d === h.d && hmatch(m.month, h));
+export const memOn = (m, h) => m.active !== false && (m.mode === 'p' ? true : m.mode === 't' ? !m.hs || (nowAbs(h) >= m.hs && nowAbs(h) <= m.he) : m.mode === 'r' ? !!(m.from && m.to) && inRange(m.from, m.to, h) : m.d === h.d && hmatch(m.month, h));
 /** Hebrew day/month of an absolute day number */
-export function hebFromAbs(abs) { const hd = new HDate(abs), mo = hd.getMonth(); return { d: hd.getDate(), m: mo === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : mo === 13 ? 'Adar II' : MONTHS.find((x) => x[2] === mo)[0], y: hd.getFullYear() }; }
+export function hebFromAbs(abs) { const hd = new HDate(abs), mo = hd.getMonth(); return { d: hd.getDate(), m: mo === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : mo === 13 ? 'Adar II' : (MONTHS.find((x) => x[2] === mo) || ['Tishrei'])[0], y: hd.getFullYear() }; }
 /** Shared "time type" of dedications (memorial / refuah / sponsor): fixed = never expires, otherwise a span in absolute days */
 export function spanOf(f, h) {
   const n = nowAbs(h);

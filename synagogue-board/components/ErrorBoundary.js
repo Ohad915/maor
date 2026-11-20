@@ -31,6 +31,6 @@ export default class ErrorBoundary extends Component {
         <p style={{ color: 'var(--mu)' }}>שאר הלשוניות ממשיכות לעבוד. {String(this.state.err?.message || '')}</p>
         <button className="b" onClick={() => this.setState({ err: null })}>נסה שוב</button></div>);
     }
-    return <div className="dp" style={{ width: '100%', height: '100%' }}><p style={{ margin: 'auto', textAlign: 'center' }}>מתעדכן… המסך יחזור תוך רגע</p></div>;
+    return <div className="dp" style={{ width: '100%', height: '100%' }}><p style={{ margin: 'auto', textAlign: 'center' }}>מתעדכן… המסך יחזור תוך רגע<small style={{ display: 'block', opacity: 0.35, fontSize: '.5em', marginTop: '1em', direction: 'ltr' }}>{String(this.state.err?.message || '').slice(0, 120)}</small></p></div>;
   }
 }

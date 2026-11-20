@@ -32,7 +32,8 @@ export function zmanimRows(z, st, rtOn) {
 export function getZmanim(date, loc, o = {}) {
   if (typeof o === 'string') o = { shma: o };
   const lat = Number.isFinite(parseFloat(loc?.lat)) ? parseFloat(loc.lat) : 31.7683, lng = Number.isFinite(parseFloat(loc?.lng)) ? parseFloat(loc.lng) : 35.2137; // blank/invalid coordinates -> Jerusalem, never the equator
-  const geo = new GeoLocation('synagogue', lat, lng, +loc?.elevation || 0, TZ);
+  const okLat = lat >= -90 && lat <= 90, okLng = lng >= -180 && lng <= 180, el = +loc?.elevation > 0 ? +loc.elevation : 0; // negative elevation (Dead Sea / Tiberias) or out-of-range coordinates would make kosher-zmanim throw on every render
+  const geo = new GeoLocation('synagogue', okLat ? lat : 31.7683, okLng ? lng : 35.2137, el, TZ);
   const cal = new ComplexZmanimCalendar(geo);
   const dt = DateTime.fromJSDate(date, { zone: TZ });
   cal.setDate(dt.startOf('day'));
@@ -122,7 +123,7 @@ function filterPrayers(prayers, ctx, fw) {
  * The constants are empirical (not a published halachic formula) - fine-tune with the manual offsets if a printed day differs.
  */
 function maorZmanim(cal0, dt, loc, off, o, tz) {
-  const elev = +loc?.elevation || 750, mk = (e) => { const c = new ComplexZmanimCalendar(new GeoLocation('synagogue', cal0.getGeoLocation().getLatitude(), cal0.getGeoLocation().getLongitude(), e, TZ)); c.setDate(dt.startOf('day')); return c; };
+  const elev = +loc?.elevation > 0 ? +loc.elevation : 750, mk = (e) => { const c = new ComplexZmanimCalendar(new GeoLocation('synagogue', cal0.getGeoLocation().getLatitude(), cal0.getGeoLocation().getLongitude(), e, TZ)); c.setDate(dt.startOf('day')); return c; };
   const n = mk((elev * 65) / 750).getSunrise(), s = mk((elev * 680) / 750).getSunset();
   const adj = (d, k) => (d && Number(off[k]) ? d.plus({ minutes: Number(off[k]) }) : d);
   if (!n || !s) return { now: dt, dow: dt.weekday % 7, netz: n, shkia: s };

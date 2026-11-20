@@ -21,13 +21,18 @@ export function psalmsOfDay(h, abs) {
 /** split verses into readable pages (~PAGE letters each); 119 by halves when asked */
 function pagesOfChapter(n, half, PAGE) {
   const vs = PSALMS[n - 1] || [], lo = half === 1 ? 0 : half === 2 ? 96 : 0, hi = half === 1 ? 96 : vs.length;
-  const out = []; let cur = [], len = 0;
-  for (let i = lo; i < hi; i++) {
-    const L = letters(vs[i]);
-    if (cur.length && len + L > PAGE) { out.push(cur); cur = []; len = 0; }
-    cur.push([i + 1, vs[i]]); len += L;
+  const split = (lim) => { const o = []; let cur = [], len = 0;
+    for (let i = lo; i < hi; i++) {
+      const L = letters(vs[i]);
+      if (cur.length && len + L > lim) { o.push(cur); cur = []; len = 0; }
+      cur.push([i + 1, vs[i]]); len += L;
+    }
+    if (cur.length) o.push(cur); return o; };
+  let out = split(PAGE);
+  if (out.length > 1) { // balance: same number of pages, but about equal text on each (no full page followed by a nearly empty one)
+    let tot = 0; for (let i = lo; i < hi; i++) tot += letters(vs[i]);
+    for (let lim = Math.ceil(tot / out.length); lim < PAGE; lim += 8) { const b = split(lim); if (b.length <= out.length) { out = b; break; } }
   }
-  if (cur.length) out.push(cur);
   return out.map((v, i, a) => ({ title: hadar(n), range: a.length > 1 || half ? (v[0][0] === v[v.length - 1][0] ? `פסוק ${gem(v[0][0])}` : `פסוקים ${gem(v[0][0])}–${gem(v[v.length - 1][0])}`) : '', v, chapter: n, i, of: a.length }));
 }
 

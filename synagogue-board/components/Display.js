@@ -215,7 +215,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   });
   if (V('memPop') && !royal) mems.filter((m) => (!m.mode || m.mode === 'y')).forEach((m) => slides.push({ k: 'm', m, dur: cf('mem').secs }));
   if (V('rf') && V('rfPop') && refs.length && !royal) slides.push({ k: 'r', dur: cf('rf').secs });
-  const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
+  const am = st.hl?.autoMode ?? (st.hl?.auto === false || st.hl?.mode === 'off' ? 'off' : st.hl?.mode === 'full' ? 'full' : 'block');
   if (am !== 'off' && (!royal || V('cu'))) slides.push({ k: 'h', t: 'מנהגי היום', x: chips.length ? chips : reminders(h), full: am === 'full', dur: cf('hal').secs });
   hal.forEach((x) => slides.push({ k: 'h', t: x.title, x: [x.text], full: modeOf(x) === 'full', dur: cf('hal').secs }));
   // automatic daily halacha (admin: "הלכה יומית אוטומטית") – manual text overrides the built-in library
@@ -225,7 +225,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     const blk = pc.show === 'block', all = psalmsPages(pc, h, nowAbs(h), blk ? 120 : 760); // 'page' pace: ONE page per carousel round, the next page next round
     const chs = []; all.forEach((p) => { const k = p.chapter ?? 'x'; let g = chs.find((x) => x.k === k); if (!g) chs.push(g = { k, pages: [] }); g.pages.push(p); });
     const pages = pc.pace === 'page' ? (all.length ? [all[psq.seq % all.length]] : []) : pc.pace === 'whole' ? all : (chs.length ? chs[psq.seq % chs.length].pages : []); // default 'chapter': ONE whole chapter per carousel round, the other slides in between, then the next chapter // default: the whole chapter in one go, then the carousel continues
-    if (pages.length) slides.push({ k: 'ps', pages, ded: pc.dedicationText, full: !blk, blk, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
+    if (pages.length) slides.push({ k: 'ps', pages, ded: String(pc.dedicationText ?? ''), full: !blk, blk, dur: Math.min(30, Math.max(5, +pc.duration || 15)) }); } }
   if (dhItem) slides.push({ k: 'dh', d: dhItem, full: dh.mode === 'full', dur: Math.min(60, Math.max(10, +dh.secs || 20)) });
   // lessons + psalms: ONE combined slide (today / whole week) when enabled, otherwise one slide per lesson
   const ls = { mode: 'off', secs: 12, scope: 'today', ...(st.lsAll || {}) }, lsm = ls.mode === 'full' ? 'popup' : ls.mode, lsMin = (t) => { const m = /(\d+):(\d+)/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : 1e4; };
@@ -452,7 +452,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
         {st.payUrl && <div className="rl-ic"><div className="rl-qrb" style={{ '--qs': (st.qs || 100) / 100 }}><QRCodeSVG value={st.payUrl} size={160} /></div></div>}<div className="rl-bd">
         {(st.donTitle || st.donSub) && <div className="pgw"><div className="yi">{st.donTitle && <b>{st.donTitle}</b>}{st.donSub && <small>{st.donSub}</small>}</div></div>}</div></Blk>}
       <div className="rl-bot" style={{ ...rbox(7.6, 89.8, 84.7, 7.6), '--bs': fb('bt').toFixed(3) }}>
-        <div className="rl-fx">{st.footerText || 'עם ישראל חי'}</div>
+        <div className="rl-fx"><FitText text={st.footerText || 'עם ישראל חי'}>{st.footerText || 'עם ישראל חי'}</FitText></div>
         <div className="rl-tk">{(() => {
           const bText = [tkOn && tkText, V('zm') && zText].filter(Boolean).join(SEP); // running ticker text first, then the day's times
           if (!bText) return null;
