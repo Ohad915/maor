@@ -15,8 +15,9 @@ export default function InlinePreview({ sid }) {
   const k = w / 1280;
   return (<div ref={box}>
     <div className="row"><select value={screen} onChange={(e) => setScreen(e.target.value)}>{SCREENS.map((s) => <option key={s} value={s}>{SCREEN_NAMES[s]}</option>)}</select></div>
-    <div style={{ width: w, height: 720 * k, background: '#000', overflow: 'hidden', borderRadius: 8, marginTop: 8 }}>
-      <div style={{ width: 1280, height: 720, transform: `scale(${k})`, transformOrigin: '0 0' }}>
+    {/* the inner board is pinned with position/left so the RTL page cannot push its 1280px box out of the frame */}
+    <div style={{ position: 'relative', width: w, height: 720 * k, background: '#000', overflow: 'hidden', borderRadius: 8, marginTop: 8 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 1280, height: 720, transform: `scale(${k})`, transformOrigin: '0 0' }}>
         <ErrorBoundary key={screen}><Display sid={sid} screenId={screen} fixedSize={{ w: 1280, h: 720 }} preview /></ErrorBoundary>
       </div>
     </div>
