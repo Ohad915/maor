@@ -536,3 +536,11 @@ label{font-size:13px;color:var(--mu)}
 .dhf small{white-space:normal;text-wrap:balance;max-width:94%;line-height:1.25;text-align:center}
 .dhf p{margin-top:auto;margin-bottom:auto}
 .dhf small{margin-top:0}
+
+/* full-screen lists on the scroll: fill the parchment height, read DOWN the right column first (days in order), then the left column */
+.ptb2 .ptg.cards{grid-auto-flow:column;grid-template-rows:repeat(var(--r,4),minmax(0,1fr));align-content:stretch}
+.ptb2 .ptc{justify-content:center;max-height:23cqh;align-self:center;width:100%}
+.ptb2 .ptc b{font-size:clamp(1.7cqh,calc(12cqh / var(--m)),4cqh)}
+.ptb2 .ptc i{font-size:clamp(2.2cqh,calc(17cqh / var(--m)),6.4cqh)}
+.ptb2 .ptc small{font-size:clamp(1.25cqh,calc(8cqh / var(--m)),2.2cqh);line-height:1.25;white-space:normal}
+.rl-fx{padding:0 1.4cqw}

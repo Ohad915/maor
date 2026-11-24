@@ -287,7 +287,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     if (cur.popup && royal) {
       // full screen on the royal scroll: two columns (right = shacharit, left = mincha / arvit); falls back to a single column if one side is empty
       const fp = pg.mr % subPages, per = Math.ceil(ptRows.length / subPages / 2) * 2, items = ptRows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2);
-      full = <div className="rl-scroll" key={'sc' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}>{ico}
+      full = <div className="rl-scroll" key={'sc' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx, '--r': mx }}>{ico}
         <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
@@ -324,9 +324,9 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
     const hdr = (t) => <h4 className={'lsh ' + t}>{LESSON_TYPES[t].ico} {LESSON_TYPES[t].name}</h4>;
     const ttl = week ? 'שיעורי תורה ותהילים – השבוע' : 'שיעורי תורה ותהילים – היום';
     if (cur.popup && royal) {
-      const fp = pg.mr % subPages, per = Math.ceil(cur.rows.length / subPages / 2) * 2, items = cur.rows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2) + 1;
+      const fp = pg.mr % subPages, per = Math.ceil(cur.rows.length / subPages / 2) * 2, items = cur.rows.slice(fp * per, (fp + 1) * per), mx = Math.ceil(items.length / 2) + 0.5, rr = Math.ceil(items.length / 2);
       const card = ({ l, time }) => <div className={'ptc ls-' + lessonType(l)} key={l.id}><b>{lessonLabel(l)}</b><i>{time}</i><small>{LESSON_TYPES[lessonType(l)].ico} {[lessonWho(l), l.place, week ? lessonDaysLabel(l) : ''].filter(Boolean).join(' · ')}</small></div>;
-      full = <div className="rl-scroll" key={'ls' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx }}><h2 className="lsti">{ttl}</h2>
+      full = <div className="rl-scroll" key={'ls' + idx + '-' + fp} style={{ '--sz': Math.max(1, Math.min(1.06, (st.scrollZ || 130) / 100)) }}><div className="rl-sc-card"><div className="ptb2" style={{ '--m': mx, '--r': rr }}><h2 className="lsti">{ttl}</h2>
         <div className="ptg two cards">{items.map(card)}</div>{subPages > 1 && <div className="fsdots">{dotStr(subPages, fp)}</div>}</div></div></div>;
       mid = null;
     } else {
