@@ -546,3 +546,6 @@ label{font-size:13px;color:var(--mu)}
 .rl-fx{padding:0 1.4cqw}
 .lb1{white-space:nowrap;overflow:hidden;letter-spacing:0!important}
 .rl-yz .yi b,.rl-rf .yi b,.rl-yz .yi small,.rl-rf .yi small{word-break:keep-all;overflow-wrap:normal}
+.ptb2 .ptg.cards{grid-template-columns:repeat(var(--c,2),1fr)}
+.rl-yz .rl-ic{flex:0 0 32%;min-width:0;max-width:32%}
+.rl-yz .rl-ic .cndl{width:100%;height:auto;max-height:94%;margin:auto}
