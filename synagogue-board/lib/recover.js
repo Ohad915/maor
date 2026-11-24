@@ -32,7 +32,10 @@ export function reloadSafely(reason = '') {
 let reloading = false;
 
 const CHUNK = /ChunkLoadError|Loading chunk|Loading CSS chunk|dynamically imported module|Importing a module script failed|Unexpected token '<'|Failed to fetch dynamically/i;
+// harmless browser noise that can fire many times per second: never count it as an "error storm" (that would reload the TV again and again for nothing)
+const BENIGN = /ResizeObserver loop/i;
 const VERSION_POLL_MS = 3 * 60e3;
+const VKEY = 'maor-vtarget', MAX_VER_RELOADS = 3; // a page served from the service-worker cache can come back on the OLD build: give up after 3 tries per build id instead of reloading for ever
 
 /**
  * TV self-healing, mounted OUTSIDE the error boundary so it keeps running while the fallback is on screen:
@@ -45,6 +48,7 @@ export default function Recover() {
     let errs = [];
     const onErr = (msg) => {
       const m = String(msg || '');
+      if (BENIGN.test(m)) return;
       if (CHUNK.test(m)) { reloadSafely('stale chunk: ' + m.slice(0, 80)); return; }
       const n = Date.now(); errs = errs.filter((t) => n - t < 60e3); errs.push(n);
       if (errs.length >= 8) { errs = []; reloadSafely('error storm'); }
@@ -60,7 +64,14 @@ export default function Recover() {
         const r = await fetch('/api/version?t=' + Date.now(), { cache: 'no-store' });
         if (!r.ok) return;
         const j = await r.json();
-        if (j?.b && j.b !== mine) reloadSafely('new version ' + j.b);
+        if (j?.b && j.b !== mine) {
+          let seen = null;
+          try { seen = JSON.parse(sessionStorage.getItem(VKEY) || 'null'); } catch {}
+          const n = seen && seen.b === j.b ? +seen.n || 0 : 0; // a different build id starts a fresh count
+          if (n >= MAX_VER_RELOADS) return; // already tried: a reload clearly does not bring the new build (stale cache) - stop, the 6h soft refresh / nightly reload will pick it up
+          try { sessionStorage.setItem(VKEY, JSON.stringify({ b: j.b, n: n + 1 })); } catch {}
+          reloadSafely('new version ' + j.b);
+        }
       } catch {}
     };
     const iv = setInterval(check, VERSION_POLL_MS);

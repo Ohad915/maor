@@ -25,20 +25,20 @@ export default function BlockDesignAccordion({ st, set, sid, royal: royalProp })
       <Range label="זמן שקופית כללי (שניות)" min={1} max={30} value={g.secs} onChange={(v) => set('cf.all.secs', v)} />
       <button type="button" className={`accb ${openAll ? 'o' : ''}`} onClick={() => setOpenAll(!openAll)}><span>התאמה אישית לפי קובייה (רשות){list.some(([k]) => touched(k)) && ' ●'}</span><span>{openAll ? '▲' : '▼'}</span></button>
       {openAll && <div className="accbody">
-        <div style={{ color: 'var(--mu)', fontSize: 13 }}>50% = אוטומטי. כל התאמה כאן גוברת על ההגדרות הכלליות של אותה קובייה בלבד.{royal ? ' במצב מקדש ומלכות הרקע והמסגרת קבועים (קלף וזהב).' : ''}</div>
+        <div className="mu">50% = אוטומטי. כל התאמה כאן גוברת על ההגדרות הכלליות של אותה קובייה בלבד.{royal ? ' במצב מקדש ומלכות הרקע והמסגרת קבועים (קלף וזהב).' : ''}</div>
         {list.map(([k, label]) => {
           const b = blocks[k] || {}, cfo = (CF_OF[k] || []).map((c) => (st.cf || {})[c] || {}).find((o) => o.font || o.secs) || {};
           const lk = 'L' + String(st.layout || '1'), lb = royal ? (b[lk] || {}) : b, w = lb.w ?? 50, h = lb.h ?? 50, fs = b.fs ?? fsAll, font = b.font || cfo.font || g.font, secs = b.secs || cfo.secs || g.secs, o = open[k];
           const col = (f, l) => (
             <div className="row"><label style={{ flex: '1 1 110px' }}>{l}</label>
               <DebIn type="color" style={{ flex: '0 0 60px', padding: 2 }} value={b[f] || '#888888'} onChange={(x) => set(`blocks.${k}.${f}`, x)} />
-              <button className="b g" style={{ flex: '0 0 auto', padding: '6px 10px' }} onClick={() => set(`blocks.${k}.${f}`, '')}>{b[f] ? 'חזור לנושא' : 'צבע הנושא'}</button></div>);
+              <button className="b g sm" style={{ flex: '0 0 auto' }} onClick={() => set(`blocks.${k}.${f}`, '')}>{b[f] ? 'חזור לנושא' : 'צבע הנושא'}</button></div>);
           return (
             <div key={k}>
               <button className={`accb ${o ? 'o' : ''}`} onClick={() => setOpen({ ...open, [k]: !o })}><span>{label}{touched(k) && ' ●'}</span><span>{o ? '▲' : '▼'}</span></button>
               {o && <div className="accbody">
                 <b style={{ fontSize: 13 }}>מידות</b>
-                {k !== 'bt' && <>
+                {k !== 'bt' && !(royal && k === 'pr' && ['2', '4'].includes(String(st.layout))) && <>
                   <label>רוחב: {w === 50 ? 'Auto (50%)' : w + '%'}</label><DebIn type="range" min="10" max="100" value={w} onChange={(x) => set(royal ? `blocks.${k}.${lk}.w` : `blocks.${k}.w`, x)} />
                   <label>גובה: {h === 50 ? 'Auto (50%)' : h + '%'}</label><DebIn type="range" min="10" max="100" value={h} onChange={(x) => set(royal ? `blocks.${k}.${lk}.h` : `blocks.${k}.h`, x)} />
                 </>}

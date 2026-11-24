@@ -74,19 +74,23 @@ function stackCol(items, lo, hi, maxR = 100, gap = 1.2) {
 }
 /** Block whose font scales with its own width (auto responsive scaling). */
 function Blk({ st, fs, id, t, b, cls, share = 0.95, mult = 1, fit = true, style, children }) {
-  const ref = useRef(null);
+  const ref = useRef(null), runRef = useRef(null), roRef = useRef(null);
   const fm = ((st.blocks?.[id]?.fs ?? st.fsAll ?? 18) / 18) * mult; // per-block text size (12-26, 18 = default)
   useLayoutEffect(() => {
-    const e = ref.current; if (!e || !fit) return;
+    const e = ref.current; if (!e || !fit) { runRef.current = null; return; }
     const run = () => {
       const dp = e.closest('.dp'); if (!dp || !e.clientWidth) return;
       e.style.fontSize = (fs * e.clientWidth / (dp.clientWidth * share)) * fm + 'px';
       const ab = e.querySelector('.ab,.pgw'); // content must never leave its block: shrink until it fits
       if (ab) { let f = parseFloat(e.style.fontSize); for (let i = 0; i < 14 && (ab.scrollHeight > ab.clientHeight + 1 || ab.scrollWidth > ab.clientWidth + 1); i++) { f *= 0.93; e.style.fontSize = f + 'px'; } }
     };
-    run(); const ro = new ResizeObserver(run); ro.observe(e); ro.observe(e.closest('.dp'));
-    return () => ro.disconnect();
+    runRef.current = run; run();
+    // the observer is created ONCE per block (st/children are new objects on every render, so re-creating it here meant a new ResizeObserver + an extra reflow pass on every single render, 24/7)
+    if (!roRef.current && typeof ResizeObserver !== 'undefined') { // older TV firmware has no ResizeObserver: the font still fits on every render, it just does not react to a resize (instead of throwing inside a layout effect and crashing the screen)
+      const ro = new ResizeObserver(() => runRef.current?.()); roRef.current = ro; ro.observe(e); const dp0 = e.closest('.dp'); if (dp0) ro.observe(dp0);
+    }
   }, [fs, share, fm, fit, st, children]);
+  useLayoutEffect(() => () => { roRef.current?.disconnect(); roRef.current = null; runRef.current = null; }, []);
   return <div ref={ref} className={cls} style={{ ...blockStyle(st, id, t, b), ...(fit ? {} : { fontSize: fm + 'em' }), ...style }}>{children}</div>;
 }
 
@@ -122,7 +126,7 @@ export default function Display({ sid, screenId, fixedSize, preview, authErr }) 
   const offlineNow = typeof navigator !== 'undefined' && !navigator.onLine;
   const demo = !live.syn && (live.syn === null || live.status === 'error' || offlineNow);
   const syn = demo ? DEMO_SYN : live.syn, status = demo ? 'demo' : live.status;
-  const cols = { ...live.cols, prayers: live.cols?.prayers?.length ? live.cols.prayers : DEMO_PRAYERS };
+  const cols = { ...live.cols, prayers: live.cols?.prayers?.length ? live.cols.prayers : demo ? DEMO_PRAYERS : [] }; // demo times only on the demo board, never on a live synagogue whose list is simply empty
   const [now, setNow] = useState(() => new Date());
   const [size, setSize] = useState({ w: 1280, h: 720 });
   useEffect(() => { if (fixedSize) { setSize(fixedSize); return; } const u = () => setSize({ w: innerWidth, h: innerHeight }); u(); addEventListener('resize', u); return () => removeEventListener('resize', u); }, [fixedSize?.w, fixedSize?.h]); // eslint-disable-line
@@ -156,8 +160,10 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const ptitle = st.pMode === 'manual' && st.pTitle ? st.pTitle : pi.title;
   const tbgKey = tbgKeyOf(st), royal = tbgKey === 'temple' && LM !== '3', tbgSrc = tbgPath(tbgKey), [tbgBad, setTbgBad] = useState('');
   useEffect(() => { // verify the theme image really loads; otherwise warn with the exact missing path and fall back to the plain theme
-    if (!tbgSrc || typeof Image === 'undefined') return; const im = new Image();
-    im.onload = () => setTbgBad(''); im.onerror = () => { console.warn('Failed to load theme image:', tbgSrc); setTbgBad(tbgSrc); }; im.src = tbgSrc;
+    if (!tbgSrc || typeof Image === 'undefined') return;
+    let alive = true; const im = new Image(); // `alive`: the image can finish loading long after the screen changed theme / unmounted - never setState then
+    im.onload = () => { if (alive) setTbgBad(''); }; im.onerror = () => { if (!alive) return; console.warn('Failed to load theme image:', tbgSrc); setTbgBad(tbgSrc); }; im.src = tbgSrc;
+    return () => { alive = false; im.onload = null; im.onerror = null; };
   }, [tbgSrc]);
   const tbgOn = tbgKey && tbgBad !== tbgSrc;
   const hfOn = !!st.hfShow && !st.hfText, [haf, setHaf] = useState('');
@@ -236,6 +242,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const pm = pa.mode === 'full' ? 'popup' : pa.mode, ptRows = (() => { const sel = rowsToday.filter((r) => ['block', 'full'].includes(r.show)); return sel.length ? sel : rowsToday; })();
   if ((pm === 'block' || pm === 'popup') && ptRows.length) slides.push({ k: 'tall', full: false, popup: pm === 'popup', dur: pdur });
   const cur = slides[idx % (slides.length || 1)];
+  const dur = Math.max(1, Math.min(300, +cur?.dur || 10)); // seconds on screen: never 0, NaN or a string from old/corrupt settings (that would flip the slide instantly)
   const mrPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
   const textOf = (c) => (!c ? '' : c.k === 'a' ? c.a.content || '' : c.k === 'm' ? c.m.desc || '' : c.k === 'h' ? c.x.join('\n') : c.k === 'dh' ? c.d.content : '');
   const tparts = cur?.k === 'ps' ? cur.pages.map(() => '') : cur && cur.k !== 'r' && cur.k !== 'p' ? splitText(textOf(cur), cur.k === 'dh' ? (cur.full && royal ? 14 : 9) : st.lpp || 6) : [''];
@@ -254,7 +261,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
         setPg((p) => ({ ...p, mr: 0 })); setIdx((i) => (last ? 0 : i + 1));
         setPsq((s) => ({ seq: s.seq + (cur?.k === 'ps' ? 1 : 0), rnd: s.rnd + (last ? 1 : 0) }));
       }
-    }, (cur?.dur || 10) * 1000);
+    }, dur * 1000);
     return () => clearTimeout(t);
   }, [idx, pg.mr, slides.length, subPages, psq.rnd, psq.seq]); // eslint-disable-line
   const yzPages = Math.max(1, Math.ceil(Math.max(mems.length, 1) / ipp('yz'))), rfPages = Math.max(1, Math.ceil(refs.length / ipp('rf')));
@@ -275,7 +282,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   const emit = (el) => { if (cur.full) full = el; else mid = el; }, cl = cur?.full ? 'fsl' : '';
   if (!cur) mid = <div className="an"><div className="lb">✦ ברוכים הבאים ✦</div><div className="ab"><h3>{syn.name}</h3></div></div>;
   else if (cur.k === 'a') emit(slide(idx + '-' + pg.mr, afs('ann'), cur.a.label || '✦ הודעת הגבאי והנהלת בית הכנסת ✦', <><h3>{cur.a.title}</h3><p>{tx}</p></>, dotStr(tparts.length, pg.mr), cl));
-  else if (cur.k === 'm') mid = slide(idx + '-' + pg.mr, afs('mem'), '🕯 לעילוי נשמת', <><h3>{fullName(cur.m)}</h3><p>{cur.m.gender === 'f' ? 'נפטרה' : cur.m.gender === 'p' ? 'נפטרו' : 'נפטר'} {gem(cur.m.d)} ב{monthName(cur.m.month)}{tx && <><br />{tx}</>}</p></>, dotStr(tparts.length, pg.mr));
+  else if (cur.k === 'm') mid = slide(idx + '-' + pg.mr, afs('mem'), '🕯 לעילוי נשמת', <><h3>{fullName(cur.m)}</h3><p>{cur.m.gender === 'f' ? 'נפטרה' : cur.m.gender === 'p' ? 'נפטרו' : 'נפטר'} {cur.m.d ? gem(cur.m.d) : ''} ב{monthName(cur.m.month)}{tx && <><br />{tx}</>}</p></>, dotStr(tparts.length, pg.mr));
   else if (cur.k === 'p') mid = slide(idx, afs('pr'), '✦ פרשת השבוע ✦', <><h3>{ptitle}</h3>{hText && <p>הפטרה: {hText}</p>}{st.pSub && <p>{st.pSub}</p>}</>, '');
   else if (cur.k === 'r') { const c = chunk(refs, ipp('rf'), pg.mr); mid = slide(idx + '-' + pg.mr, afs('rf'), '🏥 רפואה שלמה', <div className="pgw">{c.items.map((r) => <p key={r.id}><b>{fullName(r)}</b>{(r.blessing || r.note) ? ' · ' + (r.blessing || r.note) : ''}</p>)}</div>, dotStr(c.pages, pg.mr)); }
   else if (cur.k === 'tall') {
@@ -360,12 +367,12 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       <b>{ptitle}</b>{hText && <div className="hf">הפטרה: {hText}</div>}{(st.pSub || pi.sp.length > 0) && <div>{pi.sp.map((x) => <i key={x}>{x}</i>)}{st.pSub && <i>{st.pSub}</i>}</div>}
     </Blk>);
   const cu = V('cu') && <Blk {...B({ id: 'cu', t: 'x', b: 2.6, cls: 'cu', mult: LM === '4' ? 1.3 : 1 })}><span className="cl">💡 מנהגי היום בתפילה:</span>{chips.map((c, i) => <i key={i}>{c}</i>)}</Blk>;
-  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>;
+  const mn = <Blk {...B({ id: 'mn', t: 'r', b: LM === '3' ? 52 : 100 - sdw, cls: 'pn mn', share: LM === '3' ? 0.52 : LM === '4' ? 0.5 : R[0] })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={dur} />}</>}</Blk>;
   const yzList = mems.length ? mems : null, yc = chunk(yzList || [0], ipp('yz'), pg.yz);
   const yz = V('yz') && (
     <Blk {...B({ id: 'yz', t: 's', b: 3, cls: 'pn yz', share: R[1], style: { fontFamily: FONTS[cf('mem').font] } })}>
       <div className="lb">🕯 לעילוי נשמת</div>
-      <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div>
+      <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${m.d ? gem(m.d) : ''} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div>
       <div className="dots">{yc.pages > 1 ? Array.from({ length: yc.pages }, (_, i) => (i === pg.yz % yc.pages ? '●' : '○')).join(' ') : ''}</div>
     </Blk>);
   const rc = chunk(refs, ipp('rf'), pg.rf);
@@ -438,11 +445,11 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
       {!ps && !V('pr') && <div className="rl-ghost" style={RB.pr.hide} />}
       {RB.mn.ghost && <div className="rl-ghost" style={RB.mn.ghost} />}
       {RB.mn.ghost && Math.abs(sa(m4 ? 18.7 : m2 ? 35.6 : 35.5, m4 ? 62.3 : 37.6).d) > 0 && <div className="rl-ghost" style={gh(mnNom[0], mnNom[1], mnNom[2], mnNom[3])} />}
-      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': cur.dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={cur.dur} />}</>}</Blk>
+      <Blk {...B({ id: 'mn', t: 'x', b: 8, cls: 'rl-main ' + RB.mn.cls, share: m4 ? 0.4 : 0.3, mult: m2 ? 1.2 : 1, fit: true, style: RB.mn.style })}><div className="slot" key={'slot-' + idx + '-' + pg.mr}>{mid}</div>{!full && slides.length > 1 && cur && <><i className="prg" key={'prg-' + idx + '-' + pg.mr} style={{ '--d': dur + 's' }} />{st.cdn !== false && <Cd key={'cd-' + idx + '-' + pg.mr} d={dur} />}</>}</Blk>
       {V('yz') ? RB.yz.ghost && <div className="rl-ghost" style={RB.yz.ghost} /> : <div className="rl-ghost" style={RB.yz.hide} />}
       {V('yz') && <Blk {...B({ id: 'yz', t: 'x', b: 3, cls: 'rl-card rl-yz ' + RB.yz.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.yz.style })}>
         <div className="rl-ic nofx"><span className="cndl"><img src="/images/icons/candle_base.png" alt="" /><img className="fl" src="/images/icons/candle_flame.png" alt="" /></span></div><div className="rl-bd"><div className="lb lb1"><FitText text="לעילוי נשמת">לעילוי נשמת</FitText></div>
-        <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${gem(m.d)} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
+        <div className="pgw fade" key={'yz' + pg.yz}>{yzList ? yc.items.map((m) => <div className="yi" key={m.id}><b>{fullName(m)}</b><small>{!m.mode || m.mode === 'y' ? `${m.gender === 'f' ? 'נפטרה' : m.gender === 'p' ? 'נפטרו' : 'נפטר'} ${m.d ? gem(m.d) : ''} ב${monthName(m.month)} • ` : ''}{m.blessing || 'ת.נ.צ.ב.ה'}</small>{m.desc && <small style={{ display: 'block' }}>{m.desc}</small>}</div>) : <div className="yi"><small>אין הנצחות להיום</small></div>}</div></div></Blk>}
       {V('rf') ? RB.rf.ghost && <div className="rl-ghost" style={RB.rf.ghost} /> : <div className="rl-ghost" style={RB.rf.hide} />}
       {V('rf') && <Blk {...B({ id: 'rf', t: 'x', b: 3, cls: 'rl-card rl-rf ' + RB.rf.cls, share: m4 ? 0.2 : 0.27, mult: m2 ? 1.25 : 1, style: RB.rf.style })}>
         <div className="rl-ic"><img src="/images/icons/praying_hands.png" alt="" /></div><div className="rl-bd"><div className="lb">רפואה שלמה</div>
@@ -475,7 +482,7 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   return (
     <div className={`dp fr-${frame} cs-${st.cardStyle || 'clean'}`} data-t="gold" data-tbg={royal ? undefined : tbgOn ? tbgKey : undefined} data-royal={royal ? '1' : undefined} data-lm={LM} data-a={st.anim} style={style}>
       <i className="cn a" /><i className="cn b" /><i className="cn c" /><i className="cn d" />
-      {body}{full}{popup}{(cur?.full || cur?.popup) && slides.length > 0 && <div className="fsprg"><i className="prg" key={'fp-' + idx + '-' + pg.mr} style={{ '--d': (cur.dur || 10) + 's' }} />{st.cdn !== false && <Cd key={'fc-' + idx + '-' + pg.mr} d={cur.dur || 10} />}</div>}
+      {body}{full}{popup}{(cur?.full || cur?.popup) && slides.length > 0 && <div className="fsprg"><i className="prg" key={'fp-' + idx + '-' + pg.mr} style={{ '--d': dur + 's' }} />{st.cdn !== false && <Cd key={'fc-' + idx + '-' + pg.mr} d={dur} />}</div>}
       {status !== 'live' && (quiet
         ? <span title="אין חיבור לאינטרנט – מוצגים הנתונים האחרונים שנשמרו" style={{ position: 'absolute', bottom: 6, left: 8, width: 7, height: 7, borderRadius: '50%', background: '#d9534f', opacity: 0.75 }} />
         : <span style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 10, opacity: 0.6, direction: 'rtl', maxWidth: '70%' }}>● {status === 'demo' ? 'מצב הדגמה · ממתין לחיבור, הנתונים יתעדכנו אוטומטית' : status === 'error' ? 'אין חיבור' : 'מצב גיבוי'}{(() => { const c = diag || ''; if (!c || preview) return null; const why = /operation-not-allowed|admin-restricted/.test(c) ? 'התחברות אנונימית כבויה ב-Firebase Authentication' : /^auth\//.test(c) || authErr ? 'כשל בהתחברות אנונימית' : /permission-denied/.test(c) ? 'אין הרשאת קריאה – בדקו Firestore Rules והתחברות אנונימית' : /not-found/.test(c) ? 'בית הכנסת לא נמצא – בדקו את ?s= בכתובת' : /unavailable|network/.test(c) ? 'אין חיבור לשרת' : ''; return <> · {why ? why + ' · ' : ''}<span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{c}</span></>; })()}</span>)}

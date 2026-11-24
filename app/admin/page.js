@@ -28,13 +28,13 @@ export default function Admin() {
   const asSuper = profile?.role === 'super_admin' && profile.status === 'approved' && !!q;
   const asGabbai = profile && profile.status === 'approved' && profile.synagogueId && ['gabbai', 'sub_gabbai'].includes(profile.role);
   useEffect(() => { if (!loading && q !== undefined && !asSuper && !asGabbai) r.replace(profile?.role === 'super_admin' ? '/super-admin' : '/login'); }, [loading, q, asSuper, asGabbai, profile, r]);
-  if (loading || q === undefined || (!asSuper && !asGabbai)) return <p style={{ padding: 20 }}>בודק הרשאה…</p>;
+  if (loading || q === undefined || (!asSuper && !asGabbai)) return <p className="msg">בודק הרשאה…</p>;
   return <Panel sid={asSuper ? q : profile.synagogueId} role={asSuper ? 'gabbai' : profile.role} superMode={asSuper} />;
 }
 
 function Panel({ sid, role, superMode }) {
   const r = useRouter();
-  const { syn, cols } = useSynagogue(sid);
+  const { syn, cols, status, error } = useSynagogue(sid);
   const screens = useCol(sid, 'screens');
   const [tab, setTab] = useState('content'), [pv, setPv] = useState(false), [sv, setSv] = useState('idle'), [qs, setQs] = useState(''), hist = useRef([]), [hn, setHn] = useState(0);
   // find-as-you-type: hides admin cards that do not contain the text (re-applied when the tab or the DOM changes)
@@ -65,8 +65,8 @@ function Panel({ sid, role, superMode }) {
     const t = setInterval(() => { const idle = Date.now() - last; if (idle > 30 * 60000) { signOut(auth).then(() => r.replace('/login')); } else if (idle > 28 * 60000) setIdleWarn(true); }, 15000);
     return () => { ev.forEach((e) => removeEventListener(e, bump)); clearInterval(t); };
   }, []); // eslint-disable-line
-  if (syn === undefined) return <p style={{ padding: 20 }}>טוען…</p>;
-  if (syn === null) return <p style={{ padding: 20 }}>בית הכנסת לא נמצא.</p>;
+  if (syn === undefined) return <p className="msg">{status === 'error' ? `אין חיבור לשרת – ממתין לנתונים… ${error || ''}` : 'טוען…'}</p>;
+  if (syn === null) return <p className="msg">{status === 'live' ? 'בית הכנסת לא נמצא.' : 'אין חיבור לשרת – ממתין לנתונים…'}</p>; // from the offline cache an empty answer only means "not downloaded yet"
   if (syn.suspended && !superMode) {
     return (<div className="w"><div className="cd"><h2>⏸ החשבון מושהה</h2><p>הגישה לניהול בית הכנסת הוקפאה על ידי מנהל המערכת. לפרטים פנו אליו.</p>
       <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button></div></div>);
@@ -75,24 +75,35 @@ function Panel({ sid, role, superMode }) {
   const plan = syn.plan || { planTier: 'basic', maxScreens: 1, features: {} };
   const feat = (k) => !!plan.features?.[k];
   const getp = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
-  const write = async (p, v) => { setSv('saving'); try { await (v === undefined ? updateDoc(doc(db, 'synagogues', sid), { [`settings.${p}`]: deleteField() }) : setSetting(sid, p, v)); setSv('ok'); setTimeout(() => setSv((x) => (x === 'ok' ? 'idle' : x)), 2200); } catch { setSv('err'); } };
+  /**
+   * Tracks ANY Firestore write (settings, list items, ...) in the "saving / saved / error" chip. Resolves true when the write is acknowledged OR
+   * (offline) when it is still queued after 2.5s - Firestore keeps it and syncs it later; false only when the server rejects it.
+   * Forms use it: true = clear the form, false = keep what the person typed and tell them.
+   */
+  const track = (p) => new Promise((res) => {
+    setSv('saving'); let done = false, late = false;
+    const t = setTimeout(() => { if (!done) { late = true; setSv((x) => (x === 'saving' ? 'queued' : x)); res(true); } }, 2500);
+    Promise.resolve(p).then(() => { done = true; clearTimeout(t); setSv('ok'); setTimeout(() => setSv((x) => (x === 'ok' ? 'idle' : x)), 2200); res(true); },
+      (e) => { done = true; clearTimeout(t); console.error('[maor] save failed:', e?.code || '', e?.message || e); setSv('err'); if (late) alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); res(false); });
+  });
+  const write = (p, v) => track(v === undefined ? updateDoc(doc(db, 'synagogues', sid), { [`settings.${p}`]: deleteField() }) : setSetting(sid, p, v));
   const setW = (p, v) => { const last = hist.current[hist.current.length - 1]; if (!(last && last.p === p && Date.now() - last.t < 4000)) { hist.current.push({ p, old: getp(st, p), t: Date.now() }); if (hist.current.length > 40) hist.current.shift(); setHn(hist.current.length); } else last.t = Date.now(); return write(p, v); };
   const undo = () => { const h = hist.current.pop(); setHn(hist.current.length); if (h) write(h.p, h.old); };
-  const ctx = { sid, syn, st, cols, role, feat, screens, set: setW };
-  const online = screens.filter((s) => s.lastSeen && Date.now() - s.lastSeen.toMillis() < 100000);
-  const left = plan.validUntil ? Math.ceil((new Date(plan.validUntil) - Date.now()) / 864e5) : null;
+  const ctx = { sid, syn, st, cols, role, feat, screens, set: setW, track };
+  const online = screens.filter((s) => s.lastSeen?.toMillis && Date.now() - s.lastSeen.toMillis() < 100000);
+  const left0 = plan.validUntil ? Math.ceil((new Date(plan.validUntil) - Date.now()) / 864e5) : null, left = Number.isFinite(left0) ? left0 : null;
   const sub = role === 'sub_gabbai';
   return (
     <div className="admin-root">
       <div className="w">
-        {superMode && <div className="plan" style={{ background: '#1f3a8a', color: '#fff' }}><span>🛡 מצב Super Admin: שליטה מלאה ב״{syn.name}״</span><button className="b g" style={{ color: '#fff' }} onClick={() => r.push('/super-admin')}>← חזרה לניהול מערכת</button></div>}
-        {syn.suspended && <div className="plan" style={{ background: 'var(--bad)', color: '#fff' }}>⏸ בית הכנסת מושהה (הגבאי חסום, המסך מציג הודעת השהיה)</div>}
+        {superMode && <div className="plan info"><span>🛡 מצב Super Admin: שליטה מלאה ב״{syn.name}״</span><button className="b g" onClick={() => r.push('/super-admin')}>← חזרה לניהול מערכת</button></div>}
+        {syn.suspended && <div className="plan bad">⏸ בית הכנסת מושהה (הגבאי חסום, המסך מציג הודעת השהיה)</div>}
         <div className="plan"><span>⭐ חבילת {{ basic: 'בסיס', pro: 'PRO', premium: 'פרימיום' }[plan.planTier]}</span>
           <span>{online.length} מתוך {plan.maxScreens >= 99 ? '∞' : plan.maxScreens} מסכים פעילים{online.length > plan.maxScreens && ' ⚠'}</span>
           <span>{left === null ? 'ללא הגבלת זמן' : left >= 0 ? `${left} ימי מנוי נותרו` : 'המנוי פג'}</span></div>
-        {idleWarn && <div className="plan" style={{ background: 'var(--bad)', color: '#fff' }}>⏳ אין פעילות – תנותקו אוטומטית בעוד דקה. לחצו על המסך כדי להישאר מחוברים.</div>}
+        {idleWarn && <div className="plan bad">⏳ אין פעילות – תנותקו אוטומטית בעוד דקה. לחצו על המסך כדי להישאר מחוברים.</div>}
         <div className="top"><h1>ניהול · {syn.name}</h1><div className="row" style={{ flex: '0 0 auto' }}>
-          {sv !== 'idle' && <span className={`svchip ${sv}`}>{sv === 'saving' ? 'שומר…' : sv === 'ok' ? 'נשמר ✓' : 'שגיאת שמירה – בדקו חיבור'}</span>}
+          {sv !== 'idle' && <span className={`svchip ${sv}`}>{sv === 'saving' ? 'שומר…' : sv === 'ok' ? 'נשמר ✓' : sv === 'queued' ? 'ממתין לחיבור – יישמר אוטומטית' : 'שגיאת שמירה – בדקו חיבור'}</span>}
           {hn > 0 && <button className="b g" type="button" title="בטל את השינוי האחרון" onClick={undo}>↶ בטל ({hn})</button>}
           <button className="b g" type="button" title="תצוגה מקדימה של המסך" onClick={() => setPv(true)}>👁 תצוגה מקדימה</button>
           {!superMode && <button className="b g" onClick={() => signOut(auth).then(() => r.replace('/login'))}>יציאה</button>}</div></div>

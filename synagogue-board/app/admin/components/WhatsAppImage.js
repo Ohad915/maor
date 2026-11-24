@@ -463,7 +463,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
     const text = `${d.name}${d.parsha ? ' · ' + d.parsha : ''}`;
     const file = new File([await (await fetch(png)).blob()], 'times.png', { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], text, title: d.name }); return; } catch (e) { if (e.name === 'AbortError') return; } }
-    download(); window.open(st.waLink || `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    download(); window.open(/^https:\/\//i.test(String(st.waLink || '').trim()) ? String(st.waLink).trim() : `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     setMsg('התמונה ירדה למכשיר. צרפו אותה בקבוצת הווטסאפ שנפתחה.');
   }
   return (
@@ -472,7 +472,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
       <Switch label="הצג הפטרה בתמונה" on={st.waHaftara !== false} onChange={(v) => set('waHaftara', v)} />
       <label>סוג התמונה</label>
       <div className="row">{[['shabbat', 'שבת ומועדים (כולל ערב שבת)'], ['weekday', 'ימי חול (א׳–ה׳)']].map(([k, l]) => <button key={k} type="button" className={`opt ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{l}</button>)}</div>
-      <div style={{ fontSize: 12, color: 'var(--mu)', margin: '4px 0' }}>{kind === 'shabbat' ? 'תמונת שבת: הדלקת נרות, מנחה וקבלת שבת של יום שישי, שבת ומוצאי שבת – הכל ממוין לפי שעה, עם כותרת לכל חלק. כל שיעורי התורה והתהילים של השבת נכללים.' : 'תמונת חול: כל השיעורים של ימי החול, וימים א׳–ה׳ בלבד (תפילות בוקר של שישי מצורפות). שישי בערב נמצא בתמונת השבת. אם מפיקים בשישי/שבת – הזמנים של יום ראשון הקרוב.'}</div>
+      <div className="mu12">{kind === 'shabbat' ? 'תמונת שבת: הדלקת נרות, מנחה וקבלת שבת של יום שישי, שבת ומוצאי שבת – הכל ממוין לפי שעה, עם כותרת לכל חלק. כל שיעורי התורה והתהילים של השבת נכללים.' : 'תמונת חול: כל השיעורים של ימי החול, וימים א׳–ה׳ בלבד (תפילות בוקר של שישי מצורפות). שישי בערב נמצא בתמונת השבת. אם מפיקים בשישי/שבת – הזמנים של יום ראשון הקרוב.'}</div>
       {kind === 'shabbat' && <div><label>ברכה</label><select value={greet} onChange={(e) => setGreet(e.target.value)}><option value="auto">אוטומטי</option><option value="shabbat">שבת שלום ומבורך</option><option value="chag">חג שמח</option></select></div>}
       <Switch label="הצג שיעורי תורה" on={opt.lessons} onChange={tg('lessons')} />
       <Switch label="הצג זמן רבינו תם" on={opt.rt} onChange={tg('rt')} />
@@ -483,7 +483,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
       {png && <>
         <img src={png} alt="תמונת זמנים" style={{ width: '100%', maxWidth: 420, display: 'block', margin: '12px auto', borderRadius: 10, border: '1px solid var(--ln)' }} />
         <div className="row"><button className="b" onClick={share}>שתף בווטסאפ</button><button className="b g" onClick={download}>הורד תמונה (PNG)</button></div>
-        {!st.waLink && <div style={{ fontSize: 12, color: 'var(--mu)' }}>קישור לקבוצה מגדירים בהגדרות מערכת.</div>}
+        {!st.waLink && <div className="mu12">קישור לקבוצה מגדירים בהגדרות מערכת.</div>}
       </>}
       {msg && <div style={{ fontSize: 13, color: 'var(--mu)' }}>{msg}</div>}
     </Card>);

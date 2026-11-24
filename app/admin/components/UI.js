@@ -11,8 +11,10 @@ export const Card = ({ title, children, className = '', fold, open }) => fold
 export function DebIn({ value, onChange, delay = 400, ...p }) {
   const [v, setV] = useState(value), t = useRef(null), last = useRef(value);
   useEffect(() => { if (value !== last.current) { last.current = value; setV(value); } }, [value]);
-  useEffect(() => () => clearTimeout(t.current), []);
-  const push = (x) => { clearTimeout(t.current); t.current = setTimeout(() => { last.current = x; onChange(x); }, delay); };
+  const pend = useRef({ has: false, x: null }), cb = useRef(onChange); cb.current = onChange;
+  // leaving the tab within the debounce window must not lose the last change: flush it on unmount instead of dropping it
+  useEffect(() => () => { clearTimeout(t.current); if (pend.current.has) { pend.current.has = false; try { cb.current(pend.current.x); } catch {} } }, []);
+  const push = (x) => { clearTimeout(t.current); pend.current = { has: true, x }; t.current = setTimeout(() => { pend.current.has = false; last.current = x; cb.current(x); }, delay); };
   return <input {...p} value={v} onChange={(e) => { const x = p.type === 'range' ? +e.target.value : e.target.value; setV(x); push(x); }} />;
 }
 /** Text input that saves on blur (one Firestore write, not one per keystroke). */
@@ -35,7 +37,7 @@ export const Switch = ({ on, onChange, label }) => (
 export const Range = ({ label, min, max, value, onChange }) => (
   <><label>{label}: {value}</label><DebIn type="range" min={min} max={max} value={value} onChange={onChange} /></>);
 export const Lock = ({ title }) => (
-  <div className="cd" style={{ borderStyle: 'dashed' }}><b>🔒 {title}</b><div style={{ color: 'var(--mu)', fontSize: 13 }}>זמין בחבילת PRO / פרימיום</div><button className="b" disabled>שדרג עכשיו</button></div>);
+  <div className="cd dashed"><b>🔒 {title}</b><div className="mu">זמין בחבילת PRO / פרימיום</div><button className="b" disabled>שדרג עכשיו</button></div>);
 /** Hebrew-only date picker: day (א׳-ל׳) + Hebrew month (incl. אדר א׳/ב׳). */
 export function HebPick({ value, onChange }) {
   const v = value || { d: 1, m: 'Tishri' };

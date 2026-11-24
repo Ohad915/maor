@@ -1,23 +1,40 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { collection, doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { addItem, delItem, updItem } from '@/lib/db';
-import { SCREEN_NAMES } from '@/lib/types';
+import { SCREEN_NAMES, isRoyal } from '@/lib/types';
 import { PDAYS, pdayOf, sortPrayers } from '@/lib/zmanim';
-import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, resolveSpan, nowAbs, memOn, fullName, spanOf, hebFromAbs, keepSpan } from '@/lib/hebrew';
+import { gem, hebOf, holNames, LDAY_NAMES, LESSON_TYPES, TITLE_PREFIXES, lessonDays, lessonDaysLabel, lessonType, lessonWho, monthName, rdOf, refuahOn, nowAbs, memOn, fullName, spanOf, hebFromAbs, keepSpan } from '@/lib/hebrew';
 import { DH_SOURCES, isLive, pickDaily } from '@/lib/dailyHalacha';
 import ZmanimCard from '../components/ZmanimCard';
 import PsalmsFullscreenSlide from '@/components/PsalmsSlide';
 import { PS_DEFAULT, psalmsPages, psalmsSummary } from '@/lib/psalms';
 import { Card, HebPick, Lock, ModeSel, Range, ScreenSel, Switch, TextIn, parseY } from '../components/UI';
 
+const SAVE_FAIL = 'השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב';
+const clean = (o) => JSON.parse(JSON.stringify(o)); // Firestore rejects `undefined` field values
+/** All writes of one list go through the panel's tracker (ctx.track): a failure shows in the save chip instead of vanishing as an unhandled rejection. */
+function ops(track, sid) {
+  const t = track || ((p) => Promise.resolve(p).then(() => true, () => false));
+  const run = (fn) => { try { return t(fn()); } catch (e) { console.error('[maor] write failed:', e); return t(Promise.reject(e)); } }; // also catches synchronous SDK errors
+  return { run, upd: (col, id, data) => run(() => updItem(sid, col, id, data)), del: (col, id) => run(() => delItem(sid, col, id)) };
+}
+/** Form save: waits for the write. Saved (or queued offline) = clear the form; rejected = keep what was typed and say so. */
+async function commit(run, ed, fn) { const ok = await run(fn); if (ok) ed.reset(); else alert(SAVE_FAIL); return ok; }
 const Del = ({ onClick }) => <button className="b d" style={{ flex: '0 0 auto' }} onClick={() => { if (confirm('למחוק? הפעולה אינה ניתנת לשחזור.')) onClick(); }}>מחק</button>;
-const TkChk = ({ on, onChange }) => <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={!!on} onChange={(e) => onChange(e.target.checked)} />בסרגל הרץ</label>;
+/** ticker checkbox. lock = the running bar cannot show anything on this plan / is switched off, so the box would do nothing. */
+const TkChk = ({ on, onChange, lock }) => <label title={lock ? 'הסרגל הרץ אינו פעיל: זמין בחבילת PRO / פרימיום ובהגדרות ״עיצוב ותצוגה״' : undefined} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto', opacity: lock && !on ? 0.5 : 1 }}><input type="checkbox" style={{ width: 'auto' }} disabled={!!lock && !on} checked={!!on} onChange={(e) => onChange(e.target.checked)} />בסרגל הרץ</label>;
+const tkLock = (st, feat) => !feat?.('runningTicker') || st?.vis?.tk === false;
 const Edit = ({ onClick, on }) => <button className="b g" style={{ flex: '0 0 auto' }} onClick={onClick}>{on ? 'סגור עריכה' : 'ערוך'}</button>;
-const modeVal = (x) => x.mode ?? (x.on === false ? 'off' : 'block');
+const modeVal = (x) => (['off', 'block', 'full'].includes(x.mode) ? x.mode : x.on === false ? 'off' : 'block'); // legacy rows may hold another value in `mode` (e.g. a time mode): the display shows those as a normal block
 const HB = { d: 1, m: 'Tishri' };
 /** Form that is used both for adding and for editing an existing item (refilled by the "ערוך" button). */
-function useEditor(blank) {
+function useEditor(blank, ids) {
   const [f, setF] = useState(blank), [eid, setEid] = useState(null), ref = useRef(null);
+  // the item being edited was deleted (here or on another device): drop the stale id, otherwise "עדכן" would write to a document that no longer exists
+  const gone = !!eid && Array.isArray(ids) && !ids.includes(eid);
+  useEffect(() => { if (gone) { setF(blank); setEid(null); } }, [gone]); // eslint-disable-line
   return { f, setF, eid, ref,
     load: (item, id) => { setF({ ...blank, ...item }); setEid(id); ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
     reset: () => { setF(blank); setEid(null); } };
@@ -42,17 +59,20 @@ export default function ContentTab({ ctx }) {
 }
 
 const NUSACH = { ashkenaz: 'אשכנז', sefard: 'ספרד', edot_hamizrach: 'עדות המזרח' };
-function Parsha({ st, set, syn }) {
+function Parsha({ st, set, syn, feat }) {
+  const royal = isRoyal(st);
   return (
     <Card title="📜 פרשת שבוע והפטרה">
       <Switch label="הצג בסרגל הרץ (Ticker)" on={st.tkParsha} onChange={(v) => set('tkParsha', v)} />
+      {tkLock(st, feat) && <div style={{ color: 'var(--mu)', fontSize: 12 }}>הסרגל הרץ אינו פעיל כרגע (זמין בחבילת PRO / פרימיום, ומופעל בלשונית ״עיצוב ותצוגה״) – ההגדרה תיכנס לתוקף כשיופעל.</div>}
       <label>זיהוי הפרשה</label>
       <div className="row">{[['auto', 'אוטומטי'], ['manual', 'ידני']].map(([k, l]) => <button key={k} className={`opt ${st.pMode === k ? 'on' : ''}`} onClick={() => set('pMode', k)}>{l}</button>)}</div>
       <label>שם פרשה / אירוע (במצב ידני)</label><TextIn value={st.pTitle} onSave={(v) => set('pTitle', v)} placeholder="פרשת בראשית" />
       <label>כותרת משנה</label><TextIn value={st.pSub} onSave={(v) => set('pSub', v)} placeholder="שבת חתן" />
-      <Switch label="להציג גם כשקופית בקרוסלה" on={st.pSlide} onChange={(v) => set('pSlide', v)} />
+      {royal ? <div style={{ color: 'var(--mu)', fontSize: 12 }}>במצב ״מקדש ומלכות״ הפרשה מוצגת תמיד בלוח עצמו, ולכן אין שקופית פרשה בקרוסלה.</div>
+        : <Switch label="להציג גם כשקופית בקרוסלה" on={st.pSlide} onChange={(v) => set('pSlide', v)} />}
       <hr style={{ border: 0, borderTop: '1px solid var(--ln)', margin: '12px 0' }} />
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>ההפטרה מזוהה אוטומטית לפי פרופיל המנהג שנבחר בלשונית זמני תפילות ({NUSACH[syn.nusach] || 'אשכנז'}), בלי מספרי פסוקים.</div>
+      <div className="mu">ההפטרה מזוהה אוטומטית לפי פרופיל המנהג שנבחר בלשונית זמני תפילות ({NUSACH[syn.nusach] || 'אשכנז'}), בלי מספרי פסוקים.</div>
       <Switch label="הצג הפטרה במסך" on={st.hfShow} onChange={(v) => set('hfShow', v)} />
       <label>עריכת הפטרה ידנית (שבתות מיוחדות, שבת חתן)</label><TextIn value={st.hfText} onSave={(v) => set('hfText', v)} placeholder="למשל: שמואל א׳" />
     </Card>);
@@ -61,17 +81,24 @@ function Parsha({ st, set, syn }) {
 const dowToDays = (a) => (a.length === 7 ? 'all' : a.length === 1 && a[0] === 6 ? 'shab' : a.length === 6 && !a.includes(6) ? 'week' : 'multi');
 /** Multi-select weekday chips + quick presets (all weekdays / whole week). */
 function DayPicker({ value, onChange }) {
-  const v = value || [], tog = (i) => onChange(v.includes(i) ? v.filter((x) => x !== i) : [...v, i].sort());
+  const v = Array.isArray(value) ? value : [], tog = (i) => onChange(v.includes(i) ? v.filter((x) => x !== i) : [...v, i].sort());
   return (<div>
     <div className="pills" style={{ flexWrap: 'wrap', overflow: 'visible' }}>{LDAY_NAMES.map((n, i) => <button key={i} type="button" className={`opt ${v.includes(i) ? 'on' : ''}`} aria-pressed={v.includes(i)} onClick={() => tog(i)}>{n}</button>)}</div>
     <div className="row" style={{ marginTop: 4 }}><button type="button" className="b g" onClick={() => onChange([0, 1, 2, 3, 4, 5])}>כל ימי החול</button><button type="button" className="b g" onClick={() => onChange([0, 1, 2, 3, 4, 5, 6])}>כל השבוע</button><button type="button" className="b g" onClick={() => onChange([6])}>שבת בלבד</button><button type="button" className="b g" onClick={() => onChange([])}>נקה</button></div>
   </div>);
 }
-function Lessons({ sid, cols, st, set }) {
-  const ed = useEditor({ type: 'lesson', titlePrefix: '', title: '', rabbi: '', place: 'בית המדרש', days: 'week', dow: [0, 1, 2, 3, 4, 5], tmode: 'fixed', val: '20:00', showWa: true, screen: 'all' }), { f, setF } = ed;
+const lmode = (l) => l.tmode || (['fixed', 'sunset', 'sunrise'].includes(l.mode) ? l.mode : 'fixed'); // same rule as the display (prayerTime): tmode first, legacy rows kept the time mode in `mode`
+function Lessons({ sid, cols, st, set, feat, track }) {
+  const { run, upd, del } = ops(track, sid), lock = tkLock(st, feat);
+  const ed = useEditor({ type: 'lesson', titlePrefix: '', title: '', rabbi: '', place: 'בית המדרש', days: 'week', dow: [0, 1, 2, 3, 4, 5], tmode: 'fixed', val: '20:00', showWa: true, screen: 'all' }, (cols.lessons || []).map((x) => x.id)), { f, setF } = ed;
   const LT = LESSON_TYPES[f.type] || LESSON_TYPES.lesson, preOther = !!f.titlePrefix && !TITLE_PREFIXES.includes(f.titlePrefix) || f.prefOther;
-  const save = () => { if (!f.title.trim() || !(f.dow || []).length) return; const { prefOther, ...rest } = f, g = { ...rest, titlePrefix: (f.titlePrefix || '').trim(), days: dowToDays(f.dow) }; ed.eid ? updItem(sid, 'lessons', ed.eid, g) : addItem(sid, 'lessons', { ...g, mode: 'block' }); ed.reset(); };
-  const when = (l) => (l.tmode === 'fixed' ? l.val : `${l.tmode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+l.val > 0 ? '+' : ''}${l.val}`);
+  const save = () => {
+    if (!f.title.trim()) return alert('יש להזין שם לשיעור');
+    if (!(f.dow || []).length) return alert('יש לבחור לפחות יום אחד.');
+    const { prefOther, ...rest } = f, g = clean({ ...rest, title: f.title.trim(), titlePrefix: (f.titlePrefix || '').trim(), days: dowToDays(f.dow) });
+    return commit(run, ed, () => (ed.eid ? updItem(sid, 'lessons', ed.eid, g) : addItem(sid, 'lessons', { ...g, mode: 'block' })));
+  };
+  const when = (l) => (lmode(l) === 'fixed' ? l.val : `${lmode(l) === 'sunset' ? 'שקיעה' : 'הנץ'} ${+l.val > 0 ? '+' : ''}${l.val}`);
   return (<>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת מפגש' : '📚 שיעור תורה / אמירת תהילים חדש'}>
       <label>סוג המפגש</label>
@@ -81,7 +108,7 @@ function Lessons({ sid, cols, st, set }) {
         <div><label>תואר</label><select value={preOther ? '__o' : f.titlePrefix || ''} onChange={(e) => e.target.value === '__o' ? setF({ ...f, prefOther: true, titlePrefix: TITLE_PREFIXES.includes(f.titlePrefix) ? '' : f.titlePrefix }) : setF({ ...f, prefOther: false, titlePrefix: e.target.value })}><option value="">ללא תואר</option>{TITLE_PREFIXES.map((x) => <option key={x} value={x}>{x}</option>)}<option value="__o">אחר (הזנה חופשית)…</option></select></div>
         <div style={{ flex: '2 1 160px' }}><label>{LT.who}</label><input value={f.rabbi} onChange={(e) => setF({ ...f, rabbi: e.target.value })} /></div></div>
       {preOther && <><label>תואר מותאם</label><input value={f.titlePrefix || ''} onChange={(e) => setF({ ...f, titlePrefix: e.target.value })} placeholder="למשל: ד״ר, הגברת, הרה״ג" /></>}
-      {f.rabbi && <div style={{ color: 'var(--mu)', fontSize: 13 }}>יוצג: {lessonWho(f)}</div>}
+      {f.rabbi && <div className="mu">יוצג: {lessonWho(f)}</div>}
       <label>מיקום</label><input list="places" value={f.place} onChange={(e) => setF({ ...f, place: e.target.value })} /><datalist id="places"><option value="היכל" /><option value="בית המדרש" /><option value="עזרת נשים" /><option value="לובי" /></datalist>
       <label>ימי השיעור (אפשר לבחור כמה)</label><DayPicker value={f.dow} onChange={(v) => setF({ ...f, dow: v })} />
       {!(f.dow || []).length && <div style={{ color: 'var(--bad)', fontSize: 13 }}>יש לבחור לפחות יום אחד.</div>}
@@ -93,7 +120,7 @@ function Lessons({ sid, cols, st, set }) {
       <FormBtns ed={ed} onSave={save} label={lessonType(f) === 'psalms' ? 'הוסף אמירת תהילים' : 'הוסף שיעור'} />
     </Card></div>
     <Card fold title="🖥️ מסך מרוכז: שיעורי תורה ואמירת תהילים">
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית אחת במסך התצוגה עם כל השיעורים והתהילים, מופרדים בצבעים (שיעורי תורה בכחול, תהילים בוורוד) וממוינים לפי שעה. כשהיא פעילה, שקופיות השיעורים הבודדות לא מוצגות.</div>
+      <div className="mu">שקופית אחת במסך התצוגה עם כל השיעורים והתהילים, מופרדים בצבעים (שיעורי תורה בכחול, תהילים בוורוד) וממוינים לפי שעה. כשהיא פעילה, שקופיות השיעורים הבודדות לא מוצגות.</div>
       <label>הצגה</label>
       <select value={st.lsAll?.mode === 'full' ? 'popup' : st.lsAll?.mode || 'off'} onChange={(e) => set('lsAll.mode', e.target.value)}><option value="off">כבוי – שקופית נפרדת לכל שיעור</option><option value="block">בלוק בקרוסלה – כל המפגשים יחד</option><option value="popup">מסך מלא – מגילת קלף מלכותית</option></select>
       <label>טווח</label>
@@ -101,18 +128,23 @@ function Lessons({ sid, cols, st, set }) {
       <Range label="זמן תצוגה לשקופית (בשניות)" min={5} max={40} value={st.lsAll?.secs || 12} onChange={(v) => set('lsAll.secs', v)} />
     </Card>
     {(cols.lessons || []).map((l) => (
-      <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div style={{ color: 'var(--mu)', fontSize: 14 }}>{[lessonWho(l), l.place].filter(Boolean).join(' · ')}</div>
+      <Card key={l.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{l.title}</b><div className="mu">{[lessonWho(l), l.place].filter(Boolean).join(' · ')}</div>
         <span className={`tag ${lessonType(l) === 'psalms' ? 'ok' : ''}`}>{LESSON_TYPES[lessonType(l)].ico} {LESSON_TYPES[lessonType(l)].name}</span><span className="tag">{lessonDaysLabel(l)}</span><span className="tag" style={{ direction: 'ltr' }}>{when(l)}</span>{l.showWa !== false && <span className="tag ok">WhatsApp</span>}</div></div>
-        <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => updItem(sid, 'lessons', l.id, { mode: v })} /><TkChk on={l.ticker} onChange={(v) => updItem(sid, 'lessons', l.id, { ticker: v })} /><ScreenSel value={l.screen} onChange={(v) => updItem(sid, 'lessons', l.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ type: lessonType(l), titlePrefix: l.titlePrefix || '', title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: l.tmode || 'fixed', val: l.val || '', showWa: l.showWa !== false, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => delItem(sid, 'lessons', l.id)} /></div></Card>))}
+        <div className="row"><ModeSel value={modeVal(l)} onChange={(v) => upd('lessons', l.id, { mode: v })} /><TkChk lock={lock} on={l.ticker} onChange={(v) => upd('lessons', l.id, { ticker: v })} /><ScreenSel value={l.screen} onChange={(v) => upd('lessons', l.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ type: lessonType(l), titlePrefix: l.titlePrefix || '', title: l.title, rabbi: l.rabbi || '', place: l.place || '', days: l.days || 'week', dow: lessonDays(l), tmode: lmode(l), val: l.val || '', showWa: l.showWa !== false, screen: l.screen || 'all' }, l.id)} /><Del onClick={() => del('lessons', l.id)} /></div></Card>))}
   </>);
 }
 
-function Halacha({ sid, st, set, cols }) {
-  const ed = useEditor({ title: '', text: '', screen: 'all' }), { f, setF } = ed;
-  const am = st.hl.autoMode ?? (st.hl.auto === false || st.hl.mode === 'off' ? 'off' : st.hl.mode === 'full' ? 'full' : 'block');
+function Halacha({ sid, st, set, cols, track }) {
+  const { run, upd, del } = ops(track, sid);
+  const ed = useEditor({ title: '', text: '', screen: 'all' }, (cols.halacha || []).map((x) => x.id)), { f, setF } = ed;
+  const hl = st.hl || {}, am = hl.autoMode ?? (hl.auto === false || hl.mode === 'off' ? 'off' : hl.mode === 'full' ? 'full' : 'block');
   const dh = { on: false, src: 'live_hy', mode: 'block', secs: 20, manual: '', ...(st.dh || {}) }, todayH = pickDaily({ src: isLive(dh.src) ? 'sefard' : dh.src, dayNum: rdOf(new Date(), 0), holidays: holNames(new Date(), false), dow: new Date().getDay() });
-  const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'halacha', ed.eid, f) : addItem(sid, 'halacha', { ...f, mode: 'block' }); ed.reset(); };
+  const save = () => {
+    if (!f.title.trim()) return alert('יש להזין כותרת');
+    const g = clean({ ...f, title: f.title.trim() });
+    return commit(run, ed, () => (ed.eid ? updItem(sid, 'halacha', ed.eid, g) : addItem(sid, 'halacha', { ...g, mode: 'block' })));
+  };
   return (<>
     <Card fold title="🤖 מנהגי היום – תזכורות בתפילה (אוטומטי / ידני)">
       <div className="row">{[['auto', 'אוטומטי'], ['both', 'אוטומטי + ידני'], ['manual', 'ידני בלבד']].map(([k, l]) => <button key={k} className={`b ${(st.customs?.mode || 'auto') === k ? '' : 'g'}`} onClick={() => set('customs.mode', k)}>{l}</button>)}</div>
@@ -130,8 +162,8 @@ function Halacha({ sid, st, set, cols }) {
       <Range label="זמן תצוגת שקופית (בשניות)" min={10} max={60} value={dh.secs} onChange={(v) => set('dh.secs', v)} />
       <label>הלכה ייעודית להיום (רשות – אם ריק, תוצג ההלכה האוטומטית)</label>
       <TextIn area value={dh.manual} placeholder="הקלידו כאן הלכה מותאמת אישית" onSave={(v) => set('dh.manual', v)} />
-      <div style={{ color: 'var(--mu)', fontSize: 13, whiteSpace: 'pre-line' }}><b>{isLive(dh.src) ? 'מקור חי מספריא – ההלכה נמשכת אוטומטית מדי יום. דוגמה ממאגר הגיבוי המובנה:' : 'ההלכה האוטומטית להיום:'}</b> {todayH.title}{'\n'}{todayH.content}{'\n'}<i>{todayH.source}</i></div>
-      <div style={{ color: 'var(--mu)', fontSize: 12 }}>ההלכה מתחלפת אוטומטית בכל יום. מומלץ שרב בית הכנסת יעבור על מאגר ההלכות המובנה.</div>
+      <div className="mu pre"><b>{isLive(dh.src) ? 'מקור חי מספריא – ההלכה נמשכת אוטומטית מדי יום. דוגמה ממאגר הגיבוי המובנה:' : 'ההלכה האוטומטית להיום:'}</b> {todayH.title}{'\n'}{todayH.content}{'\n'}<i>{todayH.source}</i></div>
+      <div className="mu12">ההלכה מתחלפת אוטומטית בכל יום. מומלץ שרב בית הכנסת יעבור על מאגר ההלכות המובנה.</div>
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הלכה' : '✍️ הלכה ידנית חדשה'}>
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
@@ -140,15 +172,20 @@ function Halacha({ sid, st, set, cols }) {
       <FormBtns ed={ed} onSave={save} label="הוסף" />
     </Card></div>
     {(cols.halacha || []).map((i) => (
-      <Card key={i.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{i.title}</b><div style={{ color: 'var(--mu)', fontSize: 14, whiteSpace: 'pre-line' }}>{i.text}</div></div></div>
-        <div className="row"><ModeSel value={modeVal(i)} onChange={(v) => updItem(sid, 'halacha', i.id, { mode: v })} /><ScreenSel value={i.screen} onChange={(v) => updItem(sid, 'halacha', i.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ title: i.title, text: i.text || '', screen: i.screen || 'all' }, i.id)} /><Del onClick={() => delItem(sid, 'halacha', i.id)} /></div></Card>))}
+      <Card key={i.id}><div className="row"><div style={{ flex: '3 1 200px' }}><b>{i.title}</b><div className="mu pre">{i.text}</div></div></div>
+        <div className="row"><ModeSel value={modeVal(i)} onChange={(v) => upd('halacha', i.id, { mode: v })} /><ScreenSel value={i.screen} onChange={(v) => upd('halacha', i.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ title: i.title, text: i.text || '', screen: i.screen || 'all' }, i.id)} /><Del onClick={() => del('halacha', i.id)} /></div></Card>))}
   </>);
 }
 
-function Announcements({ sid, st, set, cols, role, feat, syn }) {
-  const ed = useEditor({ title: '', content: '', screen: 'all', limited: false, from: HB, to: HB }), { f, setF } = ed;
-  const save = () => { if (!f.title.trim()) return; ed.eid ? updItem(sid, 'announcements', ed.eid, f) : addItem(sid, 'announcements', { ...f, mode: 'block' }); ed.reset(); };
+function Announcements({ sid, st, set, cols, role, feat, syn, track }) {
+  const { run, upd, del } = ops(track, sid), lock = tkLock(st, feat);
+  const ed = useEditor({ title: '', content: '', screen: 'all', limited: false, from: HB, to: HB }, (cols.announcements || []).map((x) => x.id)), { f, setF } = ed;
+  const save = () => {
+    if (!f.title.trim()) return alert('יש להזין כותרת');
+    const g = clean({ ...f, title: f.title.trim() });
+    return commit(run, ed, () => (ed.eid ? updItem(sid, 'announcements', ed.eid, g) : addItem(sid, 'announcements', { ...g, mode: 'block' })));
+  };
   return (<>
     {role !== 'sub_gabbai' && (feat('runningTicker')
       ? <Card title="📣 סרגל עדכונים נע (תוכן)"><TextIn value={st.tkText} onSave={(v) => set('tkText', v)} placeholder="טקסט שיגלול בתחתית המסך" /><label>מסך</label><ScreenSel value={st.tkScreen} onChange={(v) => set('tkScreen', v)} /></Card>
@@ -157,15 +194,15 @@ function Announcements({ sid, st, set, cols, role, feat, syn }) {
       <label>כותרת</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
       <label>תוכן (ירידות שורה נשמרות)</label><textarea value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} />
       <label>מסך</label><ScreenSel value={f.screen} onChange={(v) => setF({ ...f, screen: v })} />
-      <label><input type="checkbox" style={{ width: 'auto' }} checked={f.limited} onChange={(e) => setF({ ...f, limited: e.target.checked })} /> הגבל תוקף לפי תאריך עברי (חוזר מדי שנה)</label>
+      <label><input type="checkbox" style={{ width: 'auto' }} checked={!!f.limited} onChange={(e) => setF({ ...f, limited: e.target.checked })} /> הגבל תוקף לפי תאריך עברי (חוזר מדי שנה)</label>
       {f.limited && <><label>מ- (יום וחודש עברי)</label><HebPick value={f.from} onChange={(v) => setF({ ...f, from: v })} /><label>עד</label><HebPick value={f.to} onChange={(v) => setF({ ...f, to: v })} /></>}
       <FormBtns ed={ed} onSave={save} label="הוסף הודעה" />
     </Card></div>
     {(cols.announcements || []).map((a) => (
-      <Card key={a.id}><div style={{ flex: '3 1 200px' }}><b>{a.title}</b><div style={{ color: 'var(--mu)', fontSize: 14, whiteSpace: 'pre-line' }}>{a.content}</div>
+      <Card key={a.id}><div style={{ flex: '3 1 200px' }}><b>{a.title}</b><div className="mu pre">{a.content}</div>
         <span className="tag">{a.screen === 'all' || !a.screen ? 'כל המסכים' : SCREEN_NAMES[a.screen]}</span>{a.limited && <span className="tag">{gem((a.from || HB).d)} {monthName((a.from || HB).m)} – {gem((a.to || HB).d)} {monthName((a.to || HB).m)}</span>}</div>
-        <div className="row"><ModeSel value={modeVal(a)} onChange={(v) => updItem(sid, 'announcements', a.id, { mode: v })} /><TkChk on={a.ticker} onChange={(v) => updItem(sid, 'announcements', a.id, { ticker: v })} />
-          <Edit onClick={() => ed.load({ title: a.title, content: a.content || '', screen: a.screen || 'all', limited: !!a.limited, from: a.from || HB, to: a.to || HB }, a.id)} /><Del onClick={() => delItem(sid, 'announcements', a.id)} /></div></Card>))}
+        <div className="row"><ModeSel value={modeVal(a)} onChange={(v) => upd('announcements', a.id, { mode: v })} /><TkChk lock={lock} on={a.ticker} onChange={(v) => upd('announcements', a.id, { ticker: v })} />
+          <Edit onClick={() => ed.load({ title: a.title, content: a.content || '', screen: a.screen || 'all', limited: !!a.limited, from: a.from || HB, to: a.to || HB }, a.id)} /><Del onClick={() => del('announcements', a.id)} /></div></Card>))}
   </>);
 }
 
@@ -192,23 +229,26 @@ function DedFields({ f, setF, who, yz, ph }) {
   </>);
 }
 const tmodeOf = (x) => x.tmode || (x.mode === 'p' ? 'fixed' : x.mode === 'r' ? 'range' : x.mode === 'y' || (x.d && !x.mode) ? 'y' : x.hs ? 'range' : 'fixed');
-const spanTxt = (x, h) => (x.tmode === 'y' || x.mode === 'y' ? `${gem(x.d)} ב${monthName(x.month)}${x.y ? ' ' + gem(x.y % 1000) : ''}${x.y && h.y > x.y ? ` · ${h.y - x.y} שנים` : ''}` : !x.hs && x.mode !== 'r' ? 'זמן קבוע' : x.mode === 'r' ? `בטווח ${gem(x.from.d)} ${monthName(x.from.m)} – ${gem(x.to.d)} ${monthName(x.to.m)}` : `${gem(hebFromAbs(x.hs).d)} ${monthName(hebFromAbs(x.hs).m)} – ${gem(hebFromAbs(x.he).d)} ${monthName(hebFromAbs(x.he).m)}`);
+const hd2 = (o) => (o && o.d != null ? `${gem(o.d)} ${monthName(o.m)}` : '—');
+const spanTxt = (x, h) => (x.tmode === 'y' || x.mode === 'y' ? (x.d ? `${gem(x.d)} ב${monthName(x.month)}${x.y ? ' ' + gem(x.y % 1000) : ''}${x.y && h.y > x.y ? ` · ${h.y - x.y} שנים` : ''}` : '—') : !x.hs && x.mode !== 'r' ? 'זמן קבוע' : x.mode === 'r' ? `בטווח ${hd2(x.from)} – ${hd2(x.to)}` : `${gem(hebFromAbs(x.hs).d)} ${monthName(hebFromAbs(x.hs).m)} – ${gem(hebFromAbs(x.he).d)} ${monthName(hebFromAbs(x.he).m)}`);
 const StatusBtn = ({ on, onClick }) => <button className="b g" style={{ flex: '0 0 auto' }} onClick={onClick}>{on ? '⏸ השבת' : '▶ הפעל'}</button>;
 
-function Memorials({ sid, st, set, cols, feat }) {
-  const ed = useEditor({ ...DED_BLANK, tmode: 'y', desc: '', d: 1, month: 'Tishri', y: '' }), { f, setF } = ed;
+function Memorials({ sid, st, set, cols, feat, track }) {
+  const { run, upd, del } = ops(track, sid), royal = isRoyal(st), lock = tkLock(st, feat);
+  const ed = useEditor({ ...DED_BLANK, tmode: 'y', desc: '', d: 1, month: 'Tishri', y: '' }, (cols.memorials || []).map((x) => x.id)), { f, setF } = ed;
   const mems = cols.memorials || [], limited = !ed.eid && mems.length >= 10 && !feat('unlimitedMemorials');
   const h = hebOf(new Date(), false);
   const save = async () => {
-    if (!f.name.trim()) return;
+    if (!f.name.trim()) return alert('יש להזין שם');
     const sp = keepSpan(mems.find((q) => q.id === ed.eid), f, spanOf(f, h)), data = { name: f.name.trim(), parent: f.parent.trim(), desc: f.desc, blessing: f.blessing.trim(), screen: f.screen, gender: f.gender, tmode: f.tmode, days: f.days, active: f.active !== false, d: f.d, month: f.month, y: parseY(f.y), from: f.from, to: f.to,
       mode: f.tmode === 'fixed' ? 'p' : f.tmode === 'y' ? 'y' : (mems.find((q) => q.id === ed.eid)?.mode === 'r' && f.tmode === 'range') ? 'r' : 't', hs: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.hs, he: f.tmode === 'fixed' || f.tmode === 'y' ? 0 : sp.he };
-    try { await (ed.eid ? updItem(sid, 'memorials', ed.eid, data) : addItem(sid, 'memorials', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
+    await commit(run, ed, () => (ed.eid ? updItem(sid, 'memorials', ed.eid, clean(data)) : addItem(sid, 'memorials', clean(data))));
   };
   return (<>
     <Card title="רכיב ההנצחה">
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>כותרת הבלוק: 🕯 לעילוי נשמת. ביום הפטירה העברי השם מוצג אוטומטית.</div>
-      <Switch label="הקפצה בקרוסלה ביום הפטירה" on={st.vis?.memPop !== false} onChange={(v) => set('vis.memPop', v)} />
+      <div className="mu">כותרת הבלוק: 🕯 לעילוי נשמת. ביום הפטירה העברי השם מוצג אוטומטית.</div>
+      {royal ? <div style={{ color: 'var(--mu)', fontSize: 12 }}>במצב ״מקדש ומלכות״ ההנצחות מוצגות תמיד בקובייה הקבועה שלהן, ולכן אין הקפצה בקרוסלה.</div>
+        : <Switch label="הקפצה בקרוסלה ביום הפטירה" on={st.vis?.memPop !== false} onChange={(v) => set('vis.memPop', v)} />}
     </Card>
     <div ref={ed.ref}>{limited ? <Lock title="הנצחות ללא הגבלה (מעל 10)" /> : (
       <Card title={ed.eid ? 'עריכת הנצחה' : 'הנצחה חדשה'}>
@@ -217,50 +257,53 @@ function Memorials({ sid, st, set, cols, feat }) {
         <FormBtns ed={ed} onSave={save} label="הוסף הנצחה" />
       </Card>)}</div>
     {mems.map((m) => { const on = memOn(m, h); return <Card key={m.id}><div style={{ flex: '3 1 200px' }}><b>{fullName(m)}</b>{m.desc && <small style={{ whiteSpace: 'pre-line' }}> {m.desc}</small>}
-      <div style={{ color: 'var(--mu)' }}>{spanTxt(m, h)} <span className={`tag ${m.active === false ? '' : 'ok'}`}>{m.active === false ? 'מושבת' : m.mode === 'y' ? 'פעיל' : on ? 'פעיל' : 'לא בתוקף'}</span></div></div>
-      <div className="row"><StatusBtn on={m.active !== false} onClick={() => updItem(sid, 'memorials', m.id, { active: m.active === false })} /><TkChk on={m.ticker} onChange={(v) => updItem(sid, 'memorials', m.id, { ticker: v })} /><ScreenSel value={m.screen} onChange={(v) => updItem(sid, 'memorials', m.id, { screen: v })} />
+      <div className="mu">{spanTxt(m, h)} <span className={`tag ${m.active === false ? '' : 'ok'}`}>{m.active === false ? 'מושבת' : m.mode === 'y' ? 'פעיל' : on ? 'פעיל' : 'לא בתוקף'}</span></div></div>
+      <div className="row"><StatusBtn on={m.active !== false} onClick={() => upd('memorials', m.id, { active: m.active === false })} /><TkChk lock={lock} on={m.ticker} onChange={(v) => upd('memorials', m.id, { ticker: v })} /><ScreenSel value={m.screen} onChange={(v) => upd('memorials', m.id, { screen: v })} />
         <Edit onClick={() => ed.load({ ...DED_BLANK, name: m.name, parent: m.parent || '', desc: m.desc || '', blessing: m.blessing || '', screen: m.screen || 'all', gender: m.gender || 'm', tmode: tmodeOf(m), days: m.days || 7, active: m.active !== false, d: m.d || 1, month: m.month || 'Tishri', y: m.y ? String(m.y) : '', from: m.from || HB, to: m.to || { d: 30, m: 'Tishri' } }, m.id)} />
-        <Del onClick={() => delItem(sid, 'memorials', m.id)} /></div></Card>; })}
+        <Del onClick={() => del('memorials', m.id)} /></div></Card>; })}
   </>);
 }
 
-function Refuah({ sid, st, set, cols }) {
-  const ed = useEditor({ ...DED_BLANK, tmode: 'range', from: HB, to: { d: 30, m: 'Tishri' } }), { f, setF } = ed;
+function Refuah({ sid, st, set, cols, track }) {
+  const { run, upd, del } = ops(track, sid), royal = isRoyal(st);
+  const ed = useEditor({ ...DED_BLANK, tmode: 'range', from: HB, to: { d: 30, m: 'Tishri' } }, (cols.refuah || []).map((x) => x.id)), { f, setF } = ed;
   const h = hebOf(new Date(), false);
   const save = async () => {
-    if (!f.name.trim()) return;
+    if (!f.name.trim()) return alert('יש להזין שם');
     const sp = keepSpan((cols.refuah || []).find((q) => q.id === ed.eid), f, spanOf(f, h));
     const data = { name: f.name.trim(), parent: f.parent.trim(), gender: f.gender, blessing: f.blessing.trim(), note: '', screen: f.screen, tmode: f.tmode, days: f.days, from: f.from, to: f.to, active: f.active !== false, hs: sp.hs, he: sp.he };
-    try { await (ed.eid ? updItem(sid, 'refuah', ed.eid, data) : addItem(sid, 'refuah', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
+    await commit(run, ed, () => (ed.eid ? updItem(sid, 'refuah', ed.eid, clean(data)) : addItem(sid, 'refuah', clean(data))));
   };
   return (<>
     <Card title="🏥 רפואה שלמה">
-      <Switch label="הקפצה בקרוסלת ההודעות" on={st.vis?.rfPop !== false} onChange={(v) => set('vis.rfPop', v)} />
+      {royal ? <div style={{ color: 'var(--mu)', fontSize: 12 }}>במצב ״מקדש ומלכות״ שמות הרפואה השלמה מוצגים תמיד בקובייה הקבועה שלהם, ולכן אין הקפצה בקרוסלה.</div>
+        : <Switch label="הקפצה בקרוסלת ההודעות" on={st.vis?.rfPop !== false} onChange={(v) => set('vis.rfPop', v)} />}
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת שם' : 'שם חדש'}>
       <DedFields f={f} setF={setF} who="שם החולה/ה" />
       <FormBtns ed={ed} onSave={save} label="הוסף" />
     </Card></div>
     {(cols.refuah || []).map((r) => { const on = refuahOn(r, h); return (
-      <Card key={r.id}><div style={{ flex: '3 1 200px' }}><b>{fullName(r)}</b>{(r.blessing || r.note) && <small> {r.blessing || r.note}</small>}<div style={{ color: 'var(--mu)', fontSize: 13 }}>{spanTxt(r, h)} <span className={`tag ${on ? 'ok' : ''}`}>{r.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
-        <div className="row"><StatusBtn on={r.active !== false} onClick={() => updItem(sid, 'refuah', r.id, { active: r.active === false })} /><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'refuah', r.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ ...DED_BLANK, name: r.name, parent: r.parent || '', gender: r.gender || 'm', blessing: r.blessing || r.note || '', screen: r.screen || 'all', tmode: r.tmode || (r.hs ? 'range' : 'fixed'), days: r.days || 7, from: r.from || (r.hs ? hebFromAbs(r.hs) : HB), to: r.to || (r.he ? hebFromAbs(r.he) : { d: 30, m: 'Tishri' }), active: r.active !== false }, r.id)} /><Del onClick={() => delItem(sid, 'refuah', r.id)} /></div></Card>); })}
+      <Card key={r.id}><div style={{ flex: '3 1 200px' }}><b>{fullName(r)}</b>{(r.blessing || r.note) && <small> {r.blessing || r.note}</small>}<div className="mu">{spanTxt(r, h)} <span className={`tag ${on ? 'ok' : ''}`}>{r.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
+        <div className="row"><StatusBtn on={r.active !== false} onClick={() => upd('refuah', r.id, { active: r.active === false })} /><ScreenSel value={r.screen} onChange={(v) => upd('refuah', r.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ ...DED_BLANK, name: r.name, parent: r.parent || '', gender: r.gender || 'm', blessing: r.blessing || r.note || '', screen: r.screen || 'all', tmode: r.tmode || (r.hs ? 'range' : 'fixed'), days: r.days || 7, from: r.from || (r.hs ? hebFromAbs(r.hs) : HB), to: r.to || (r.he ? hebFromAbs(r.he) : { d: 30, m: 'Tishri' }), active: r.active !== false }, r.id)} /><Del onClick={() => del('refuah', r.id)} /></div></Card>); })}
   </>);
 }
 
 const SP_KINDS = [['parnas', 'פרנס השבוע'], ['bracha', 'ברכת השנה'], ['other', 'הקדשה אחרת']];
-function Sponsors({ sid, cols }) {
-  const ed = useEditor({ ...DED_BLANK, kind: 'parnas', title: '', text: '', mode: 'block', secs: 20, tmode: 'days', days: 7 }), { f, setF } = ed;
+function Sponsors({ sid, cols, track }) {
+  const { run, upd, del } = ops(track, sid);
+  const ed = useEditor({ ...DED_BLANK, kind: 'parnas', title: '', text: '', mode: 'block', secs: 20, tmode: 'days', days: 7 }, (cols.sponsors || []).map((x) => x.id)), { f, setF } = ed;
   const h = hebOf(new Date(), false), list = cols.sponsors || [];
   const save = async () => {
-    if (!f.name.trim()) return;
+    if (!f.name.trim()) return alert('יש להזין שם');
     const sp = keepSpan(list.find((q) => q.id === ed.eid), f, spanOf(f, h));
     const data = { kind: f.kind, title: f.title.trim(), name: f.name.trim(), parent: f.parent.trim(), gender: f.gender, blessing: f.blessing.trim(), text: f.text, screen: f.screen, mode: f.mode, secs: Math.min(30, Math.max(5, +f.secs || 20)), tmode: f.tmode, days: f.days, from: f.from, to: f.to, active: f.active !== false, hs: sp.hs, he: sp.he };
-    try { await (ed.eid ? updItem(sid, 'sponsors', ed.eid, data) : addItem(sid, 'sponsors', data)); ed.reset(); } catch { alert('השמירה נכשלה – בדקו חיבור/הרשאות ונסו שוב'); }
+    await commit(run, ed, () => (ed.eid ? updItem(sid, 'sponsors', ed.eid, clean(data)) : addItem(sid, 'sponsors', clean(data))));
   };
   return (<>
     <Card title="🏅 פרנס השבוע / ברכת השנה">
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית הקדשה בקרוסלה של מסך הטלוויזיה. אפשר להגדיר זמן קבוע או זמן קצוב (למשל 7 ימים), לערוך, להשבית ולמחוק בכל עת.</div>
+      <div className="mu">שקופית הקדשה בקרוסלה של מסך הטלוויזיה. אפשר להגדיר זמן קבוע או זמן קצוב (למשל 7 ימים), לערוך, להשבית ולמחוק בכל עת.</div>
     </Card>
     <div ref={ed.ref}><Card title={ed.eid ? 'עריכת הקדשה' : 'הקדשה חדשה'}>
       <label>סוג</label><select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{SP_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
@@ -273,20 +316,33 @@ function Sponsors({ sid, cols }) {
     </Card></div>
     {list.map((x) => { const on = refuahOn(x, h) && (x.mode || 'block') !== 'off'; return (
       <Card key={x.id}><div style={{ flex: '3 1 200px' }}><span className="tag">{(SP_KINDS.find((k) => k[0] === x.kind) || SP_KINDS[0])[1]}{x.kind === 'other' && x.title ? ` · ${x.title}` : ''}</span> <b>{fullName(x)}</b>{x.text && <small style={{ whiteSpace: 'pre-line' }}> {x.text}</small>}
-        <div style={{ color: 'var(--mu)', fontSize: 13 }}>{spanTxt(x, h)} · {x.secs || 20} שנ׳ <span className={`tag ${on ? 'ok' : ''}`}>{x.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
-        <div className="row"><StatusBtn on={x.active !== false} onClick={() => updItem(sid, 'sponsors', x.id, { active: x.active === false })} /><ScreenSel value={x.screen} onChange={(v) => updItem(sid, 'sponsors', x.id, { screen: v })} />
-          <Edit onClick={() => ed.load({ ...DED_BLANK, kind: x.kind || 'parnas', title: x.title || '', name: x.name, parent: x.parent || '', gender: x.gender || 'm', blessing: x.blessing || '', text: x.text || '', screen: x.screen || 'all', mode: x.mode || 'block', secs: x.secs || 20, tmode: x.tmode || (x.hs ? 'range' : 'fixed'), days: x.days || 7, from: x.from || (x.hs ? hebFromAbs(x.hs) : HB), to: x.to || (x.he ? hebFromAbs(x.he) : { d: 30, m: 'Tishri' }), active: x.active !== false }, x.id)} /><Del onClick={() => delItem(sid, 'sponsors', x.id)} /></div></Card>); })}
+        <div className="mu">{spanTxt(x, h)} · {x.secs || 20} שנ׳ <span className={`tag ${on ? 'ok' : ''}`}>{x.active === false ? 'מושבת' : on ? 'פעיל' : 'לא פעיל / פג'}</span></div></div>
+        <div className="row"><StatusBtn on={x.active !== false} onClick={() => upd('sponsors', x.id, { active: x.active === false })} /><ScreenSel value={x.screen} onChange={(v) => upd('sponsors', x.id, { screen: v })} />
+          <Edit onClick={() => ed.load({ ...DED_BLANK, kind: x.kind || 'parnas', title: x.title || '', name: x.name, parent: x.parent || '', gender: x.gender || 'm', blessing: x.blessing || '', text: x.text || '', screen: x.screen || 'all', mode: x.mode || 'block', secs: x.secs || 20, tmode: x.tmode || (x.hs ? 'range' : 'fixed'), days: x.days || 7, from: x.from || (x.hs ? hebFromAbs(x.hs) : HB), to: x.to || (x.he ? hebFromAbs(x.he) : { d: 30, m: 'Tishri' }), active: x.active !== false }, x.id)} /><Del onClick={() => del('sponsors', x.id)} /></div></Card>); })}
   </>);
 }
 
 /** ---- daily psalm: Tehilim of the day (auto by the Hebrew day of month / manual chapter / custom text), full-screen slide with live preview ---- */
+/** carousel (block) mode preview: same content and paging (120 letters / page) as the display's central-panel slide, drawn at preview size */
+function PsBlockPrev({ page, dedication, dots }) {
+  const sup = { fontSize: '.7em', color: '#7a1f1f', marginInlineStart: '.15em' };
+  return (<div dir="rtl" style={{ position: 'absolute', inset: 0, padding: '4cqh 5cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', overflow: 'hidden', color: '#2a1a05', fontFamily: "'Frank Ruhl Libre',serif" }}>
+    <div style={{ fontSize: '6cqh', fontWeight: 900, color: '#8a5a0c' }}>✦ תהילים ✦</div>
+    <h3 style={{ margin: '1.5cqh 0', fontSize: '9cqh', lineHeight: 1.15, color: '#5b3a05' }}>{page.title}{page.range && ' · ' + page.range}</h3>
+    {dedication && dedication.trim() && <p style={{ margin: '0 0 1cqh', fontSize: '6cqh' }}><b>{dedication.trim()}</b></p>}
+    <p style={{ margin: 0, fontSize: '6.4cqh', lineHeight: 1.45, fontWeight: 700, overflow: 'hidden' }}>{page.v.map(([n, t], i) => <span key={i}>{n > 0 && <sup style={sup}>{gem(n).replace(/[׳״]/g, '')}</sup>}{t} </span>)}</p>
+    <small style={{ marginTop: 'auto', fontSize: '5cqh', color: '#8a5a0c' }}>{dots}</small>
+  </div>);
+}
 function PsalmsDaily({ st, set }) {
-  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h), pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 760), [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
+  const c = { ...PS_DEFAULT, ...(st.psalmsConfig || {}) }, h = hebOf(new Date(), false), abs = nowAbs(h);
+  let pages = [], summary = ''; try { pages = psalmsPages(c, h, abs, c.show === 'block' ? 120 : 760) || []; summary = psalmsSummary(c, h, abs); } catch (e) { console.error('[maor] psalms preview failed:', e); } // bad/missing chapter data must never blank the admin tab
+  const [pi0, setPi] = useState(0), pi = Math.min(pi0, Math.max(0, pages.length - 1)), cur = pages[pi];
   const tot = pages.length * Math.min(30, Math.max(5, +c.duration || 15)), mm = Math.floor(tot / 60), ss = tot % 60;
   const M = [['auto', 'אוטומטי · לפי היום בחודש העברי'], ['manual', 'ידני · פרק מסוים'], ['custom', 'טקסט מותאם']];
   return (<>
     <Card title="📖 תהילים יומי">
-      <div style={{ color: 'var(--mu)', fontSize: 13 }}>שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
+      <div className="mu">שקופית מסך מלא עם פרק תהילים מנוקד, בקרוסלה. הטקסט נשמר באפליקציה ועובד גם ללא אינטרנט.</div>
       <Switch label="הצג שקופית תהילים יומי בקרוסלה" on={!!c.on} onChange={(v) => set('psalmsConfig.on', v)} />
       <label>איפה להציג</label>
       <div className="pills" style={{ flexWrap: 'wrap' }}>{[['full', '🖥 מסך מלא'], ['block', '🎞 בקרוסלה (בלוח המרכזי)']].map(([k, l]) => <button key={k} className={`opt ${(c.show || 'full') === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.show', k); setPi(0); }}>{l}</button>)}</div>
@@ -296,78 +352,95 @@ function PsalmsDaily({ st, set }) {
       <select value={c.every || 1} onChange={(e) => set('psalmsConfig.every', +e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n === 1 ? 'בכל סבב של הקרוסלה' : `פעם ב-${n} סבבים`}</option>)}</select>
       <label>מצב</label>
       <div className="pills" style={{ flexWrap: 'wrap' }}>{M.map(([k, l]) => <button key={k} className={`opt ${c.mode === k ? 'on' : ''}`} onClick={() => { set('psalmsConfig.mode', k); setPi(0); }}>{l}</button>)}</div>
-      {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {psalmsSummary(c, h, abs)} (לפי התאריך הלועזי; בלוח, אחרי השקיעה עוברים ליום העברי הבא)</div>}
+      {c.mode === 'auto' && <div className="tag ok" style={{ whiteSpace: 'normal' }}>היום: {summary} (לפי התאריך הלועזי; בלוח, אחרי השקיעה עוברים ליום העברי הבא)</div>}
       {c.mode === 'manual' && <><label>פרק</label><select value={c.manualChapter} onChange={(e) => { set('psalmsConfig.manualChapter', +e.target.value); setPi(0); }}>{Array.from({ length: 150 }, (_, i) => <option key={i} value={i + 1}>{`פרק ${gem(i + 1)} (${i + 1})`}</option>)}</select></>}
       {c.mode === 'custom' && <><label>כותרת</label><TextIn value={c.customTitle} onSave={(v) => set('psalmsConfig.customTitle', v)} /><label>הטקסט (כל שורה = פסקה)</label><TextIn value={c.customText} onSave={(v) => { set('psalmsConfig.customText', v); setPi(0); }} area /></>}
       <label>הקדשה מיוחדת מעל הפרק (למשל: לרפואת …)</label><TextIn value={c.dedicationText} onSave={(v) => set('psalmsConfig.dedicationText', v)} />
       <Range label="זמן תצוגה לכל עמוד (שניות, עד 30)" min={5} max={30} value={c.duration} onChange={(v) => set('psalmsConfig.duration', v)} />
-      {pages.length > 0 && <div style={{ color: 'var(--mu)', fontSize: 13 }}>{(c.pace || 'chapter') === 'chapter' ? `בכל סבב קרוסלה יוצג פרק שלם אחד (${new Set(pages.map((p) => p.chapter)).size} פרקים היום, ${pages.length} עמודים), ואז שאר השקופיות, ואז הפרק הבא.` : (c.pace || 'chapter') === 'page' ? `הפרק מתחלק ל-${pages.length} עמודים. בכל סבב קרוסלה יוצג עמוד אחד בלבד (${Math.min(30, Math.max(5, +c.duration || 15))} שנ׳), והמשך הפרק בסבב הבא${(+c.every || 1) > 1 ? ` (פעם ב-${c.every} סבבים)` : ''}.` : `כל הפרק ברצף: ${pages.length} עמודים · כ-${mm ? mm + ' דק׳ ' : ''}${ss ? ss + ' שנ׳' : ''} בסך הכול.`}</div>}
+      {pages.length > 0 && <div className="mu">{(c.pace || 'chapter') === 'chapter' ? `בכל סבב קרוסלה יוצג פרק שלם אחד (${new Set(pages.map((p) => p.chapter)).size} פרקים היום, ${pages.length} עמודים), ואז שאר השקופיות, ואז הפרק הבא.` : (c.pace || 'chapter') === 'page' ? `הפרק מתחלק ל-${pages.length} עמודים. בכל סבב קרוסלה יוצג עמוד אחד בלבד (${Math.min(30, Math.max(5, +c.duration || 15))} שנ׳), והמשך הפרק בסבב הבא${(+c.every || 1) > 1 ? ` (פעם ב-${c.every} סבבים)` : ''}.` : `כל הפרק ברצף: ${pages.length} עמודים · כ-${mm ? mm + ' דק׳ ' : ''}${ss ? ss + ' שנ׳' : ''} בסך הכול.`}</div>}
       <label>מסך</label><ScreenSel value={c.screen} onChange={(v) => set('psalmsConfig.screen', v)} />
     </Card>
     <Card title="תצוגה מקדימה">
-      {cur ? <><div className="psprev"><PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={pages.length > 10 ? `${pi + 1} / ${pages.length}` : pages.length > 1 ? pages.map((_, k) => (k === pi ? '●' : '○')).join(' ') : ''} /></div>
+      {cur ? <><div className="psprev">{(() => { const dots = pages.length > 10 ? `${pi + 1} / ${pages.length}` : pages.length > 1 ? pages.map((_, k) => (k === pi ? '●' : '○')).join(' ') : ''; return c.show === 'block' ? <PsBlockPrev page={cur} dedication={c.dedicationText} dots={dots} /> : <PsalmsFullscreenSlide page={cur} dedication={c.dedicationText} dots={dots} />; })()}</div>
+        <div style={{ color: 'var(--mu)', fontSize: 12, textAlign: 'center' }}>{c.show === 'block' ? 'כך מוצג בקרוסלה (בלוח המרכזי): עמודים קצרים יותר' : 'כך מוצג במסך מלא'} · עמוד {pi + 1} מתוך {pages.length}</div>
         <div className="row" style={{ justifyContent: 'center' }}><button className="b g" disabled={pi <= 0} onClick={() => setPi(Math.max(0, pi - 1))}>→ הקודם</button><button className="b g" disabled={pi >= pages.length - 1} onClick={() => setPi(Math.min(pages.length - 1, pi + 1))}>הבא ←</button></div></>
-        : <div style={{ color: 'var(--mu)' }}>אין טקסט להצגה – הזינו טקסט מותאם.</div>}
+        : <div className="mu">אין טקסט להצגה – הזינו טקסט מותאם.</div>}
     </Card>
   </>);
 }
 
 const DAYS = PDAYS;
-function Prayers({ sid, cols, st, set, syn }) {
+/** time mode of a prayer row - same rule as the display (prayerTime): `tmode` first, then `mode` */
+const pmode = (r) => r.tmode ?? r.mode ?? 'fixed';
+function Prayers({ sid, cols, st, set, syn, feat, track }) {
+  const { run, upd, del } = ops(track, sid), lock = tkLock(st, feat);
   const [open, setOpen] = useState(null);
-  const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }), o = oe.f, setO = oe.setF;
+  const oe = useEditor({ prayerId: '', kind: 'rc', time: '06:00', day: 1, month: 'Tishri' }, (cols.overrides || []).map((x) => x.id)), o = oe.f, setO = oe.setF;
   const pr = sortPrayers(cols.prayers || []);
   const [drag, setDrag] = useState(null);
-  const moveTo = async (from, to) => { if (from === to || to < 0 || to >= pr.length) return; const a = pr.slice(); const [x] = a.splice(from, 1); a.splice(to, 0, x); await Promise.all(a.map((r, i) => (r.order === i + 1 ? null : updItem(sid, 'prayers', r.id, { order: i + 1 })))); };
-  const saveOv = () => { if (!o.prayerId) return; oe.eid ? updItem(sid, 'overrides', oe.eid, o) : addItem(sid, 'overrides', o); oe.reset(); };
+  const moveTo = (from, to) => { if (from === to || to < 0 || to >= pr.length) return; const a = pr.slice(); const [x] = a.splice(from, 1); a.splice(to, 0, x); return run(() => Promise.all(a.map((r, i) => (r.order === i + 1 ? null : updItem(sid, 'prayers', r.id, { order: i + 1 }))))); };
+  const saveOv = () => {
+    if (!o.prayerId || !pr.some((r) => r.id === o.prayerId)) return alert('יש לבחור תפילה');
+    if (!o.time) return alert('יש להזין שעה');
+    const g = clean({ prayerId: o.prayerId, kind: o.kind, time: o.time, ...(o.kind === 'h' ? { day: +o.day || 1, month: o.month || 'Tishri' } : {}) });
+    return commit(run, oe, () => (oe.eid ? updItem(sid, 'overrides', oe.eid, g) : addItem(sid, 'overrides', g)));
+  };
+  // the new row gets its id up front (doc() needs no network), so it opens for editing at once even offline
+  const addPrayer = async () => {
+    const ref = doc(collection(db, 'synagogues', sid, 'prayers')), order = Math.max(pr.length, ...pr.map((r) => (typeof r.order === 'number' ? r.order : 0))) + 1;
+    if (await run(() => setDoc(ref, { order, name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true, createdAt: Date.now() }))) setOpen(ref.id); else alert(SAVE_FAIL);
+  };
+  // deleting a prayer also removes the point overrides that pointed at it
+  const delPrayer = (r) => { if (open === r.id) setOpen(null); (cols.overrides || []).filter((x) => x.prayerId === r.id).forEach((x) => del('overrides', x.id)); return del('prayers', r.id); };
+  const tm = (r) => (pmode(r) === 'fixed' ? r.val : `${pmode(r) === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`);
   return (<>
     <p style={{ color: 'var(--mu)', fontSize: 14 }}>זמן קבוע (06:15) או יחסי לשקיעה/הנץ בדקות (למשל -20). מחושב בדקה מדויקת לפי המיקום, ללא עיגול. לכל שורה אפשר לסמן אם להציג אותה בסרגל הכותרת העליון ו/או במסך המלא של זמני התפילות.</p>
-    <ZmanimCard sid={sid} syn={syn} st={st} set={set} />
+    <ZmanimCard sid={sid} syn={syn} st={st} set={set} track={track} />
     <Card title="⏰ אופן הצגת זמני התפילות">
       <label>שקופית זמני תפילות</label>
       <select value={st.ptAll?.mode === 'full' ? 'popup' : st.ptAll?.mode || 'off'} onChange={(e) => set('ptAll.mode', e.target.value)}><option value="off">כבוי – זמני התפילות בסרגל העליון בלבד</option><option value="block">בלוק בקרוסלה – כל תפילות היום יחד</option><option value="popup">מסך מלא – מגילת קלף מלכותית (כל תפילות היום)</option></select>
       <Range label="זמן תצוגה לשקופית (בשניות)" min={1} max={30} value={st.ptAll?.secs || 10} onChange={(v) => set('ptAll.secs', v)} />
       <div style={{ color: 'var(--mu)', fontSize: 13 }}>הזמן חל על כל שקופיות התפילות. סימון ☑ ״סרגל עליון״ / ☑ ״מסך מלא״ נעשה בכל תפילה למטה. אופן הסרגלים (קבוע/רץ) – בלשונית ״עיצוב ותצוגה״.</div>
     </Card>
+    {pr.length === 0 && <Card><div style={{ color: 'var(--mu)', fontSize: 14 }}>עדיין לא הוגדרו תפילות. הוסיפו תפילה בכפתור ״+ הוסף תפילה״ למטה – עד אז המסך עשוי להציג זמנים לדוגמה.</div></Card>}
     {pr.map((r, ri) => (
       <div key={r.id} draggable onDragStart={() => setDrag(ri)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) moveTo(drag, ri); setDrag(null); }} style={drag === ri ? { opacity: 0.5 } : undefined}>
       <Card>
         <div className="row prhd" onClick={() => setOpen(open === r.id ? null : r.id)} style={{ cursor: 'pointer' }}>
           <span title="גרור לשינוי סדר" style={{ cursor: 'grab', flex: '0 0 auto' }} onClick={(e) => e.stopPropagation()}>⠿</span><span className="tag">{ri + 1}</span>
           <b style={{ flex: '2 1 110px' }}>{r.name}</b>
-          <span style={{ direction: 'ltr', flex: '0 0 auto' }}>{r.mode === 'fixed' ? r.val : `${r.mode === 'sunset' ? 'שקיעה' : 'הנץ'} ${+r.val > 0 ? '+' : ''}${r.val}`}</span>
-          <span className="tag">{r.dow?.length ? r.dow.map((i) => LDAY_NAMES[i]).join('·') : DAYS[pdayOf(r)]}</span>
-          {(r.bar ?? (r.show ?? 'bar') === 'bar') && <span className="tag ok" title="מוצג בסרגל העליון">סרגל</span>}{['block', 'full'].includes(r.show) && <span className="tag ok" title="מוצג במסך המלא">מסך מלא</span>}
+          <span style={{ direction: 'ltr', flex: '0 0 auto' }}>{tm(r)}</span>
+          <span className="tag">{Array.isArray(r.dow) && r.dow.length ? r.dow.map((i) => LDAY_NAMES[i]).join('·') : DAYS[pdayOf(r)]}</span>
+          {(r.bar ?? (r.show ?? 'bar') === 'bar') && <span className="tag ok" title="מוצג בסרגל העליון">סרגל</span>}{['block', 'full'].includes(r.show) && <span className="tag ok" title="מוצג במסך המלא">מסך מלא</span>}{r.ticker && <span className="tag ok" title="מוצג בסרגל הרץ">סרגל רץ</span>}
           <span style={{ flex: '0 0 auto', color: 'var(--mu)' }}>{open === r.id ? '▲' : '▼'}</span>
         </div>
         {open === r.id && <>
         <div className="row" style={{ marginTop: 8 }}><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === 0} onClick={() => moveTo(ri, ri - 1)}>⬆️</button><button className="b g" style={{ flex: '0 0 auto', padding: '4px 8px' }} disabled={ri === pr.length - 1} onClick={() => moveTo(ri, ri + 1)}>⬇️</button>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={r.bar ?? (r.show ?? 'bar') === 'bar'} onChange={(e) => updItem(sid, 'prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => updItem(sid, 'prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><ScreenSel value={r.screen} onChange={(v) => updItem(sid, 'prayers', r.id, { screen: v })} />
-          <Del onClick={() => delItem(sid, 'prayers', r.id)} /></div>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={!!(r.bar ?? (r.show ?? 'bar') === 'bar')} onChange={(e) => upd('prayers', r.id, { bar: e.target.checked })} />סרגל עליון</label><label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flex: '0 0 auto' }}><input type="checkbox" style={{ width: 'auto' }} checked={['block', 'full'].includes(r.show)} onChange={(e) => upd('prayers', r.id, { show: e.target.checked ? 'full' : 'bar' })} />מסך מלא</label><TkChk lock={lock} on={r.ticker} onChange={(v) => upd('prayers', r.id, { ticker: v })} /><ScreenSel value={r.screen} onChange={(v) => upd('prayers', r.id, { screen: v })} />
+          <Del onClick={() => delPrayer(r)} /></div>
           <div className="prayed">
             <b className="sech">① שם וזמן</b>
-            <div className="row"><div style={{ flex: '2 1 160px' }}><label>שם התפילה</label><TextIn value={r.name} onSave={(v) => updItem(sid, 'prayers', r.id, { name: v })} /></div>
-              <div style={{ flex: '1 1 120px' }}><label>חישוב הזמן</label><select value={r.mode} onChange={(e) => updItem(sid, 'prayers', r.id, { mode: e.target.value })}><option value="fixed">שעה קבועה</option><option value="sunset">יחסית לשקיעה</option><option value="sunrise">יחסית להנץ</option></select></div>
-              <div style={{ flex: '1 1 100px' }}><label>{r.mode === 'fixed' ? 'שעה (06:15)' : 'דקות (למשל -20)'}</label><TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => updItem(sid, 'prayers', r.id, { val: v })} /></div></div>
+            <div className="row"><div style={{ flex: '2 1 160px' }}><label>שם התפילה</label><TextIn value={r.name} onSave={(v) => upd('prayers', r.id, { name: v })} /></div>
+              <div style={{ flex: '1 1 120px' }}><label>חישוב הזמן</label><select value={pmode(r)} onChange={(e) => upd('prayers', r.id, r.tmode != null ? { mode: e.target.value, tmode: e.target.value } : { mode: e.target.value })}><option value="fixed">שעה קבועה</option><option value="sunset">יחסית לשקיעה</option><option value="sunrise">יחסית להנץ</option></select></div>
+              <div style={{ flex: '1 1 100px' }}><label>{pmode(r) === 'fixed' ? 'שעה (06:15)' : 'דקות (למשל -20)'}</label><TextIn value={r.val} style={{ direction: 'ltr' }} onSave={(v) => upd('prayers', r.id, { val: v })} /></div></div>
             <b className="sech">② באילו ימים</b>
-            <label>סוג יום</label><select value={pdayOf(r)} onChange={(e) => updItem(sid, 'prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            <label>סוג יום</label><select value={pdayOf(r)} onChange={(e) => upd('prayers', r.id, { days: e.target.value })}>{Object.entries(DAYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
             <label style={{ marginTop: 6 }}>או ימים ספציפיים בשבוע (גובר על סוג היום)</label>
-            <DayPicker value={r.dow || []} onChange={(v) => updItem(sid, 'prayers', r.id, { dow: v })} />
+            <DayPicker value={r.dow} onChange={(v) => upd('prayers', r.id, { dow: v })} />
             <b className="sech">③ הערה</b>
-            <TextIn value={r.note} placeholder="הערה (רשות) – תוצג ליד הזמן" onSave={(v) => updItem(sid, 'prayers', r.id, { note: v })} />
+            <TextIn value={r.note} placeholder="הערה (רשות) – תוצג ליד הזמן" onSave={(v) => upd('prayers', r.id, { note: v })} />
           </div></>}
       </Card></div>))}
-    <button className="b" onClick={async () => { const d = await addItem(sid, 'prayers', { order: pr.length + 1, name: 'תפילה חדשה', mode: 'fixed', val: '12:00', days: 'week', note: '', screen: 'all', show: 'bar', bar: true }); setOpen(d.id); }}>+ הוסף תפילה</button>
+    <button className="b" onClick={addPrayer}>+ הוסף תפילה</button>
     <h3 style={{ margin: '14px 0 6px' }}>דריסת זמן נקודתית</h3>
     <div ref={oe.ref}><Card title={oe.eid ? 'עריכת דריסה' : null}>
-      <div className="row"><div><label>תפילה</label><select value={o.prayerId} onChange={(e) => setO({ ...o, prayerId: e.target.value })}><option value="">—</option>{pr.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+      <div className="row"><div><label>תפילה</label><select value={pr.some((r) => r.id === o.prayerId) ? o.prayerId : ''} onChange={(e) => setO({ ...o, prayerId: e.target.value })}><option value="">—</option>{pr.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
         <div><label>מתי</label><select value={o.kind} onChange={(e) => setO({ ...o, kind: e.target.value })}><option value="rc">ראש חודש</option><option value="h">תאריך עברי (שנתי)</option></select></div>
         <div><label>שעה</label><input type="time" value={o.time} onChange={(e) => setO({ ...o, time: e.target.value })} /></div></div>
       {o.kind === 'h' && <HebPick value={{ d: o.day, m: o.month }} onChange={(v) => setO({ ...o, day: v.d, month: v.m })} />}
       <FormBtns ed={oe} onSave={saveOv} label="הוסף דריסה" />
     </Card></div>
-    {(cols.overrides || []).map((x) => <Card key={x.id} className="row"><span style={{ flex: '3 1 160px' }}>{pr.find((r) => r.id === x.prayerId)?.name || '?'} ← <b>{x.time}</b> · {x.kind === 'rc' ? 'ראש חודש' : `${gem(x.day)} ${monthName(x.month)}`}</span>
-      <Edit onClick={() => oe.load({ prayerId: x.prayerId, kind: x.kind, time: x.time, day: x.day || 1, month: x.month || 'Tishri' }, x.id)} /><Del onClick={() => delItem(sid, 'overrides', x.id)} /></Card>)}
+    {(cols.overrides || []).map((x) => <Card key={x.id} className="row"><span style={{ flex: '3 1 160px' }}>{pr.find((r) => r.id === x.prayerId)?.name || '?'} ← <b>{x.time}</b> · {x.kind === 'rc' ? 'ראש חודש' : `${gem(x.day || 1)} ${monthName(x.month)}`}</span>
+      <Edit onClick={() => oe.load({ prayerId: x.prayerId, kind: x.kind, time: x.time, day: x.day || 1, month: x.month || 'Tishri' }, x.id)} /><Del onClick={() => del('overrides', x.id)} /></Card>)}
   </>);
 }
-

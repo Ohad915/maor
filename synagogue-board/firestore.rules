@@ -49,7 +49,8 @@ service cloud.firestore {
       allow get: if signedIn() && (request.auth.uid == uid || isSuper());
       allow list: if isSuper();
       // self-registration: always pending, no synagogue yet, never a super admin
-      allow create: if signedIn() && request.auth.uid == uid
+      // anonymous TV sessions are signed in too, so they are explicitly excluded (no junk profiles from screens)
+      allow create: if signedIn() && !isScreen() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['uid', 'email', 'role', 'status', 'synagogueId', 'phone', 'createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.email is string && request.resource.data.email.size() < 200
