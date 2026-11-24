@@ -544,3 +544,5 @@ label{font-size:13px;color:var(--mu)}
 .ptb2 .ptc i{font-size:clamp(2.2cqh,calc(17cqh / var(--m)),6.4cqh)}
 .ptb2 .ptc small{font-size:clamp(1.25cqh,calc(8cqh / var(--m)),2.2cqh);line-height:1.25;white-space:normal}
 .rl-fx{padding:0 1.4cqw}
+.lb1{white-space:nowrap;overflow:hidden;letter-spacing:0!important}
+.rl-yz .yi b,.rl-rf .yi b,.rl-yz .yi small,.rl-rf .yi small{word-break:keep-all;overflow-wrap:normal}

@@ -2,7 +2,7 @@
 //  - /_next/static, /images, /icons, fonts: cache-first (immutable, fast, works offline)
 //  - pages & everything else same-origin: network-first with a 3s timeout, then the cached copy (so a "connected but no internet" Wi-Fi never hangs the screen)
 //  - Firebase / API traffic is never intercepted (Firestore has its own IndexedDB offline cache)
-const V = 'maor-v92', STATIC = 'maor-static', SHELL = ['/', '/display', '/admin', '/login'], FONTS = 'maor-fonts';
+const V = 'maor-v93', STATIC = 'maor-static', SHELL = ['/', '/display', '/admin', '/login'], FONTS = 'maor-fonts';
 self.addEventListener('install', (e) => e.waitUntil(caches.open(V).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) => e.waitUntil(caches.open(STATIC).then((c) => c.keys().then((ks) => ks.length > 600 ? Promise.all(ks.slice(0, ks.length - 400).map((q) => c.delete(q))) : 0)).catch(() => {}).then(() => caches.keys()).then((k) => Promise.all(k.filter((x) => x !== V && x !== FONTS && x !== STATIC).map((x) => caches.delete(x)))).then(() => self.clients.claim())));
 const offlinePage = () => new Response('<!doctype html><meta charset=utf-8><meta http-equiv=refresh content=20><body style="background:#0b1226;color:#fff;font:32px sans-serif;text-align:center;padding-top:20vh">מתחבר מחדש…</body>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } }); // self-refreshing page: a TV is never left on a dead browser error page
