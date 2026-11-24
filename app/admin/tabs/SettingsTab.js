@@ -10,6 +10,23 @@ import { Card, TextIn } from '../components/UI';
 import ScreenLink from '../components/ScreenLink';
 
 /** Synagogue settings: address -> coordinates (kosher-zmanim uses them), Shabbat mode, screen links. */
+/** What the TV is showing right now, worked out locally from the cycle it published once — costs no Firestore write.
+ *  The screen doc holds `cycle` ([{t: title, d: seconds}]) and `cycleAt` (when that cycle started). */
+function NowShowing({ s, live }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(t); }, []);
+  if (!live) return <span style={{ flex: '2 1 150px' }} />;
+  const cy = Array.isArray(s?.cycle) ? s.cycle.filter((c) => c && +c.d > 0) : [];
+  const at = s?.cycleAt?.toMillis?.();
+  let txt = s?.showing || '';
+  if (cy.length && at) {
+    const total = cy.reduce((a, c) => a + +c.d, 0);
+    let left = ((Date.now() - at) / 1000) % total;
+    for (const c of cy) { if (left < +c.d) { txt = c.t; break; } left -= +c.d; }
+  }
+  return <span className="mu12" style={{ flex: '2 1 150px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={txt}>{txt ? '▶ ' + txt : ''}</span>;
+}
+
 function JoinCard({ sid }) {
   const [code, setCode] = useState(null), [m, setM] = useState('');
   const load = () => getDocs(query(collection(db, 'joinCodes'), where('sid', '==', sid))).then((q) => setCode(q.docs[0]?.id || '')).catch(() => setCode(''));
@@ -76,7 +93,7 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols, t
       setBk('השחזור הושלם ✓');
     } catch (e) { console.error('[maor] restore failed:', e); setBk('השחזור נכשל באמצע – בדקו חיבור/הרשאות ונסו שוב (ייתכן שחלק מהנתונים כבר שוחזר).'); }
   };
-  const online = (id) => { const s = screens.find((x) => x.id === id); return !!s?.lastSeen?.toMillis && Date.now() - s.lastSeen.toMillis() < 100000; };
+  const online = (id) => { const s = screens.find((x) => x.id === id); return !!s?.lastSeen?.toMillis && Date.now() - s.lastSeen.toMillis() < 4 * 60000; }; // the TV beats every 3 minutes
   return (<>
     <Card title="בית הכנסת">
       <label>שם בית הכנסת</label><TextIn value={syn.name} onSave={(v) => save({ name: v })} />
@@ -102,7 +119,8 @@ export default function SettingsTab({ ctx: { sid, syn, st, set, screens, cols, t
       {SCREENS.map((id) => (
         <div className="row" key={id} style={{ fontSize: 13 }}>
           <span style={{ flex: '0 0 14px' }}>{screens.some((s) => s.id === id) ? (online(id) ? '🟢' : '🔴') : '⚪'}</span><b style={{ flex: '1 1 80px' }}>{SCREEN_NAMES[id]}</b>
-          <span style={{ flex: '3 1 200px', color: 'var(--mu)', direction: 'ltr' }}>/display?s={sid}&amp;screen={id}</span><ScreenLink sid={sid} screen={id} label="👁️ פתח" />
+          <NowShowing s={screens.find((x) => x.id === id)} live={online(id)} />
+          <span style={{ flex: '2 1 160px', color: 'var(--mu)', direction: 'ltr' }}>/display?s={sid}&amp;screen={id}</span><ScreenLink sid={sid} screen={id} label="👁️ פתח" />
         </div>))}
       <div className="mu12">פתחו את הכתובת בדפדפן הטלוויזיה (Fully Kiosk). המסך מתחבר בעצמו.</div>
     </Card>

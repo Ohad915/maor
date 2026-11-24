@@ -90,7 +90,7 @@ function Panel({ sid, role, superMode }) {
   const setW = (p, v) => { const last = hist.current[hist.current.length - 1]; if (!(last && last.p === p && Date.now() - last.t < 4000)) { hist.current.push({ p, old: getp(st, p), t: Date.now() }); if (hist.current.length > 40) hist.current.shift(); setHn(hist.current.length); } else last.t = Date.now(); return write(p, v); };
   const undo = () => { const h = hist.current.pop(); setHn(hist.current.length); if (h) write(h.p, h.old); };
   const ctx = { sid, syn, st, cols, role, feat, screens, set: setW, track };
-  const online = screens.filter((s) => s.lastSeen?.toMillis && Date.now() - s.lastSeen.toMillis() < 100000);
+  const online = screens.filter((s) => s.lastSeen?.toMillis && Date.now() - s.lastSeen.toMillis() < 4 * 60000); // the TV beats once every 3 minutes
   const left0 = plan.validUntil ? Math.ceil((new Date(plan.validUntil) - Date.now()) / 864e5) : null, left = Number.isFinite(left0) ? left0 : null;
   const sub = role === 'sub_gabbai';
   return (

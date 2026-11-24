@@ -268,13 +268,25 @@ function Inner({ syn, cols, screenId, now, size, status, preview, diag, authErr 
   useEffect(() => { if (yzPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, yz: p.yz + 1 })), cf('mem').secs * 1000); return () => clearInterval(t); }, [yzPages, cf('mem').secs]); // eslint-disable-line
   useEffect(() => { if (rfPages < 2) return; const t = setInterval(() => setPg((p) => ({ ...p, rf: p.rf + 1 })), cf('rf').secs * 1000); return () => clearInterval(t); }, [rfPages, cf('rf').secs]); // eslint-disable-line
 
-  /* ----- heartbeat for the admin "screen health" indicator ----- */
-  const showing = cur ? (cur.a?.title || cur.l?.title || cur.m?.name || cur.row?.name || cur.t || (cur.k === 'r' ? 'רפואה שלמה' : cur.k === 'tall' ? 'זמני תפילות' : cur.k === 'ls' ? 'שיעורים ותהילים' : cur.k === 'ps' ? 'תהילים יומי' : 'פרשה')) : '—';
+  /* ----- heartbeat for the admin "screen health" indicator -----
+     The TV writes ONLY on a real state change (mount / the slide list changed) and once every 3 minutes,
+     never on every slide. It publishes the whole cycle (titles + seconds) and the moment it started, so the
+     admin works out what is on screen right now from its own clock, with no extra write. */
+  const labelOf = (s) => (s ? s.a?.title || s.l?.title || s.m?.name || s.row?.name || s.t || (s.k === 'r' ? 'רפואה שלמה' : s.k === 'tall' ? 'זמני תפילות' : s.k === 'ls' ? 'שיעורים ותהילים' : s.k === 'ps' ? 'תהילים יומי' : 'פרשה') : '—');
+  const showing = labelOf(cur);
+  const cycle = slides.map((s) => ({ t: String(labelOf(s)).slice(0, 60), d: Math.max(1, Math.min(300, +s?.dur || 10)) }));
+  const cycleSig = cycle.map((c) => c.t + ':' + c.d).join('|');
+  const liveRef = useRef({ showing, cycle });
+  liveRef.current = { showing, cycle };
   useEffect(() => {
     if (preview) return;
-    const beat = () => !navigator.onLine || syn.id === 'demo' || setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing, index: Math.max(0, SCREENS.indexOf(screenId)) }, { merge: true }).catch(() => {});
-    beat(); const t = setInterval(beat, 15000); return () => clearInterval(t);
-  }, [syn.id, screenId, showing]);
+    const beat = (fresh) => { // fresh = the cycle itself changed, so republish it and restart the clock
+      if (!navigator.onLine || syn.id === 'demo') return; // offline: skip the write entirely, never queue it for later
+      const { showing: sh, cycle: cy } = liveRef.current;
+      setDoc(doc(db, 'synagogues', syn.id, 'screens', screenId), { lastSeen: serverTimestamp(), showing: sh, index: Math.max(0, SCREENS.indexOf(screenId)), ...(fresh ? { cycle: cy, cycleAt: serverTimestamp() } : {}) }, { merge: true }).catch(() => {});
+    };
+    beat(true); const t = setInterval(() => beat(false), 180000); return () => clearInterval(t);
+  }, [syn.id, screenId, cycleSig]); // eslint-disable-line  -- deliberately NOT `showing`: a slide change must not cost a write
 
   /* ----- slide content ----- */
   let mid = null, full = null, popup = null;
