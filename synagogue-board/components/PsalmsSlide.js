@@ -14,8 +14,7 @@ export default function PsalmsFullscreenSlide({ page, dedication, dots, source =
     addEventListener('resize', run); return () => removeEventListener('resize', run);
   }, [key, unit, scale]); // eslint-disable-line
   if (!page) return null;
-  const L = page.v.reduce((n, [, t]) => n + t.replace(/[֑-ׇ]/g, '').length, 0);
-  const f = 4.4.toFixed(2); // font size in cqh by amount of text
+  const f = 4.4.toFixed(2); // base font size (cqh); the effect above shrinks it until the page fits
   return (
     <div className="dhf psf" dir="rtl" ref={box}>
       <em>✦ תהילים ✦</em>

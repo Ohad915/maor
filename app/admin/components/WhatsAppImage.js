@@ -463,7 +463,7 @@ export default function WhatsAppImage({ syn, cols, st, set }) {
     const text = `${d.name}${d.parsha ? ' · ' + d.parsha : ''}`;
     const file = new File([await (await fetch(png)).blob()], 'times.png', { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], text, title: d.name }); return; } catch (e) { if (e.name === 'AbortError') return; } }
-    download(); window.open(st.waLink || `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    download(); window.open(/^https:\/\//i.test(String(st.waLink || '').trim()) ? String(st.waLink).trim() : `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     setMsg('התמונה ירדה למכשיר. צרפו אותה בקבוצת הווטסאפ שנפתחה.');
   }
   return (

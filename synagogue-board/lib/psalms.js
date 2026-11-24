@@ -1,9 +1,10 @@
 import { HDate } from '@hebcal/core';
 import PSALMS from './psalms.json'; // 150 chapters, full niqqud (Westminster Leningrad Codex via Open Scriptures Hebrew Bible, CC BY 4.0); bundled -> works offline
-import { gem, nowAbs } from './hebrew';
+import { gem } from './hebrew';
+import { DEFAULT_SETTINGS } from './types';
 
-export const PSALMS_TEXT = PSALMS;
-export const PS_DEFAULT = { on: false, mode: 'auto', manualChapter: 1, dedicationText: '', duration: 15, customTitle: '', customText: '', screen: 'all', show: 'full', pace: 'chapter', every: 1 };
+/** Single source of truth: the same object the display falls back to (settings.psalmsConfig). */
+export const PS_DEFAULT = DEFAULT_SETTINGS.psalmsConfig;
 /** traditional monthly cycle: [from, to] chapter per Hebrew day of the month (1-30); 119 is split in two (days 25/26) */
 const CYCLE = [[1, 9], [10, 17], [18, 22], [23, 28], [29, 34], [35, 38], [39, 43], [44, 48], [49, 54], [55, 59], [60, 65], [66, 68], [69, 71], [72, 76], [77, 78], [79, 82], [83, 87], [88, 89], [90, 96], [97, 103], [104, 105], [106, 107], [108, 112], [113, 118], [119, 119, 1], [119, 119, 2], [120, 134], [135, 139], [140, 144], [145, 150]];
 const hadar = (n) => 'פרק ' + gem(n);

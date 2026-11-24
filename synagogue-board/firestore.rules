@@ -2,6 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /* ------------------------------------------------------------------ *
+     *  מאור – Firestore security rules
+     *  Deploy: Firebase Console > Firestore Database > Rules > Publish
+     *  Everything not matched below is DENIED by default.
+     * ------------------------------------------------------------------ */
+
+    /* ---------- identity ---------- */
     function signedIn() { return request.auth != null; }
     function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function hasUser() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
@@ -10,57 +17,99 @@ service cloud.firestore {
     // approved gabbai / sub-gabbai whose synagogueId matches the path
     function isMember(sid) { return approved() && userDoc().synagogueId == sid && userDoc().role in ['gabbai', 'sub_gabbai']; }
     function isGabbai(sid) { return isMember(sid) && userDoc().role == 'gabbai'; }
-    // public TV screens sign in anonymously
+    function isSubGabbai(sid) { return isMember(sid) && userDoc().role == 'sub_gabbai'; }
+    // public TV screens sign in anonymously: READ ONLY, and only inside the synagogue they were opened with
     function isScreen() { return signedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous'; }
-    function plan(sid) { return get(/databases/$(database)/documents/synagogues/$(sid)).data.plan; }
+
+    /* ---------- plan / subscription (missing fields fall back to safe defaults) ---------- */
+    function synDoc(sid) { return get(/databases/$(database)/documents/synagogues/$(sid)).data; }
+    function planOf(sid) { return synDoc(sid).get('plan', {}); }
+    function maxScreens(sid) { return planOf(sid).get('maxScreens', 1); }
     // writes are blocked for expired subscriptions and for frozen (suspended) synagogues; super admin bypasses this
-    function subscriptionOk(sid) { return plan(sid).subscriptionStatus != 'expired' && get(/databases/$(database)/documents/synagogues/$(sid)).data.get('suspended', false) == false; }
+    function subscriptionOk(sid) {
+      return planOf(sid).get('subscriptionStatus', 'trial') != 'expired'
+        && synDoc(sid).get('suspended', false) == false;
+    }
+
+    /* ---------- sub-collection groups – keep in sync with lib/types.js ---------- */
+    // DISPLAY_COLS: everything the TV shows. Readable by the synagogue's screens, never writable by them.
+    function isContentCol(col) {
+      return col in ['announcements', 'memorials', 'refuah', 'sponsors', 'halacha', 'prayers', 'overrides', 'lessons'];
+    }
+    // money / members / maintenance / private config: NEVER readable by a display client, main gabbai only.
+    function isPrivateCol(col) {
+      return col in ['members', 'receipts', 'donations', 'tickets', 'inventory', 'expenses', 'private'];
+    }
+    // A sub-gabbai only ever sees the content tab in /admin, so he may edit the TV content and nothing else.
+    // To go back to "announcements only", change the body to:  return col == 'announcements';
+    function subGabbaiMayWrite(col) { return isContentCol(col); }
 
     match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isSuper());
+      // a user reads only his own profile; only the super admin may list the collection
+      allow get: if signedIn() && (request.auth.uid == uid || isSuper());
+      allow list: if isSuper();
       // self-registration: always pending, no synagogue yet, never a super admin
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['uid', 'email', 'role', 'status', 'synagogueId', 'phone', 'createdAt'])
+        && request.resource.data.uid == uid
         && request.resource.data.email is string && request.resource.data.email.size() < 200
         && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() < 30))
         && request.resource.data.role == 'gabbai'
         && request.resource.data.status == 'pending'
         && request.resource.data.synagogueId == null;
+      // role / status / synagogueId are granted by the super admin or by the server (Admin SDK), never by the client
       allow update, delete: if isSuper();
     }
 
     // join codes: a main gabbai creates/rotates the code of his synagogue; the server (Admin SDK) is the only one that redeems it
     match /joinCodes/{code} {
       allow read: if isSuper() || (hasUser() && isGabbai(resource.data.sid));
-      allow create: if isGabbai(request.resource.data.sid) && request.resource.data.keys().hasOnly(['sid', 'createdAt']) && code.matches('[A-Z0-9]{6,20}');
+      allow create: if isGabbai(request.resource.data.sid)
+        && request.resource.data.keys().hasOnly(['sid', 'createdAt'])
+        && code.matches('[A-Z0-9]{6,20}');
       allow delete: if isSuper() || isGabbai(resource.data.sid);
       allow update: if false;
     }
 
     match /synagogues/{sid} {
-      allow read: if isSuper() || isMember(sid) || isScreen();
+      // a screen reads the ONE synagogue whose id is in its URL; it may not enumerate the collection
+      allow get: if isSuper() || isMember(sid) || isScreen();
+      allow list: if isSuper();
       allow create, delete: if isSuper();
-      // main gabbai may edit everything except the subscription plan
+      // main gabbai may edit everything except the subscription plan and the ownership stamps
       allow update: if isSuper() || (isGabbai(sid) && subscriptionOk(sid)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'suspended', 'planTier', 'maxScreens', 'features', 'subscriptionStatus', 'validUntil']));
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+             'plan', 'suspended', 'planTier', 'maxScreens', 'features', 'subscriptionStatus', 'validUntil',
+             'createdAt', 'createdBy']));
 
-      // collections shown on the TV
+      /* Every sub-collection used by the app (one level deep; anything deeper is denied by default).
+         An unknown collection name matches no group, so it can be neither read nor written. */
       match /{col}/{id} {
-        allow read: if isSuper() || isMember(sid)
-          || (isScreen() && col in ['announcements', 'memorials', 'refuah', 'sponsors', 'halacha', 'prayers', 'overrides', 'lessons']);
-        // sub-gabbai: announcements only; gabbai: everything
-        allow write: if isSuper() || (subscriptionOk(sid)
-          && (isGabbai(sid) || (col == 'announcements' && isMember(sid))));
+        allow read: if isSuper()
+          || (isContentCol(col) && (isMember(sid) || isScreen()))
+          || (isPrivateCol(col) && isGabbai(sid))
+          || (col == 'screens' && isMember(sid));
+        allow write: if isSuper()
+          || (subscriptionOk(sid) && (
+                (isGabbai(sid) && (isContentCol(col) || isPrivateCol(col) || col == 'screens'))
+             || (isSubGabbai(sid) && subGabbaiMayWrite(col))
+          ));
       }
 
-      // screen heartbeat: screen index must be inside the plan's maxScreens
+      /* Screen heartbeat: an anonymous TV may only stamp its own fixed-name doc, with server time,
+         three known fields, and a screen index inside the plan's maxScreens. */
       match /screens/{screenId} {
         allow read: if isSuper() || isMember(sid);
         allow create, update: if isSuper() || (isScreen()
           && screenId in ['main-hall', 'women', 'lobby', 'beit-midrash']
           && request.resource.data.keys().hasOnly(['lastSeen', 'showing', 'index'])
+          && request.resource.data.lastSeen == request.time
           && request.resource.data.index is int
-          && request.resource.data.index < plan(sid).maxScreens);
+          && request.resource.data.index >= 0
+          && request.resource.data.index < maxScreens(sid)
+          && (!('showing' in request.resource.data)
+              || (request.resource.data.showing is string && request.resource.data.showing.size() <= 300)));
+        allow delete: if isSuper() || isGabbai(sid);
       }
     }
   }

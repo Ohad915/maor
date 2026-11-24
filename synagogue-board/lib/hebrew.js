@@ -23,11 +23,13 @@ const civil = (d) => {
 };
 export const rdOf = (date, add = 0) => { const c = civil(date); return Math.floor(Date.UTC(c.y, c.m, c.d + add) / 864e5) + 719163; };
 
+/** hebcal month number -> our month key ('Adar' / 'Adar I' / 'Adar II' by leap year). */
+const monthKeyOf = (hd) => { const m = hd.getMonth(); return m === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : m === 13 ? 'Adar II' : (MONTHS.find((x) => x[2] === m) || ['Tishrei'])[0]; };
+
 /** Current Hebrew date; after sunset the Hebrew day advances. */
 export function hebOf(date, afterSunset) {
-  const hd = new HDate(rdOf(date, afterSunset ? 1 : 0)), m = hd.getMonth();
-  const raw = m === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : m === 13 ? 'Adar II' : (MONTHS.find((x) => x[2] === m) || ['Tishrei'])[0];
-  return { d: hd.getDate(), raw, y: hd.getFullYear(), hd };
+  const hd = new HDate(rdOf(date, afterSunset ? 1 : 0));
+  return { d: hd.getDate(), raw: monthKeyOf(hd), y: hd.getFullYear(), hd };
 }
 export const hmatch = (k, h) => k === h.raw || (k === 'Adar' && h.raw === 'Adar II') || (k === 'Adar II' && h.raw === 'Adar') || (k === 'Adar I' && h.raw === 'Adar');
 
@@ -57,7 +59,7 @@ export function resolveSpan(f, t, h) {
 export const refuahOn = (r, h) => r.active !== false && (!r.hs || (nowAbs(h) >= r.hs && nowAbs(h) <= r.he));
 export const memOn = (m, h) => m.active !== false && (m.mode === 'p' ? true : m.mode === 't' ? !m.hs || (nowAbs(h) >= m.hs && nowAbs(h) <= m.he) : m.mode === 'r' ? !!(m.from && m.to) && inRange(m.from, m.to, h) : m.d === h.d && hmatch(m.month, h));
 /** Hebrew day/month of an absolute day number */
-export function hebFromAbs(abs) { const hd = new HDate(abs), mo = hd.getMonth(); return { d: hd.getDate(), m: mo === 12 ? (hd.isLeapYear() ? 'Adar I' : 'Adar') : mo === 13 ? 'Adar II' : (MONTHS.find((x) => x[2] === mo) || ['Tishrei'])[0], y: hd.getFullYear() }; }
+export function hebFromAbs(abs) { const hd = new HDate(abs); return { d: hd.getDate(), m: monthKeyOf(hd), y: hd.getFullYear() }; }
 /** Shared "time type" of dedications (memorial / refuah / sponsor): fixed = never expires, otherwise a span in absolute days */
 export function spanOf(f, h) {
   const n = nowAbs(h);
