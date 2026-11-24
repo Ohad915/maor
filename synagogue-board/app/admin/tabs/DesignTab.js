@@ -77,7 +77,7 @@ export default function DesignTab({ ctx: { sid, st, set, syn, cols, feat } }) {
       <Switch label="מונה שניות בולט על שקופית הקרוסלה (בנוסף לפס ההתקדמות)" on={st.cdn !== false} onChange={(v) => set('cdn', v)} />
       {VB.map(([k, l]) => <Switch key={k} label={k === 'tk' && !feat('runningTicker') ? l + ' 🔒 (חבילת PRO)' : k === 'tk' && !st.tkText ? l + ' – הזינו טקסט ב״תוכן המסך › הודעות״' : l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}
     </Card>
-    <Card fold title={`👁 רכיבי תוכן גלויים · ${shown} מתוך ${V.length} מוצגים`}><div className="mu">הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
+    <Card fold title={`👁 רכיבי תוכן גלויים · ${shown} מתוך ${V.length} מוצגים`}><div className="mu">הרכיב מוצג בכל ערכת נושא ובכל דגם. הוא נעלם רק אם כיבית אותו כאן.</div>{VC.map(([k, l]) => <Switch key={k} label={k === 'qr' && !(st.payUrl || st.donTitle || st.donSub) ? l + ' – הוסיפו קישור תרומות ב״גבייה וחברים״ כדי שהפינה תוצג' : l} on={st.vis?.[k] !== false} onChange={(v) => set(`vis.${k}`, v)} />)}</Card>
     <CompStyles st={st} set={set} />
     <Card fold title="📐 גודל עמודות הצד">
       <div className="mu">משפיע חי על המסך. הרוחב משנה את עמודת ההנצחות/רפואה שלמה והפאנל המרכזי מתאים את עצמו. למידות של קובייה בודדת – ״התאמה אישית לפי קובייה״.</div>
